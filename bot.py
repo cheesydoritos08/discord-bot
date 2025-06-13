@@ -27,7 +27,7 @@ intents.members = True
 intents.message_content = True
 
 # Creates a variable to reference the bot and sets the prefix and intent permissions
-bot = commands.Bot(command_prefix='?', intents=intents, help_command=None)
+bot = commands.Bot(command_prefix='?', activity=discord.Activity(type=discord.ActivityType.watching, name="Type ?tut to start!"), intents=intents, help_command=None)
 bot.remove_command('help')
 
 # Catches when the bot goes online
@@ -59,6 +59,7 @@ def resume_timers():
 
 # Loads the cogs in the cog directory on startup
 async def on_startup_load():
+    
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py'):
             await bot.load_extension(f'cogs.{filename[:-3]}')
@@ -69,8 +70,10 @@ async def main():
     async with bot:
         await on_startup_load()
         resume_timers()
+
         try:
             await bot.start(TOKEN)
+
         except discord.errors.HTTPException as e:
             if e.status == 429:
                 retry_after = e.response.headers.get("Retry-After", 60)
