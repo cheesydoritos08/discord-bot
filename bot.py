@@ -1,10 +1,10 @@
 import discord
 import os
 import asyncio
+
 import handlers.database_handler as database_handler
-import logging
 import time
-import handlers.discord_log_handler as discord_log_handler
+from utils.utility_functions import send_error_embed
 from utils.timer import Timer
 from dotenv import load_dotenv
 from discord.ext import commands
@@ -21,16 +21,6 @@ TOKEN: str = (
 # webhook to discord channel where errors will be sent to
 INFO_WEBHOOK = os.getenv('DISCORD_WEBHOOK')
 
-# Creates a logger to my discord channel
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-info_handler = discord_log_handler.DiscordWebhookHandler(INFO_WEBHOOK, level=logging.ERROR)
-info_handler.setFormatter(formatter)
-
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.WARNING)  # this controls global logging minimum
-root_logger.addHandler(info_handler)
-
 # Set the permissions for the intents and the discord bot
 intents = discord.client.Intents.default()
 intents.members = True
@@ -43,13 +33,11 @@ bot.remove_command('help')
 # Catches when the bot goes online
 @bot.event
 async def on_ready():
-    root_logger.error(f'{bot.user} is starting up.... Please ignore')
     print(f'{bot.user} is ready!')
 
 
 @bot.event
 async def on_resumed():
-    root_logger.error(f"{bot.user} is resuming session.... Please ignore")
     resume_timers()
 
 # Resumes all current running timers
@@ -86,15 +74,9 @@ async def main():
         except discord.errors.HTTPException as e:
             if e.status == 429:
                 retry_after = e.response.headers.get("Retry-After", 60)
-                root_logger.error(f"The bot has been ratelimited. Retrying in {retry_after} seconds.")
                 await asyncio.sleep(retry_after)
-
             else:
-                root_logger.error(f"Error while loading bot: {e}")
+               await send_error_embed(bot=bot, error=e, ctx=None)
         except Exception as e:
-            root_logger.error(f"Error while loading bot: {e}")
-        finally:
-            await info_handler.close()
-
-
+            await send_error_embed(bot=bot, error=e, ctx=None)
 asyncio.run(main())

@@ -2,7 +2,7 @@ import discord
 import handlers.database_handler as database_handler
 import random
 import asyncio
-from utils.utility_functions import cooldown_calculator, update_quests
+from utils.utility_functions import cooldown_calculator, update_quests, send_error_embed
 from utils.buttons import CharacterButton, ShardInventoryButton
 from utils.converters import InventoryConverter
 from discord.ext import commands
@@ -466,7 +466,7 @@ class User_Collection(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            raise error
+            await send_error_embed(bot=self.bot, ctx=ctx, error=error)
 
 async def setup(bot):
     await bot.add_cog(User_Collection(bot))

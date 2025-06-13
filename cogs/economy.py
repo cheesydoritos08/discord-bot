@@ -4,7 +4,7 @@ import asyncio
 import handlers.database_handler as database_handler
 from utils.buttons import ShopButtons
 from utils.converters import BuySellConverter, TradeArgumentConverter
-from utils.utility_functions import cooldown_calculator, check_boosts, update_quests
+from utils.utility_functions import cooldown_calculator, check_boosts, update_quests, send_error_embed
 from utils.timer import Timer
 import time
 import handlers.trade_handler as trade_handler
@@ -28,6 +28,7 @@ class Economy(commands.Cog):
         # Stores the user and user profile into a variable
         user = ctx.message.author
 
+
         # Checks to see if the user has a profile or not
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=user.id):
             return
@@ -43,8 +44,10 @@ class Economy(commands.Cog):
             description=f'Balance: ¥{balance}',
             color=discord.Color.dark_green(),
         )
-
+        
         await ctx.send(embed=embed)
+
+
 
     # Daily command with a one day cooldown
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
@@ -461,11 +464,11 @@ class Economy(commands.Cog):
     @trade.error
     @sell_item.error
     @buy_item.error
-    @display_shop.error
-    @balance.error
     @coinflip.error
-    @daily.error
     @high_or_low.error
+    @display_shop.error
+    @daily.error
+    @balance.error
     async def cooldown_error(self, ctx, error):
         # Sends a cooldown message if command is reused when on cooldown
         if isinstance(error, commands.CommandOnCooldown):
@@ -485,7 +488,7 @@ class Economy(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            raise error
+            await send_error_embed(bot=self.bot, ctx=ctx, error=error)
 
 async def setup(bot):
     await bot.add_cog(Economy(bot))

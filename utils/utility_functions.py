@@ -1,4 +1,5 @@
-import handlers.database_handler as database_handler  
+import handlers.database_handler as database_handler 
+import discord 
 
 def check_boosts(user_id, type):
     multiplier = 1
@@ -73,10 +74,21 @@ def update_quests(user_id, quest_id, amount):
             database_handler.add_item(user_id=user_id, item="limited_ticket")
             database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.limited_ticket.amount", value=4)
 
+async def send_error_embed(bot, error, ctx=None):
+    server = discord.utils.get(bot.guilds, id=1366943308659822743)
+    report = discord.utils.get(server.text_channels, id=1375623174447956029)
+    
+    if ctx is not None:
+        embed = discord.Embed(title="An error occured",
+                                    description=f"**Error:** \n{error}",
+                                    timestamp=ctx.message.created_at,
+                                    color=discord.Color.red())
+    else:
+         embed = discord.Embed(title="An error occured at startup",
+                                    description=f"**Error:** \n{error}",
+                                    color=discord.Color.red())   
             
-        
-
-
+    await report.send(embed=embed)
             
 
             

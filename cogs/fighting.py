@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import asyncio
-from utils.utility_functions import cooldown_calculator
+from utils.utility_functions import cooldown_calculator, send_error_embed
 import handlers.database_handler as database_handler
 import handlers.fight_handler as fight_handler
 import handlers.raid_handler as raid_handler
@@ -277,8 +277,8 @@ class Fighting(commands.Cog):
     @view_team.error
     @remove_from_team.error
     @add_to_team.error
-    @raid.error
     @challenge.error
+    @raid.error
     async def cooldown_error(self, ctx, error):
         # Sends a cooldown message if command is reused when on cooldown
         if isinstance(error, commands.CommandOnCooldown):
@@ -298,7 +298,7 @@ class Fighting(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            raise error
+            await send_error_embed(bot=self.bot, ctx=ctx, error=error)
         
 async def setup(bot):
     await bot.add_cog(Fighting(bot))
