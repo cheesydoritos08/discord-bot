@@ -2,6 +2,8 @@
 
 Created a silly little bot for the community I'm in. Quick disclaimer, I am NOT an expert at coding and a lot of the code is probably inefficient or not best practice so please take my coding with a grain of salt. If you want to learn more about it, keep reading!
 
+Bot Invite: https://discord.com/oauth2/authorize?client_id=1371573491391922278&scope=bot+applications.commands&permissions=414464691264
+
 The Lookism Bot is a character collection bot that allows you to collect your favorite characters and level them up to become stronger and fight your friends and other users of the bot! The main features are:
 
 ‣ Buying items from the shop: Use the ?shop command to view the shop and checkout all the items you can buy. The most important ones are the standard and limited time banner tickets which allow you to roll for new characters but other items such as XP and yen boosters can be bought from the shop as well.
