@@ -2,6 +2,7 @@ import time
 import asyncio
 import handlers.database_handler as database_handler
 import discord
+import os
 from discord.ext import commands
 from utils.converters import InventoryConverter, UseChipConverter
 from utils.buttons import InviteButton
@@ -12,9 +13,18 @@ import random
 import topgg
 
 
+TOKEN: str = (
+    os.getenv('DEV_BOT_TOKEN') if os.getenv('ENV') == 'dev' else os.getenv('MAIN_BOT_TOKEN')
+)
+AUTHORIZATION_CODE = os.getenv("WEBHOOK_AUTHORIZATION")
+
+
 class Utilites(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+        bot.topgg_webhook = topgg.WebhookManager(bot=self.bot).dbl_webhook("/dblwebhook", AUTHORIZATION_CODE)
+        bot.topgg_webhook.run(25869)
 
     # Allows users to use xp and yen boosts
     @commands.command(name="boost")
@@ -145,7 +155,6 @@ class Utilites(commands.Cog):
         embed.set_footer(text=f"Vote Streak: {user_profile.get("vote_streak")}")
         
         await ctx.send(view=view, embed=embed)
-        await topgg.DBLClient().autopost()
         
         # Checks to see if they have a vote timer ongoingg
         # sends an embed linking website and telling user to vote
@@ -182,6 +191,7 @@ class Utilites(commands.Cog):
     @commands.Cog.listener()
     async def on_dbl_vote(self, data):
         try:
+            print("i ran ig")
             if database_handler.users.find_one({"id": data["user"]}) is None:
                 return
             
@@ -257,6 +267,11 @@ class Utilites(commands.Cog):
             print(data)
         except Exception as e:
             create_error_embed(error=e)
+
+    @commands.Cog.listener()
+    async def on_dbl_test(self, data):
+        print("i too ran")
+        return self.bot.dispatch('dbl_vote', data)
 
 async def setup(bot):
     await bot.add_cog(Utilites(bot))
