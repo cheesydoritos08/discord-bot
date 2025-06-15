@@ -173,7 +173,7 @@ class TutorialButton(discord.ui.View):
     def __init__(self, *, timeout=60):
         super().__init__(timeout=timeout)
         self.index = 0
-        self.button = discord.ui.Button(label="Join the bot's official server!", style=discord.ButtonStyle.url, url="https://discord.gg/pfc6g5fq8b")
+        self.button = discord.ui.Button(label="Join the bot's official server!", style=discord.ButtonStyle.url, url="https://discord.gg/EaaF8aMCxG")
 
         # Stores all the messages the tutorial will cycle through
         self.titles = [
@@ -296,7 +296,7 @@ class FighterButton(discord.ui.Button):
 class InviteButton(discord.ui.View):
     def __init__(self, *, timeout = 10):
         super().__init__(timeout=timeout)
-        server_button = discord.ui.Button(label="Join the bot's official server!", style=discord.ButtonStyle.url, url="https://discord.gg/pfc6g5fq8b")
+        server_button = discord.ui.Button(label="Join the bot's official server!", style=discord.ButtonStyle.url, url="https://discord.gg/EaaF8aMCxG")
         invite_button = discord.ui.Button(label='Invite the bot!', style=discord.ButtonStyle.url, url="https://discord.com/oauth2/authorize?client_id=1371573491391922278&scope=bot+applications.commands&permissions=414464691264")
 
         self.add_item(server_button)

@@ -4,7 +4,7 @@ import asyncio
 import handlers.database_handler as database_handler
 from utils.buttons import ShopButtons
 from utils.converters import BuySellConverter, TradeArgumentConverter
-from utils.utility_functions import cooldown_calculator, check_boosts, update_quests, send_error_embed
+from utils.utility_functions import cooldown_calculator, check_boosts, update_quests, create_error_embed
 from utils.timer import Timer
 import time
 import handlers.trade_handler as trade_handler
@@ -488,7 +488,7 @@ class Economy(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            await send_error_embed(bot=self.bot, ctx=ctx, error=error)
+            await create_error_embed(ctx=ctx, error=error)
 
 async def setup(bot):
     await bot.add_cog(Economy(bot))

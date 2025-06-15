@@ -4,7 +4,7 @@ import asyncio
 
 import handlers.database_handler as database_handler
 import time
-from utils.utility_functions import send_error_embed
+from utils.utility_functions import create_error_embed, log_error_embed
 from utils.timer import Timer
 from dotenv import load_dotenv
 from discord.ext import commands
@@ -68,6 +68,7 @@ async def on_startup_load():
 # Loads the bot
 async def main():
     async with bot:
+        log_error_embed.start(bot)
         await on_startup_load()
         resume_timers()
 
@@ -79,7 +80,7 @@ async def main():
                 retry_after = e.response.headers.get("Retry-After", 60)
                 await asyncio.sleep(retry_after)
             else:
-               await send_error_embed(bot=bot, error=e, ctx=None)
+               await create_error_embed(error=e, ctx=None)
         except Exception as e:
-            await send_error_embed(bot=bot, error=e, ctx=None)
+            await create_error_embed(error=e, ctx=None)
 asyncio.run(main())

@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import asyncio
-from utils.utility_functions import cooldown_calculator, send_error_embed
+from utils.utility_functions import cooldown_calculator, create_error_embed
 import handlers.database_handler as database_handler
 import handlers.fight_handler as fight_handler
 import handlers.raid_handler as raid_handler
@@ -298,7 +298,7 @@ class Fighting(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            await send_error_embed(bot=self.bot, ctx=ctx, error=error)
+            await create_error_embed(ctx=ctx, error=error)
         
 async def setup(bot):
     await bot.add_cog(Fighting(bot))

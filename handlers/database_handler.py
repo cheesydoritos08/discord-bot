@@ -13,6 +13,7 @@ users = db['users']
 all_characters = db['all_characters']
 items = db['items']
 quests = db['quests']
+errors = db['errors']
 
 
 # Creates a new profile for the specified user_id

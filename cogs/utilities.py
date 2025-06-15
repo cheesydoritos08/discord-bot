@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 from utils.converters import InventoryConverter, UseChipConverter
 from utils.buttons import InviteButton
-from utils.utility_functions import update_quests, cooldown_calculator, send_error_embed
+from utils.utility_functions import update_quests, cooldown_calculator, create_error_embed
 from utils.timer import Timer
 
 
@@ -146,7 +146,7 @@ class Utilites(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            send_error_embed(bot=self.bot, ctx=ctx, error=error)
+            create_error_embed(ctx=ctx, error=error)
             
 
 async def setup(bot):

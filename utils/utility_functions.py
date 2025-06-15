@@ -1,5 +1,8 @@
+from discord.ext import tasks
 import handlers.database_handler as database_handler 
 import discord 
+import datetime
+
 
 def check_boosts(user_id, type):
     multiplier = 1
@@ -74,28 +77,66 @@ def update_quests(user_id, quest_id, amount):
             database_handler.add_item(user_id=user_id, item="limited_ticket")
             database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.limited_ticket.amount", value=4)
 
-async def send_error_embed(bot, error, ctx=None):
-    server = discord.utils.get(bot.guilds, id=1366943308659822743)
-    report = discord.utils.get(server.text_channels, id=1375623174447956029)
+
+
+@tasks.loop(seconds=5.0, reconnect=True)
+async def log_error_embed(bot):
+    try:
+        error_list = []
+        for error in database_handler.errors.find({}).limit(3):
+            error_list.append(error)
+
+        if not error_list:
+            return
+        
+        server = discord.utils.get(bot.guilds, id=1382922154957344838)
+        report = discord.utils.get(server.text_channels, id=1382924705941553152)
+
+        error = error_list[0]
+
+        if error["initial_embed"]["timestamp"] != "":
+            embed = discord.Embed(title=error["initial_embed"]["title"],
+                                description=error["initial_embed"]["description"],
+                                timestamp=error["initial_embed"]["timestamp"],
+                                color=discord.Color.red())
+            
+            embed.add_field(name="Additional Info:",
+                            value=error["additional_info"]["value"])
+        else:
+            embed = discord.Embed(title=error["initial_embed"]["title"],
+                                description=error["initial_embed"]["description"],
+                                color=discord.Color.red()
+                            )
+            embed.add_field(name="Additional Info:",
+                            value="This most likely occured on startup/resume")
+
+        await report.send(embed=embed)    
+
+        database_handler.errors.delete_one({"_id": error["_id"]})
+    except Exception as e:
+        print(e)
+
+
+
+def create_error_embed(error, ctx=None):
+    error_message = {
+        "initial_embed": {
+            "title": "An error occured",
+            "description": f"**Error:** \n{error}",
+            "timestamp": ""
+        },
+        "additional_info": {
+            "value": ""
+        }
+    }
+    try:
+        if ctx is not None:
+            error_message["additional_info"]["value"] = f"User: {ctx.author}\nChannel Sent in: {ctx.channel}\nMessage Sent: {ctx.message.content}\n Guild: {ctx.guild}\n Command Name: {ctx.invoked_with}"
+            error_message["initial_embed"]["timestamp"] = datetime.datetime.fromtimestamp(ctx.message.created_at.timestamp())
+    except Exception as e:
+        print(e)
     
-    if ctx is not None:
-        embed = discord.Embed(title="An error occured",
-                                    description=f"**Error:** \n{error}",
-                                    timestamp=ctx.message.created_at,
-                                    color=discord.Color.red())
-    else:
-         embed = discord.Embed(title="An error occured at startup",
-                                    description=f"**Error:** \n{error}",
-                                    color=discord.Color.red())   
-            
-    await report.send(embed=embed)
+    database_handler.errors.insert_one(error_message)
             
 
             
-
-
-
-
-
-# Give users 1000 yen and 2 standard tickets for completing a quest, if the user completes all three quests, give user
-# 5 limited banner tickets also create embed for daily quests

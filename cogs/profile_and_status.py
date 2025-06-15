@@ -3,7 +3,7 @@ import asyncio
 import random
 import time
 import handlers.database_handler as database_handler
-from utils.utility_functions import cooldown_calculator, send_error_embed
+from utils.utility_functions import cooldown_calculator, create_error_embed
 from utils.timer import Timer
 from utils.buttons import CharacterButton, ShardInventoryButton
 from discord.ext import commands
@@ -169,7 +169,7 @@ class Profile_and_Status(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            await send_error_embed(bot=self.bot, ctx=ctx, error=error)
+            await create_error_embed(ctx=ctx, error=error)
         
 async def setup(bot):
     await bot.add_cog(Profile_and_Status(bot))
