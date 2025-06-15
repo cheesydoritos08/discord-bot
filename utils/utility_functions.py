@@ -137,6 +137,10 @@ def create_error_embed(error, ctx=None):
         print(e)
     
     database_handler.errors.insert_one(error_message)
+
+
+
+
             
 
             

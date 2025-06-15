@@ -35,7 +35,6 @@ bot.remove_command('help')
 async def on_ready():
     print(f'{bot.user} is ready!')
 
-
 @bot.event
 async def on_resumed():
     resume_timers()
@@ -59,7 +58,6 @@ def resume_timers():
 
 # Loads the cogs in the cog directory on startup
 async def on_startup_load():
-    
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py'):
             await bot.load_extension(f'cogs.{filename[:-3]}')
@@ -74,6 +72,7 @@ async def main():
 
         try:
             await bot.start(TOKEN)
+
 
         except discord.errors.HTTPException as e:
             if e.status == 429:
