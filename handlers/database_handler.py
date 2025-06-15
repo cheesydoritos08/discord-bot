@@ -45,6 +45,10 @@ def create_new_profile(user_id):
         'threshold_four_characters': 0,
         'pity': 0,
         'team': [],
+        'vote': {
+            'vote_streak': 0,
+            'last_vote_time': 0
+        },
         'in_challenge': False,
         'in_trade': False,
         'in_raid': False,

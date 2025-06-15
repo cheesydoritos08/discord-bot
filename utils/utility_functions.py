@@ -108,7 +108,7 @@ async def log_error_embed(bot):
                                 color=discord.Color.red()
                             )
             embed.add_field(name="Additional Info:",
-                            value="This most likely occured on startup/resume")
+                            value="This most likely occured on startup/resume or from voting")
 
         await report.send(embed=embed)    
 

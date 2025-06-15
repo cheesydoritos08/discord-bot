@@ -47,8 +47,6 @@ class Economy(commands.Cog):
         
         await ctx.send(embed=embed)
 
-
-
     # Daily command with a one day cooldown
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     @commands.command(help="This command allows you to collect a reward every 24 hours! For every day you collect your reward, your streak increases. The longer your streak, the more rewards you get daily!")

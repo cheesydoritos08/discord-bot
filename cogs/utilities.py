@@ -7,6 +7,9 @@ from utils.converters import InventoryConverter, UseChipConverter
 from utils.buttons import InviteButton
 from utils.utility_functions import update_quests, cooldown_calculator, create_error_embed
 from utils.timer import Timer
+import datetime
+import random
+import topgg
 
 
 class Utilites(commands.Cog):
@@ -122,7 +125,34 @@ class Utilites(commands.Cog):
                               description="Join the bot's official server if you have any questions or if you want to report a bug! Users who report bugs will be granted a reward when they are fixed!")
         await ctx.send(embed=embed, view=view)
         
+    @commands.command(name="vote",
+                      help="This command lets you vote for the bot on top.gg! Voting for the bot rewards you 2000 yen and one shard of a random rarity, all the way up to Legendary!")
+    async def vote_for_bot(self, ctx):
+        if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return await ctx.send("No profile")
+            
+        user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+        if user_profile.get("timers", {}).get("bot_vote") != 0:
+                return await ctx.send("You've voted")
+            
+        view = discord.ui.View()
+        button = discord.ui.Button(style=discord.ButtonStyle.url, url="https://top.gg/bot/1371573491391922278", label="Vote for the bot!")
+        view.add_item(button)
 
+        embed = discord.Embed(title="Vote for the Lookism Bot!",
+                                description="By voting for the bot on Top.gg, you get 2000 yen and \na random fragment of your choice. The greater your vote\nstreak, the higher the chance of you getting a legendary\nfragment whenever you vote.")
+
+        embed.set_footer(text=f"Vote Streak: {user_profile.get("vote_streak")}")
+        
+        await ctx.send(view=view, embed=embed)
+        await topgg.DBLClient().autopost()
+        
+        # Checks to see if they have a vote timer ongoingg
+        # sends an embed linking website and telling user to vote
+
+
+    
+    @vote_for_bot.error
     @invite_bot.error
     @display_timers.error
     @use_chip.error
@@ -148,6 +178,85 @@ class Utilites(commands.Cog):
         else:
             create_error_embed(ctx=ctx, error=error)
             
+
+    @commands.Cog.listener()
+    async def on_dbl_vote(self, data):
+        try:
+            if database_handler.users.find_one({"id": data["user"]}) is None:
+                return
+            
+            user_profile = database_handler.users.find_one({"id": data["user"]})
+            streak = user_profile.get('vote').get('vote_streak')
+            last_claim_time = user_profile.get('vote').get('last_vote_time')
+            last_claim = datetime.datetime.fromtimestamp(float(last_claim_time))
+            claim_time = datetime.datetime.now()   
+            time_difference = claim_time - last_claim
+
+                # Calculates whether to reset the streak or not
+            if time_difference > datetime.timedelta(hours=24):
+                database_handler.users.update_one({'_id': data["user"]}, {'$set': {'vote.vote_streak': 1}})
+                streak = 1
+            else:
+                database_handler.inc_value_to_users(user_id=data["user"], key='vote.vote_streak', value=1)
+                streak += 1
+
+            if streak > 40:
+                rarities = {
+                    'Legendary': 15,
+                    'Epic': 25,
+                    'Rare': 20,
+                    'Common': 40,
+                            }
+            elif streak > 30:
+                rarities = {
+                    'Legendary': 12,
+                    'Epic': 25,
+                    'Rare': 20,
+                    'Common': 43,
+                            }
+            elif streak > 20:
+                rarities = {
+                    'Legendary': 10,
+                    'Epic': 20,
+                    'Rare': 25,
+                    'Common': 45,
+                            }
+            elif streak > 10:
+                rarities = {
+                    'Legendary': 5,
+                    'Epic': 15,
+                    'Rare': 30,
+                    'Common': 50,
+                            }
+            else:
+                rarities = {
+                    'Legendary': 1,
+                    'Epic': 9,
+                    'Rare': 40,
+                    'Common': 50,
+                            }
+            
+            shard_rarity = None
+            # Generates a rarity for the shard
+            randomNum = random.randint(1, sum(rarities.values()))
+            counter = 0
+            for rarity, weight in rarities.items():
+                counter += weight
+                if randomNum <= counter:
+                    shard_rarity = rarity
+            
+            # Picks a character shard based off of the rarity
+            character = random.choice(database_handler.all_characters_search(key='rarity', query=shard_rarity))
+            database_handler.inc_value_to_users(user_id=data["user"], key=f'inventory.shards.{character["name"]}', value=1)
+
+            member = self.bot.fetch_user(data['user'])
+            member.send(f"You have received 2000 yen and a {character['name']} shard fromn voting!")
+            
+            # Timer(user_id=ctx.author.id, name="bot_vote", starttime=round(time.time()), timer_length=60 * 60 * 12)
+            
+            print(data)
+        except Exception as e:
+            create_error_embed(error=e)
 
 async def setup(bot):
     await bot.add_cog(Utilites(bot))
