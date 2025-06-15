@@ -16,15 +16,11 @@ import topgg
 TOKEN: str = (
     os.getenv('DEV_BOT_TOKEN') if os.getenv('ENV') == 'dev' else os.getenv('MAIN_BOT_TOKEN')
 )
-AUTHORIZATION_CODE = os.getenv("WEBHOOK_AUTHORIZATION")
 
 
 class Utilites(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-        bot.topgg_webhook = topgg.WebhookManager(bot=self.bot).dbl_webhook("/dblwebhook", AUTHORIZATION_CODE)
-        bot.topgg_webhook.run(25869)
 
     # Allows users to use xp and yen boosts
     @commands.command(name="boost")

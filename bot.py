@@ -8,6 +8,9 @@ from utils.utility_functions import create_error_embed, log_error_embed
 from utils.timer import Timer
 from dotenv import load_dotenv
 from discord.ext import commands
+import datetime
+import random
+import topgg
 
 discord_invite = 'https://discord.com/oauth2/authorize?client_id=1371573491391922278&scope=bot+applications.commands&permissions=414464691264'
 
@@ -18,8 +21,7 @@ TOKEN: str = (
     os.getenv('DEV_BOT_TOKEN') if os.getenv('ENV') == 'dev' else os.getenv('MAIN_BOT_TOKEN')
 )
 
-# webhook to discord channel where errors will be sent to
-INFO_WEBHOOK = os.getenv('DISCORD_WEBHOOK')
+AUTHORIZATION_CODE = os.getenv("WEBHOOK_AUTHORIZATION")
 
 # Set the permissions for the intents and the discord bot
 intents = discord.client.Intents.default()
@@ -29,6 +31,7 @@ intents.message_content = True
 # Creates a variable to reference the bot and sets the prefix and intent permissions
 bot = commands.Bot(command_prefix='?', activity=discord.Activity(type=discord.ActivityType.watching, name="Type ?tut to start!"), intents=intents, help_command=None)
 bot.remove_command('help')
+
 
 # Catches when the bot goes online
 @bot.event
@@ -61,6 +64,104 @@ async def on_startup_load():
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py'):
             await bot.load_extension(f'cogs.{filename[:-3]}')
+    
+    print('yo')
+    bot.topgg_webhook = topgg.WebhookManager(bot=bot).dbl_webhook("/dblwebhook", AUTHORIZATION_CODE)
+    print('yu')
+    await bot.topgg_webhook.run(25869)
+    print('ye')
+
+
+
+@bot.event
+async def on_dbl_vote(data):
+        try:
+            print("i ran ig")
+            if database_handler.users.find_one({"id": data["user"]}) is None:
+                return
+            
+            user_profile = database_handler.users.find_one({"id": data["user"]})
+            streak = user_profile.get('vote').get('vote_streak')
+            last_claim_time = user_profile.get('vote').get('last_vote_time')
+            last_claim = datetime.datetime.fromtimestamp(float(last_claim_time))
+            claim_time = datetime.datetime.now()   
+            time_difference = claim_time - last_claim
+
+                # Calculates whether to reset the streak or not
+            if time_difference > datetime.timedelta(hours=24):
+                database_handler.users.update_one({'_id': data["user"]}, {'$set': {'vote.vote_streak': 1}})
+                streak = 1
+            else:
+                database_handler.inc_value_to_users(user_id=data["user"], key='vote.vote_streak', value=1)
+                streak += 1
+
+            if streak > 40:
+                rarities = {
+                    'Legendary': 15,
+                    'Epic': 25,
+                    'Rare': 20,
+                    'Common': 40,
+                            }
+            elif streak > 30:
+                rarities = {
+                    'Legendary': 12,
+                    'Epic': 25,
+                    'Rare': 20,
+                    'Common': 43,
+                            }
+            elif streak > 20:
+                rarities = {
+                    'Legendary': 10,
+                    'Epic': 20,
+                    'Rare': 25,
+                    'Common': 45,
+                            }
+            elif streak > 10:
+                rarities = {
+                    'Legendary': 5,
+                    'Epic': 15,
+                    'Rare': 30,
+                    'Common': 50,
+                            }
+            else:
+                rarities = {
+                    'Legendary': 1,
+                    'Epic': 9,
+                    'Rare': 40,
+                    'Common': 50,
+                            }
+            
+            shard_rarity = None
+            # Generates a rarity for the shard
+            randomNum = random.randint(1, sum(rarities.values()))
+            counter = 0
+            for rarity, weight in rarities.items():
+                counter += weight
+                if randomNum <= counter:
+                    shard_rarity = rarity
+            
+            # Picks a character shard based off of the rarity
+            character = random.choice(database_handler.all_characters_search(key='rarity', query=shard_rarity))
+            database_handler.inc_value_to_users(user_id=data["user"], key=f'inventory.shards.{character["name"]}', value=1)
+
+            member = bot.fetch_user(data['user'])
+            member.send(f"You have received 2000 yen and a {character['name']} shard fromn voting!")
+            
+            # Timer(user_id=ctx.author.id, name="bot_vote", starttime=round(time.time()), timer_length=60 * 60 * 12)
+            
+            print(data)
+        except Exception as e:
+            create_error_embed(error=e)
+
+@bot.event
+async def on_dbl_test(data):
+    try:
+        print("i too ran")
+        return bot.dispatch('dbl_vote', data)
+    except Exception as e:
+        print(e)
+        create_error_embed(error=e)
+
 
 
 # Loads the bot
