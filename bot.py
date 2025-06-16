@@ -73,6 +73,7 @@ async def on_startup_load():
 
 @bot.event
 async def on_dbl_vote(data):
+    print("meeeeee")
     print(data)
     """
         try:
