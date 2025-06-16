@@ -159,7 +159,7 @@ async def on_dbl_vote(data):
 
             member = await bot.fetch_user(user_id)
             print(member)
-            member.send(f"You have received 2000 yen and a {character['name']} shard fromn voting!")
+            await member.send(f"You have received 2000 yen and a {character['name']} shard fromn voting!")
             
             # Timer(user_id=ctx.author.id, name="bot_vote", starttime=round(time.time()), timer_length=60 * 60 * 12)
             
