@@ -81,19 +81,24 @@ async def on_dbl_vote(data):
                 return
             
             user_profile = database_handler.users.find_one({"id": data["user"]})
+            print(user_profile)
             streak = user_profile.get('vote').get('vote_streak')
             last_claim_time = user_profile.get('vote').get('last_vote_time')
             last_claim = datetime.datetime.fromtimestamp(float(last_claim_time))
             claim_time = datetime.datetime.now()   
             time_difference = claim_time - last_claim
 
+            print(streak, last_claim, last_claim_time, time_difference)
+
                 # Calculates whether to reset the streak or not
             if time_difference > datetime.timedelta(hours=24):
                 database_handler.users.update_one({'_id': data["user"]}, {'$set': {'vote.vote_streak': 1}})
                 streak = 1
+                print('streak loss')
             else:
                 database_handler.inc_value_to_users(user_id=data["user"], key='vote.vote_streak', value=1)
                 streak += 1
+                print('streak increase!')
 
             if streak > 40:
                 rarities = {
@@ -140,11 +145,14 @@ async def on_dbl_vote(data):
                 if randomNum <= counter:
                     shard_rarity = rarity
             
+            print(shard_rarity)
+            
             # Picks a character shard based off of the rarity
             character = random.choice(database_handler.all_characters_search(key='rarity', query=shard_rarity))
             database_handler.inc_value_to_users(user_id=data["user"], key=f'inventory.shards.{character["name"]}', value=1)
 
             member = bot.fetch_user(data['user'])
+            print(member)
             member.send(f"You have received 2000 yen and a {character['name']} shard fromn voting!")
             
             # Timer(user_id=ctx.author.id, name="bot_vote", starttime=round(time.time()), timer_length=60 * 60 * 12)
