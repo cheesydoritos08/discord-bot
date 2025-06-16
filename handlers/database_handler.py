@@ -64,7 +64,8 @@ def create_new_profile(user_id):
             'yen_booster': 0,
             'xp_booster': 0,
             'daily_claim': 0,
-            'daily_quests': 0
+            'daily_quests': 0,
+            'bot_vote': 0
         },
         'quests': []
     }
