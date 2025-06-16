@@ -1,7 +1,6 @@
 import discord
 import os
 import asyncio
-
 import handlers.database_handler as database_handler
 import time
 from utils.utility_functions import create_error_embed, log_error_embed
@@ -32,7 +31,6 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='?', activity=discord.Activity(type=discord.ActivityType.watching, name="Type ?tut to start!"), intents=intents, help_command=None)
 bot.remove_command('help')
 
-
 # Catches when the bot goes online
 @bot.event
 async def on_ready():
@@ -61,20 +59,22 @@ def resume_timers():
 
 # Loads the cogs in the cog directory on startup
 async def on_startup_load():
+    try:
+        bot.topgg_webhook = topgg.WebhookManager(bot).dbl_webhook("/dblwebhook", AUTHORIZATION_CODE)
+        bot.topgg_webhook.run(25869)  
+    except Exception as e:
+        print(e)
+
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py'):
             await bot.load_extension(f'cogs.{filename[:-3]}')
     
-    print('yo')
-    bot.topgg_webhook = topgg.WebhookManager(bot=bot).dbl_webhook("/dblwebhook", AUTHORIZATION_CODE)
-    print('yu')
-    await bot.topgg_webhook.run(25869)
-    print('ye')
-
 
 
 @bot.event
 async def on_dbl_vote(data):
+    print(data)
+    """
         try:
             print("i ran ig")
             if database_handler.users.find_one({"id": data["user"]}) is None:
@@ -152,16 +152,12 @@ async def on_dbl_vote(data):
             print(data)
         except Exception as e:
             create_error_embed(error=e)
+            """
 
 @bot.event
 async def on_dbl_test(data):
-    try:
-        print("i too ran")
-        return bot.dispatch('dbl_vote', data)
-    except Exception as e:
-        print(e)
-        create_error_embed(error=e)
-
+    print(1/0)
+    print(data)
 
 
 # Loads the bot
@@ -183,4 +179,6 @@ async def main():
                await create_error_embed(error=e, ctx=None)
         except Exception as e:
             await create_error_embed(error=e, ctx=None)
+        finally:
+            bot.topgg_webhook.close()
 asyncio.run(main())
