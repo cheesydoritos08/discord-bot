@@ -150,7 +150,7 @@ async def on_dbl_vote(data):
             await member.send(f"You have received 2000 yen and a {character['name']} shard from voting!")
             database_handler.users.update_one({"_id": user_id}, {"$set": {"vote.last_vote_time": claim_time}})
             
-            Timer(user_id=user_id, name="bot_vote", starttime=round(claim_time_timestamp), timer_length=60 * 60 * 12)
+            Timer(user_id=user_id, name="bot_vote", starttime=claim_time_timestamp, timer_length=60 * 60 * 12)
             
         except Exception as e:
             create_error_embed(error=e)
