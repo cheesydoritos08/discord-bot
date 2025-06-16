@@ -82,11 +82,11 @@ async def on_dbl_vote(data):
 
             user_id = int(data["user"])
 
-            if database_handler.users.find_one({"id": user_id}) is None:
+            if database_handler.users.find_one({"_id": user_id}) is None:
                 print("no user :c")
                 return
             
-            user_profile = database_handler.users.find_one({"id": user_id})
+            user_profile = database_handler.users.find_one({"_id": user_id})
             print(user_profile)
             streak = user_profile.get('vote').get('vote_streak')
             last_claim_time = user_profile.get('vote').get('last_vote_time')
