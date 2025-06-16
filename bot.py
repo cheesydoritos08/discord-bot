@@ -78,8 +78,9 @@ async def on_dbl_vote(data):
         try:
             print("i ran ig")
             print(data["user"])
-            print(bot.fetch_user(data["user"]))
+            await print(bot.fetch_user(data["user"]))
             if database_handler.users.find_one({"id": data["user"]}) is None:
+                print("no user :c")
                 return
             
             user_profile = database_handler.users.find_one({"id": data["user"]})
