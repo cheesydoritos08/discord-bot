@@ -157,7 +157,7 @@ async def on_dbl_vote(data):
             character = random.choice(database_handler.all_characters_search(key='rarity', query=shard_rarity))
             database_handler.inc_value_to_users(user_id=user_id, key=f'inventory.shards.{character["name"]}', value=1)
 
-            member = bot.fetch_user(user_id)
+            member = await bot.fetch_user(user_id)
             print(member)
             member.send(f"You have received 2000 yen and a {character['name']} shard fromn voting!")
             
