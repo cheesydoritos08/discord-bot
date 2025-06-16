@@ -155,10 +155,11 @@ async def on_dbl_vote(data):
             create_error_embed(error=e)
             """
 
-@bot.listen('on_dbl_test')
-async def test(data):
+@bot.event
+async def on_dbl_test(data):
     bot.dispatch('on_dbl_vote')
     print(data)
+    print("lol", 1/0)
 
 
 # Loads the bot
