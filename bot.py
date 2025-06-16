@@ -10,8 +10,6 @@ from discord.ext import commands
 import datetime
 import random
 import topgg
-import logging
-logging.basicConfig(level=logging.INFO)
 
 discord_invite = 'https://discord.com/oauth2/authorize?client_id=1371573491391922278&scope=bot+applications.commands&permissions=414464691264'
 
