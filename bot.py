@@ -79,11 +79,14 @@ async def on_dbl_vote(data):
             print("i ran ig")
             print(data["user"])
             print(await bot.fetch_user(data["user"]))
-            if database_handler.users.find_one({"id": data["user"]}) is None:
+
+            user_id = int(data["user"])
+
+            if database_handler.users.find_one({"id": user_id}) is None:
                 print("no user :c")
                 return
             
-            user_profile = database_handler.users.find_one({"id": data["user"]})
+            user_profile = database_handler.users.find_one({"id": user_id})
             print(user_profile)
             streak = user_profile.get('vote').get('vote_streak')
             last_claim_time = user_profile.get('vote').get('last_vote_time')
@@ -95,11 +98,11 @@ async def on_dbl_vote(data):
 
                 # Calculates whether to reset the streak or not
             if time_difference > datetime.timedelta(hours=24):
-                database_handler.users.update_one({'_id': data["user"]}, {'$set': {'vote.vote_streak': 1}})
+                database_handler.users.update_one({'_id': user_id}, {'$set': {'vote.vote_streak': 1}})
                 streak = 1
                 print('streak loss')
             else:
-                database_handler.inc_value_to_users(user_id=data["user"], key='vote.vote_streak', value=1)
+                database_handler.inc_value_to_users(user_id=user_id, key='vote.vote_streak', value=1)
                 streak += 1
                 print('streak increase!')
 
@@ -152,9 +155,9 @@ async def on_dbl_vote(data):
             
             # Picks a character shard based off of the rarity
             character = random.choice(database_handler.all_characters_search(key='rarity', query=shard_rarity))
-            database_handler.inc_value_to_users(user_id=data["user"], key=f'inventory.shards.{character["name"]}', value=1)
+            database_handler.inc_value_to_users(user_id=user_id, key=f'inventory.shards.{character["name"]}', value=1)
 
-            member = bot.fetch_user(data['user'])
+            member = bot.fetch_user(user_id)
             print(member)
             member.send(f"You have received 2000 yen and a {character['name']} shard fromn voting!")
             
