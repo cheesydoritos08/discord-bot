@@ -135,11 +135,11 @@ class Utilites(commands.Cog):
                       help="This command lets you vote for the bot on top.gg! Voting for the bot rewards you 2000 yen and one shard of a random rarity, all the way up to Legendary!")
     async def vote_for_bot(self, ctx):
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
-                return await ctx.send("No profile")
+                return await ctx.send("You don't have a profile. Use ?tut to get started.")
             
         user_profile = database_handler.users.find_one({"_id": ctx.author.id})
         if user_profile.get("timers", {}).get("bot_vote") != 0:
-                return await ctx.send("You've voted")
+                return await ctx.send("You've voted already.")
             
         view = discord.ui.View()
         button = discord.ui.Button(style=discord.ButtonStyle.url, url="https://top.gg/bot/1371573491391922278", label="Vote for the bot!")
