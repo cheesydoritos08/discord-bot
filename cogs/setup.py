@@ -1,0 +1,120 @@
+from discord.ext import commands
+from utils.utility_functions import create_error_embed
+import asyncio
+from handlers import database_handler
+
+class Setup(commands.Cog):
+    # Initializes the class
+    def __init__(self, bot):
+        self.bot = bot
+
+    # Adds a prefix entered by the user into their list of prefixes
+    @commands.command(help="With this command, you can add a prefix to your server! Prefixes entered must be wrapped in quotation marks ('' '') and will be case sensitive. The default prefix is '?'. You must have admin permissions to use this command.",
+                      name="addprefix",
+                      aliases=["addpfx"])
+    @commands.has_permissions(administrator = True)
+    async def add_prefix(self, ctx, *, prefix):
+        # Sends a confirmation message to user
+        for x in range(2):
+            if prefix.find('"') == -1 or (x == 0 and prefix.find('"') != 0) or (x == 1 and prefix.rfind('"') != (len(prefix)-1)):
+                return await ctx.send('Please surround the prefix you want to add in quotation marks ("")')
+            
+            if x == 0:
+                prefix = prefix.replace('"', '', 1)   
+            elif x == 1:
+                prefix = prefix[0: prefix.rfind('"')] 
+        
+
+        await ctx.send(f"Are you sure you want to add `{prefix}` into your list of server prefixes for this bot? Reply with Y/N")
+
+        def check(msg):
+            return msg.author == ctx.author and msg.channel == ctx.channel
+        
+        try:
+            msg = await self.bot.wait_for('message', check=check, timeout = 10)
+            
+            # Checks to see if they confirmed their choice or not
+            if msg.content.lower() == "y":
+                
+                new_guild_prefixes = []
+                guild_prefixes = database_handler.guild_prefixes.find_one({"_id": ctx.guild.id})
+                        
+                if guild_prefixes is None:
+                    new_guild_prefixes = ["?", f"{prefix}"]
+                elif guild_prefixes is not None:
+                    new_guild_prefixes = guild_prefixes["prefixes"]
+                    new_guild_prefixes.append(f"{prefix}")
+
+
+                # Saves the new prefix based on their decision
+                database_handler.guild_prefixes.update_one({"_id": ctx.guild.id}, {"$set": {"prefixes": new_guild_prefixes}})
+                return await ctx.send(f"`{prefix}` has been added to the list of server prefixes.")
+                            
+            # Cancels command if the response is not yes
+            elif msg.content.lower() == "n":
+                return await ctx.send("Command has been cancelled")
+            else:
+                return await ctx.send("Invalid response")
+
+        except asyncio.TimeoutError:
+            return await ctx.send("Command timed out. Try again.")
+        except Exception as e:
+            create_error_embed(error=e, ctx=ctx)
+
+    @commands.command(help="With this command, you can remove a prefix from your server! Prefixes are case sensitive must be wrapping in quotation marks ('' '') when using the command. You must have admin permissions to use this command.",
+                      name="removeprefix",
+                      aliases=["removepfx"])
+    @commands.has_permissions(administrator = True)
+    async def remove_prefix(self, ctx, *, prefix):
+        for x in range(2):
+            if prefix.find('"') == -1 or (x == 0 and prefix.find('"') != 0) or (x == 1 and prefix.rfind('"') != (len(prefix)-1)):
+                return await ctx.send('Please surround the prefix you want to add in quotation marks ("")')
+            
+            if x == 0:
+                prefix = prefix.replace('"', '', 1)   
+            elif x == 1:
+                prefix = prefix[0: prefix.rfind('"')]
+                
+        
+        await ctx.send(f"Are you sure you want to remove `{prefix}` from the server prefix list? Please reply with Y/N")
+
+        def check(msg):
+            return msg.author == ctx.author and msg.channel == ctx.channel
+        
+        try:
+            msg = await self.bot.wait_for('message', timeout = 10, check=check)
+
+            if msg.content.lower() == "y":
+                guild_prefixes = database_handler.guild_prefixes.find_one({"_id": ctx.guild.id})
+
+                if guild_prefixes is not None:
+                    if len(guild_prefixes['prefixes']) == 1:
+                        return await ctx.send("You only have one prefix left. Please don't try to remove any more.")
+                    
+                    prefix_found = False 
+
+                    for guild_prefix in guild_prefixes['prefixes']:
+
+                        if guild_prefix == prefix:
+                            guild_prefixes['prefixes'].remove(guild_prefix)
+                            database_handler.guild_prefixes.update_one({"_id": ctx.guild.id}, {"$set": {"prefixes": guild_prefixes['prefixes']}})
+                            prefix_found = True
+                    
+                    if prefix_found:
+                        return await ctx.send(f"`{prefix}` has been removed from the server list.")
+                    else:
+                        return await ctx.send(f"`{prefix}` was not found in server list.")                   
+
+            elif msg.content.lower() == "n":
+                return await ctx.send("Command cancelled.")
+            else:
+                return await ctx.send("Invalid response.")
+
+        except asyncio.TimeoutError:
+            return await ctx.send("Command timed out.")
+        except Exception as e:
+            create_error_embed(error=e, ctx=ctx)
+
+
+async def setup(bot):
+    await bot.add_cog(Setup(bot))

@@ -7,6 +7,7 @@ from utils.utility_functions import create_error_embed, log_error_embed
 from utils.timer import Timer
 from dotenv import load_dotenv
 from discord.ext import commands
+from discord.ext import tasks
 import datetime
 import random
 import topgg
@@ -29,8 +30,45 @@ intents = discord.client.Intents.default()
 intents.members = True
 intents.message_content = True
 
+# Holds all the cached guild prfixes
+guild_prefixes_dictionary = {}
+
+# Creates a loop that clears the cache every 10 seconds
+@tasks.loop(seconds=10)
+async def clear_cached_prefixes():
+    try:
+        for k, v in guild_prefixes_dictionary.copy().items():
+            guild_prefixes_dictionary.pop(k, None)
+        
+    except Exception as e:
+        print(e)
+
+
+# Gets the prefix for the bot to use every time a command is called, using a cache whenever it's available
+async def get_prefix(bot, message):
+    try:
+        guild_id = message.guild.id
+
+        if guild_prefixes_dictionary.get(guild_id):
+            return guild_prefixes_dictionary[guild_id]
+
+        current_guild_prefixes = database_handler.guild_prefixes.find_one({"_id": guild_id})
+
+        if current_guild_prefixes is not None:
+            guild_prefixes_dictionary[guild_id] = current_guild_prefixes.get("prefixes")
+            return  guild_prefixes_dictionary[guild_id]
+        
+        elif current_guild_prefixes is None:
+            database_handler.guild_prefixes.insert_one({"_id": guild_id, "prefixes": ["?"]})
+            guild_prefixes_dictionary[guild_id] = ["?"]
+            return  guild_prefixes_dictionary[guild_id]
+    
+    except Exception as e:
+        print(e)
+
+
 # Creates a variable to reference the bot and sets the prefix and intent permissions
-bot = commands.Bot(command_prefix='?', activity=discord.Activity(type=discord.ActivityType.watching, name="Type ?tut to start!"), intents=intents, help_command=None)
+bot = commands.Bot(command_prefix=get_prefix, activity=discord.Activity(type=discord.ActivityType.watching, name="Type ?tut to start!"), intents=intents, help_command=None)
 bot.remove_command('help')
 
 # Catches when the bot goes online
@@ -41,6 +79,8 @@ async def on_ready():
 @bot.event
 async def on_resumed():
     resume_timers()
+
+
 
 # Resumes all current running timers
 def resume_timers():
@@ -158,17 +198,16 @@ async def on_dbl_vote(data):
         except Exception as e:
             create_error_embed(error=e)
             
-
 @bot.event
 async def on_dbl_test(data):
     bot.dispatch('on_dbl_vote')
-
 
 
 # Loads the bot
 async def main():
     async with bot:
         log_error_embed.start(bot)
+        clear_cached_prefixes.start()
         await on_startup_load()
         resume_timers()
 

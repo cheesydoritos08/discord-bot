@@ -149,7 +149,17 @@ class Utilites(commands.Cog):
         # Checks to see if they have a vote timer ongoingg
         # sends an embed linking website and telling user to vote
 
+    @commands.command(name="viewprefixes",
+                      aliases=["viewpfxs"],
+                      help="With this command, you can view all the prefixes that can be used with this bot in your server!")
+    async def view_prefixes(self, ctx):
+        server_prefixes = database_handler.guild_prefixes.find_one({"_id": ctx.guild.id}).get("prefixes")
 
+        embed = discord.Embed(title="Prefixes for this Server",
+                              description=f"{server_prefixes}",
+                              color=discord.Color.dark_purple())
+        
+        await ctx.send(embed=embed)
     
     @vote_for_bot.error
     @invite_bot.error
