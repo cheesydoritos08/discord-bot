@@ -75,7 +75,7 @@ def update_quests(user_id, quest_id, amount):
             
         if not limited_ticket_in_inventory:
             database_handler.add_item(user_id=user_id, item="limited_ticket")
-            database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.limited_ticket.amount", value=4)
+            database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.limited_ticket.amount", value=5)
 
 
 
