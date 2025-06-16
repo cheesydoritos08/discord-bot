@@ -77,6 +77,8 @@ async def on_startup_load():
 async def on_dbl_vote(data):
         try:
             print("i ran ig")
+            print(data["user"])
+            print(bot.fetch_user(data["user"]))
             if database_handler.users.find_one({"id": data["user"]}) is None:
                 return
             
