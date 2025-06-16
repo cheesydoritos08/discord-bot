@@ -73,7 +73,6 @@ async def on_startup_load():
 
 @bot.event
 async def on_dbl_vote(data):
-    print("i ran")
     print(data)
     """
         try:
@@ -155,9 +154,9 @@ async def on_dbl_vote(data):
             create_error_embed(error=e)
             """
 
-@bot.event
-async def on_dbl_test(data):
-    print("i ran too")
+@bot.listen('on_dbl_test')
+async def test(data):
+    bot.dispatch('on_dbl_vote')
     print(data)
 
 
