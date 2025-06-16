@@ -183,7 +183,7 @@ class Economy(commands.Cog):
         await ctx.send(embed=embed)
 
     # Creates a game of high or low for the user to play
-    @commands.cooldown(rate=1, per=30, type=commands.BucketType.user)
+    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
     @commands.command(name='highlow', 
                       aliases=['hl'],
                       help="This commands allows you to play a guessing game. The bot draws a card and you have to guess whether the next card drawn will be higher, lower or the same. If you win, you get 100 yen!")
@@ -263,10 +263,10 @@ class Economy(commands.Cog):
         except asyncio.TimeoutError:
             await ctx.send('I don\'t have all day and you\'re wasting my time. Talk me when you\'re serious.')
         except Exception as e:
-            raise e
+            create_error_embed(error=e, ctx=ctx)
         
     # Allows a player to guess what side the coin will land on
-    @commands.cooldown(rate=1, per=30, type=commands.BucketType.user)
+    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
     @commands.command(aliases=['cf'],
                       help="This command lets you make a bet and flip a coin. If you guess the correct side, your bet will be doubled and given back to you. If you guess the wrong side, your bet will be deducted from your balance.")
     async def coinflip(self, ctx):
@@ -291,6 +291,10 @@ class Economy(commands.Cog):
                     return await ctx.send('How about you try getting enough money first before you gamble.')
             except ValueError:
                 await ctx.send('Not a number, genius.')
+
+            if bet < 1:
+                return await ctx.send("Doesn't work like that.")
+            
             await ctx.send('`Heads` or `tails`?')
 
             msg = await self.bot.wait_for('message', timeout=7, check=check)
@@ -317,10 +321,11 @@ class Economy(commands.Cog):
                 )
             else:
                 await ctx.send("Wrong word.")
+
         except asyncio.TimeoutError:
             await ctx.send('I don\'t have all day and you\'re wasting my time. Talk me when you\'re serious.')
         except Exception as e:
-            raise e
+            create_error_embed(error=e, ctx=ctx)
         
     # Displays the shop to the user
     @commands.cooldown(rate=1, per=60, type=commands.BucketType.user)
@@ -349,6 +354,9 @@ class Economy(commands.Cog):
 
 
         buyable_items = list(database_handler.items.find({"buy_price": {"$exists": True}}))
+
+        if amount < 1:
+            return await ctx.send("Doesn't work like that.")
 
         for item in buyable_items:
             if  item_being_bought == item["name"]:
@@ -387,6 +395,9 @@ class Economy(commands.Cog):
             return await ctx.send("How many times do I have to tell you what the correct format is?: `?sell <item name> <amount>`")
 
         sellable_items = list(database_handler.items.find({"sell_price": {"$exists": True}}))
+
+        if amount < 1:
+            return await ctx.send("Doesn't work like that.")
 
         for item in sellable_items:
             if  item_being_sold == item["name"]:

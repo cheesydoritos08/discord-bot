@@ -13,6 +13,8 @@ import topgg
 
 discord_invite = 'https://discord.com/oauth2/authorize?client_id=1371573491391922278&scope=bot+applications.commands&permissions=414464691264'
 
+# REMINDER TO SELF ::::> CREATE A PREFIX COMMAND SO THAT SERVER OWNERS CAN CHANGE THE PREFIX THAT THEY WANT FOR THEIR
+#                        SERVER. USE THIS REDDIT THREAD FOR HELP: https://www.reddit.com/r/Discord_Bots/comments/zo8way/discordpy_bot_multithreading/
 
 # Secures the token as a variable
 load_dotenv('.env')

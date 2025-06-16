@@ -87,12 +87,12 @@ class User_Collection(commands.Cog):
 
         def choose_rarity():
             # Determines the rarity of each tier depending on current pity
-            if pity > 99:
+            if pity > 189:
                 rarities = {'Legendary': 100}
                 database_handler.users.update_one(
                     filter={'_id': user_id}, update={'$set': {'pity': 0}}
                 )
-            elif pity > 79:
+            elif pity > 169:
                 rarities = {
                     'Legendary': 10,
                     'Epic': 5,
@@ -231,6 +231,8 @@ class User_Collection(commands.Cog):
                 database_handler.inc_value_to_users(
                     user_id=user.id, key='threshold_one_characters', value=1
                 )
+                database_handler.users.update_one({"_id": user.id}, {"$set": {"pity": 0}})
+                pity = 0
 
         # Creates the embed and sends it
         if character['class'] == 'Support':

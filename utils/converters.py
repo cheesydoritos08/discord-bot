@@ -1,5 +1,6 @@
 from discord.ext import commands
 from handlers.trade_handler import is_int
+from utils.utility_functions import create_error_embed
 
 class InventoryConverter(commands.Converter):
     async def convert(self, ctx, argument):
@@ -8,7 +9,7 @@ class InventoryConverter(commands.Converter):
             return "_".join(argument).lower()
         except Exception as e:
             await ctx.send("Search for a valid item.")
-            raise e
+            create_error_embed(error=e, ctx=ctx)
         
 class UseChipConverter(commands.Converter):
     async def convert(self, ctx, argument):
@@ -19,7 +20,7 @@ class UseChipConverter(commands.Converter):
             return character_name, amount
         except Exception as e:
             await ctx.send("Don't make me say it twice: `?chip character_name amount`" )
-            raise e
+            create_error_embed(error=e, ctx=ctx)
 
 class BuySellConverter(commands.Converter):
     async def convert(self, ctx, argument):
@@ -38,7 +39,7 @@ class BuySellConverter(commands.Converter):
                     return item, amount
         except Exception as e:
             await ctx.send("Don't make me say it twice: `?buy item_name amount`")
-            raise e
+            create_error_embed(error=e, ctx=ctx)
 
 class TradeArgumentConverter(commands.Converter):
     async def convert(self, ctx, argument):
@@ -51,7 +52,7 @@ class TradeArgumentConverter(commands.Converter):
             return member, offers, receives
         except Exception as e:
             await ctx.send("Format the trade correctly: `?trade @user [your offer] [their offer].`")
-            raise e
+            create_error_embed(error=e, ctx=ctx)
             
         
 

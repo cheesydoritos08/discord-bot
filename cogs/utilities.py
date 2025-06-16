@@ -2,21 +2,11 @@ import time
 import asyncio
 import handlers.database_handler as database_handler
 import discord
-import os
 from discord.ext import commands
 from utils.converters import InventoryConverter, UseChipConverter
 from utils.buttons import InviteButton
 from utils.utility_functions import update_quests, cooldown_calculator, create_error_embed
 from utils.timer import Timer
-import datetime
-import random
-import topgg
-
-
-TOKEN: str = (
-    os.getenv('DEV_BOT_TOKEN') if os.getenv('ENV') == 'dev' else os.getenv('MAIN_BOT_TOKEN')
-)
-
 
 class Utilites(commands.Cog):
     def __init__(self, bot):
@@ -76,15 +66,19 @@ class Utilites(commands.Cog):
         if not inventory.get("xp_chip") or inventory.get("xp_chip", {}).get("amount", 0) == 0 or inventory.get("xp_chip", {}).get("amount", 0) < amount:
             return await ctx.send("You don't even have enough chips. Sad.")
 
-        database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.xp_chip.amount", value=-amount)
+        if amount < 1:
+            return await ctx.send("Doesn't work like that.")
 
+        print(character, amount)
         for char in user_profile["characters"]:
-            if char["name"] == character:
+            if char["name"].lower() == character.lower():
                 leveling_cap = 30
                 if char['LVL'] == leveling_cap:
                     return await ctx.send(f'You can\'t go past level {leveling_cap}.')
                 
-                database_handler.increment_character_xp(user_id=ctx.author.id, xp=amount * 1000, character=character)
+                print("weeee")
+                print(database_handler.increment_character_xp(user_id=ctx.author.id, xp=amount * 1000, character=character,return_xp=True))
+                print("booo")
                 database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.xp_chip.amount", value=-amount)
                 update_quests(user_id=ctx.author.id, quest_id="use_xp_chip", amount=1)
                 return await ctx.send(f"{character} has been leveled up.")

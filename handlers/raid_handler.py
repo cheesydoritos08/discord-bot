@@ -3,7 +3,7 @@ import copy
 import random
 import discord
 import handlers.database_handler as database_handler
-from utils.utility_functions import update_quests
+from utils.utility_functions import update_quests, check_boosts
 
 # Instantiates a new raid for the user
 class RaidInstance():
@@ -300,10 +300,22 @@ class RaidInstance():
             embed.add_field(name="-------------------------------------------------------------------",
                 value="",
                 inline=False)
-            
+                        
+            if self.level > 20:
+                xp_starting_payout = 2500
+            elif self.level > 15:
+                xp_starting_payout = 2000
+            elif self.level > 10:
+                xp_starting_payout = 1500
+            elif self.level > 5:
+                xp_starting_payout = 1000
+            else:
+                xp_starting_payout = 500
+
+
             for char in fighter_characters:
                 if (self.level - self.starting_level) > 0:
-                    xp_payout = random.randint(1000, 3000)
+                    xp_payout = random.randint(xp_starting_payout, xp_starting_payout + 1000) * check_boosts(user_id=self.ctx.author.id, type="xp_booster")
                 else:
                     xp_payout = 0
 
