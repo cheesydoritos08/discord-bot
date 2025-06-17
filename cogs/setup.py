@@ -14,15 +14,15 @@ class Setup(commands.Cog):
                       aliases=["addpfx"])
     @commands.has_permissions(administrator = True)
     async def add_prefix(self, ctx, *, prefix):
-        # Sends a confirmation message to user
+        # Sends a confirmation message to user ""
         for x in range(2):
-            if prefix.find('"') == -1 or (x == 0 and prefix.find('"') != 0) or (x == 1 and prefix.rfind('"') != (len(prefix)-1)):
-                return await ctx.send('Please surround the prefix you want to add in quotation marks ("")')
+            if (x == 0 and prefix.find('[') != 0) or (x == 1 and prefix.rfind(']') != (len(prefix)-1)):
+                return await ctx.send('Please surround the prefix you want to add in brackets ([])')
             
             if x == 0:
-                prefix = prefix.replace('"', '', 1)   
+                prefix = prefix.replace('[', '', 1)   
             elif x == 1:
-                prefix = prefix[0: prefix.rfind('"')] 
+                prefix = prefix[0: prefix.rfind(']')] 
         
 
         await ctx.send(f"Are you sure you want to add `{prefix}` into your list of server prefixes for this bot? Reply with Y/N")
@@ -67,13 +67,13 @@ class Setup(commands.Cog):
     @commands.has_permissions(administrator = True)
     async def remove_prefix(self, ctx, *, prefix):
         for x in range(2):
-            if prefix.find('"') == -1 or (x == 0 and prefix.find('"') != 0) or (x == 1 and prefix.rfind('"') != (len(prefix)-1)):
-                return await ctx.send('Please surround the prefix you want to add in quotation marks ("")')
+            if (x == 0 and prefix.find('[') != 0) or (x == 1 and prefix.rfind(']') != (len(prefix)-1)):
+                return await ctx.send('Please surround the prefix you want to add in brackets ([])')
             
             if x == 0:
-                prefix = prefix.replace('"', '', 1)   
+                prefix = prefix.replace('[', '', 1)   
             elif x == 1:
-                prefix = prefix[0: prefix.rfind('"')]
+                prefix = prefix[0: prefix.rfind(']')] 
                 
         
         await ctx.send(f"Are you sure you want to remove `{prefix}` from the server prefix list? Please reply with Y/N")
