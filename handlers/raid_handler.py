@@ -333,11 +333,22 @@ class RaidInstance():
                 value=f"You have received the following rewards: \n{"\n".join([f"`{reward.replace("_", " ").title().replace("Xp", "XP")}`: {amount}" for reward, amount in self.player_rewards.items()])}",
                 inline=False)
             
+            user_profile = database_handler.users.find_one({"_id": self.ctx.author.id})
+            user_inventory = user_profile.get("inventory")
+            
             for reward, amount in self.player_rewards.items():
-                try:
-                    database_handler.inc_value_to_users(user_id=interaction.user.id, key=f"inventory.{reward}.amount", value=amount)
-                except Exception as e:
-                    raise e
+                for item in user_inventory:
+                    reward_given = False
+                    try:
+                        if reward == item:
+                            database_handler.inc_value_to_users(user_id=interaction.user.id, key=f"inventory.{reward}.amount", value=amount)
+                            reward_given = True
+                    except Exception as e:
+                        raise e
+                
+                if not reward_given:
+                    database_handler.add_item(user_id=self.ctx.author.id, item=reward)
+                    database_handler.inc_value_to_users(user_id=self.ctx.author.id, key=f"inventory.{reward}.amount", value=amount)
 
             embed.set_thumbnail(url=self.ctx.author.display_avatar)
 

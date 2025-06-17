@@ -9,7 +9,7 @@ class Setup(commands.Cog):
         self.bot = bot
 
     # Adds a prefix entered by the user into their list of prefixes
-    @commands.command(help="With this command, you can add a prefix to your server! Prefixes entered must be wrapped in quotation marks ('' '') and will be case sensitive. The default prefix is '?'. You must have admin permissions to use this command.",
+    @commands.command(help="With this command, you can add a prefix to your server! Prefixes entered must be wrapped in brackets ([]) and will be case sensitive. The default prefix is '?'. You must have admin permissions to use this command.",
                       name="addprefix",
                       aliases=["addpfx"])
     @commands.has_permissions(administrator = True)
@@ -61,7 +61,7 @@ class Setup(commands.Cog):
         except Exception as e:
             create_error_embed(error=e, ctx=ctx)
 
-    @commands.command(help="With this command, you can remove a prefix from your server! Prefixes are case sensitive must be wrapping in quotation marks ('' '') when using the command. You must have admin permissions to use this command.",
+    @commands.command(help="With this command, you can remove a prefix from your server! Prefixes are case sensitive and must be wrapped in brackets ([]) when using the command. You must have admin permissions to use this command.",
                       name="removeprefix",
                       aliases=["removepfx"])
     @commands.has_permissions(administrator = True)
