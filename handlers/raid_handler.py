@@ -337,8 +337,8 @@ class RaidInstance():
             user_inventory = user_profile.get("inventory")
             
             for reward, amount in self.player_rewards.items():
+                reward_given = False
                 for item in user_inventory:
-                    reward_given = False
                     try:
                         if reward == item:
                             database_handler.inc_value_to_users(user_id=interaction.user.id, key=f"inventory.{reward}.amount", value=amount)
