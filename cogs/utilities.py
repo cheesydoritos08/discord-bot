@@ -162,6 +162,9 @@ class Utilites(commands.Cog):
         await ctx.send(embed=embed)
     
     @vote_for_bot.error
+    @view_prefixes.error
+    @vote_for_bot.error
+    @invite_bot.error
     @invite_bot.error
     @display_timers.error
     @use_chip.error

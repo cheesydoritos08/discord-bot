@@ -55,7 +55,7 @@ class Help(commands.Cog):
     async def tutorial(self, ctx):
         embed = discord.Embed(
             title='Welcome to the Lookism Bot!',
-            description='Welcome to the Lookism Bot! This tutorial goes over only the bare basics of the bot! If you ever want to find out more about a command, use the ?help command. (Pictures are unrelated to the tutorial, they just look cool)',
+            description="Welcome to the Lookism Bot! This tutorial goes the core mechanics of the bot so feel free to revisit it as much as you want! If you ever want to find out more about a command, use the ?help command. (Pictures are unrelated to the tutorial, they just look cool. All credits go to the original creators.)",
             color=discord.Color.purple(),
         )
         embed.set_image(url='https://i.pinimg.com/736x/80/e0/ac/80e0ace80f573d27333a042e6e51d211.jpg')

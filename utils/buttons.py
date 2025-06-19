@@ -178,22 +178,38 @@ class TutorialButton(discord.ui.View):
         # Stores all the messages the tutorial will cycle through
         self.titles = [
             'Welcome to the Lookism Bot!',
-            'Collecting New Characters',
+            'Setting up the Bot (Pt. 1)',
+            'Setting up the Bot (Pt. 2)',
+            'Setting up the Bot (Pt. 3)',
+            'Buying Tickets',
+            'Rolling for New Characters',
             'Rolling on the Standard Banner vs the Limited Time Banner',
-            'Creating a Team and Fighting',
-            'Using Items',
-            'Gaining More Money',
             'Rolling Duplicates',
+            'Creating a Team',
+            'Fighting Other Players',
+            'ELO Scores and Rankings',
+            'Global ELO Leaderboard',
+            'Going on Raids',
+            'Gaining More Money',
+            'Trading with Other Players',
             'End of the Tutorial'
         ]
         self.descriptions = [
-            "Welcome to the Lookism Bot! This tutorial goes over only the bare basics of the bot! If you ever want to find out more about a command, use the ?help command. (Pictures are unrelated to the tutorial, they just look cool)",
-            "To start off, you need characters! You already have some money in your wallet so use the ?shop command to buy some  standard or limited banner tickets.",
-            "After that, roll on either banner to get characters. Rolling on the limited time banner grants you the chance to roll the legendary character for the week. The legendary character on the banner rotates from week to week and you can check the current legendary by checking the bot's support server.",
-            'After rolling your characters, you can add them to your team with the ?addteammember command. Your team can then be used to challenge other players or to fight in raids. Challenging other players grants you money while completing raids grants you items.',
-            'You can use items such as yen boosters to increase the amount of money you get for a certain period of time',
-            'You can also use commands like ?coinflip and ?highlow to gain more money.',
-            'When you roll duplicates, you get shards which will be stored in your shard inventory. Though these don\'t do anything now, in the near future they will be very important in unlocking character thresholds so save up some!',
+            "Welcome to the Lookism Bot! This tutorial goes the core mechanics of the bot so feel free to revisit it as much as you want! If you ever want to find out more about a command, use the ?help command. (Pictures are unrelated to the tutorial, they just look cool. All credits go to the original creators.)",
+            "Setting up the bot is really easy! If you're not an adminstrator, you can skip the next two pages. If you're an administrator, you can type ?addprefix [prefix] to add a prefix to the server. The square brackets are required for the command to work and the characters typed inside of them are case sensitive so be careful! If you want a space between your prefix and the commands, make sure to include it in the brackets as well.",
+            "To view the list of prefixes you currently have set, type ?viewprefixes. Adding a prefix to the bot will not remove other prefixes so make sure to remove any unwanted prefixes!",
+            "To remove a prefix, type ?removeprefix [prefix]. Once again, the command is case sensitive so make sure to type the prefix exactly as it's show in the viewprefixes command!",
+            "Finally, you can get to the fun part, gambling! To gamble for characters, you need to buy some tickets. You already have some money in your wallet so use the ?shop command to buy some standard or limited banner tickets. To buy an item, type ?buy <item name> <amount> (The <>s are not included in the command.)",
+            "After you buy some tickets, roll on either banner to get characters. To roll on the limited banner, type ?roll limited and to roll on the standard banner, type ?roll standard. You can only roll one character at a time.",
+            "Rolling on the limited time banner grants you the chance to roll the legendary character for the week. The legendary character on the banner rotates from week to week and you can check the current legendary by visiting the bot's support server!",
+            "When you roll duplicates, you get shards which will be stored in your shard inventory. Though these don\'t do anything now, in the near future they will be very important in unlocking character thresholds so make sure to save up a lot of them because you're going to need them!",
+            "After rolling your characters, you can add them to your team with ?addteammember <character full name> (<>s not included). Your team can then be used to challenge other players or to fight in raids.",
+            "To challenge a player, type ?challenge <@user> (<>s not included). Challenging other players grants you money and xp which helps you level up your characters!",
+            "Besides granting you yen and xp, challenging players also increases your ELO score on every win! By increasing your ELO score, you can unlock new ranks which given you *permanent* money boosts to your account. To check your ELO score and rank, you can use the ?profile command!",
+            "There's a global leaderboard that displays the current all time highest ELOs across the entire bot database! If you're strong enough, you could end up on there!",
+            "If you don't have any friends to challenge, you can run the raid command by typing ?raid! Going on raids grants you xp and items that can be used on yourself or on your team members! Raid levels are also replayable so once you beat a level, you can always go back and start from it by typing ?raid <level> (<>s not included).",
+            'Besides challenging players to fights, you can earn money through completeling daily quests with the ?quests command, claiming your daily reward with the ?daily command, voting for bot on Top.gg with the ?vote command, gambling your money with the ?coinflip command and playing higher or lower with the ?highlow command!',
+            "You can also trade with other players! As of right now, you can only trade money and shards but in the near future, items will be included as well! To find out more about trading, type ?help trade!",
             'That\'s it for the tutorial! If you have any question, join the official bot server!'
                   ]
         self.image_urls = [
@@ -201,15 +217,23 @@ class TutorialButton(discord.ui.View):
             'https://i.pinimg.com/736x/36/3b/14/363b140a2c18951cb7098b4ca3029a29.jpg',
             'https://i.pinimg.com/736x/a6/3b/70/a63b70b5844d615c15dafa00a4e6e5fc.jpg',
             'https://i.pinimg.com/736x/e4/19/22/e41922b040e2497540338354d2abf642.jpg',
+            'https://i.pinimg.com/736x/cd/00/59/cd005980e8bdfa6555c363da7f60828b.jpg',
             'https://i.pinimg.com/736x/c7/24/b1/c724b17aeef7f4425d84e42b7e25edf7.jpg',
+            'https://i.pinimg.com/736x/b6/75/d9/b675d9808666b86f70329dc54b2ce1c2.jpg',
             'https://i.pinimg.com/736x/62/fa/cd/62facd814343f993ecf7d06410ea9dcd.jpg',
+            'https://i.pinimg.com/736x/81/0b/d8/810bd837a04dde0979c14feb993bba7f.jpg',
             'https://i.pinimg.com/736x/a6/3b/70/a63b70b5844d615c15dafa00a4e6e5fc.jpg',
-            'https://i.pinimg.com/736x/c6/b0/0f/c6b00f5812531a034034982c406558e7.jpg'
+            'https://i.pinimg.com/736x/c6/b0/0f/c6b00f5812531a034034982c406558e7.jpg',
+            'https://i.pinimg.com/736x/3f/d9/89/3fd989bef5b46bd37b89dac3175a34ac.jpg',
+            'https://i.pinimg.com/736x/a7/6b/23/a76b2365283c13b66f6ba94b3fe2afd8.jpg',
+            'https://i.pinimg.com/736x/ab/24/5e/ab245ef29ef379c752a278887ee9d41c.jpg',
+            'https://i.pinimg.com/736x/80/0d/81/800d8184407ff3842139c6ecbd259e52.jpg',
+            'https://i.pinimg.com/736x/c8/e4/97/c8e4979d162d9ce3df3cd4317a147027.jpg',
 
         ]
 
     def add_invite_button(self):
-        if self.index == 2 or self.index == 7:
+        if self.index == 6 or self.index == 14:
             self.add_item(self.button)
 
 
@@ -217,12 +241,11 @@ class TutorialButton(discord.ui.View):
     @discord.ui.button(label='Back', style=discord.ButtonStyle.red)
     async def previous_message(self, interaction: discord.Interaction, button: discord.ui.Button):
         # Cycles through the list of message and sets the new embed to the corresponding page
-        self.index -= 1
+        self.index = (self.index - 1) % len(self.titles)
+
         self.remove_item(self.button)
         self.add_invite_button()
 
-        if self.index < 0:
-            self.index = len(self.titles) - 1
         embed = discord.Embed(
             title=self.titles[self.index],
             description=self.descriptions[self.index],
@@ -235,12 +258,10 @@ class TutorialButton(discord.ui.View):
     @discord.ui.button(label='Next', style=discord.ButtonStyle.red)
     async def next_message(self, interaction: discord.Interaction, button: discord.ui.Button):
         # Cycles through the list of message and sets the new embed to the corresponding page
-        self.index += 1
+        self.index = (self.index + 1) % len(self.titles)
         self.remove_item(self.button)
         self.add_invite_button()
 
-        if self.index >= len(self.titles):
-            self.index = 0
         embed = discord.Embed(
             title=self.titles[self.index],
             description=self.descriptions[self.index],

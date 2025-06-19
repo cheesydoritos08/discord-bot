@@ -1,5 +1,5 @@
 from discord.ext import commands
-from utils.utility_functions import create_error_embed
+from utils.utility_functions import create_error_embed, cooldown_calculator
 import asyncio
 from handlers import database_handler
 
@@ -115,6 +115,30 @@ class Setup(commands.Cog):
         except Exception as e:
             create_error_embed(error=e, ctx=ctx)
 
+
+    @remove_prefix.error
+    @add_prefix.error
+    async def cooldown_error(self, ctx, error):
+        # Sends a cooldown message if command is reused when on cooldown
+        if isinstance(error, commands.CommandOnCooldown):
+            user_id = ctx.author.id
+            cooldown_string = cooldown_calculator(round(error.retry_after))
+
+            if user_id not in self.warned_cooldown_users:
+                self.warned_cooldown_users.add(user_id)
+                await ctx.send(f'Can\'t you be patient and wait for {cooldown_string}')
+            
+            # cleanup after cooldown
+            async def remove_after():
+                await asyncio.sleep(error.retry_after)
+                self.warned_cooldown_users.discard(user_id)
+
+            asyncio.create_task(remove_after())
+        elif isinstance(error, commands.CommandNotFound):
+            pass
+        else:
+            create_error_embed(ctx=ctx, error=error)
+            
 
 async def setup(bot):
     await bot.add_cog(Setup(bot))
