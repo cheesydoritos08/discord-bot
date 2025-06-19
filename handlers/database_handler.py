@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from pymongo import MongoClient
+from utils.utility_functions import create_error_embed
 from utils.converters import InventoryConverter
 
 # Secures the string as a variable
@@ -79,7 +80,7 @@ def inc_value_to_users(user_id, key, value):
     try:
         users.update_one({'_id': user_id}, {'$inc': {key: value}})
     except Exception as e:
-        print('Error while updating user:', e)
+        create_error_embed(error=e)
 
 
 # Adds an array to specified key
@@ -87,7 +88,7 @@ def add_array_to_users(user_id, key, array):
     try:
         users.update_one({'_id': user_id}, {'$addToSet': {key: array}})
     except Exception as e:
-        print('Error while updating user:', e)
+        create_error_embed(error=e)
 
 
 # Checks to see if a user has a certain character
@@ -103,7 +104,7 @@ def user_character_finder(user_id, character_name):
                 return character
         return None
     except Exception as e:
-        print('Error while searching:', e)
+        create_error_embed(error=e)
         return None
 
 
@@ -115,7 +116,7 @@ def all_characters_search(key, query):
             matches.append(result)
         return matches
     except Exception as e:
-        print('Error while searching:', e)
+        create_error_embed(error=e)
 
 # Sets the stats of the character when they level up based on their rarity
 def update_stats(character, index, user_id):

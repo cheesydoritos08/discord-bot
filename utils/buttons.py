@@ -79,7 +79,20 @@ class CharacterButton(discord.ui.View):
             if character['class'] == 'Support':
                 desc = f'> **Rarity:** {character["rarity"]}\n> **Class:** {character["class"]}\n> **Effect:** {character["description"]}'
             else:
-                desc = f'> **Rarity:** {character["rarity"]}\n> **Class:** {character["class"]}\n> **ATK:** {character["ATK"]}\n> **HP:** {character["HP"]}\n> **SPD:** {character["SPD"]}\n> **LVL:** {character["LVL"]}\n> **XP:** {character["XP"]}/2000'
+                special_effect = ""
+                special_effect_description = ""
+                if character.get('stun_chance'):
+                    special_effect = "Stuns"
+                    special_effect_description = f"Gives the character a {character['stun_chance']}% chance to stun the opposing team for {character['stun_duration']} turns"
+                elif character.get('crit_chance'):
+                    special_effect = "Critical Hits"
+                    special_effect_description = f"Gives the character a {character['crit_chance']}% chance to do {character['crit_damage']} times their normal damage"
+                elif character.get('reflect_chance'):
+                    special_effect = "Reflection"
+                    special_effect_description = f"Gives the character a {character['reflect_chance']}% to reflect {character['reflect_percent']}% chance of the damage dealt to them back to their attacker"
+
+
+                desc = f'> **Rarity:** {character["rarity"]}\n> **Class:** {character["class"]}\n> **ATK:** {character["ATK"]}\n> **HP:** {character["HP"]}\n> **SPD:** {character["SPD"]}\n> **LVL:** {character["LVL"]}\n> **Special Effect**: {special_effect}\n> **Special Effect Description**: {special_effect_description}\n> **XP:** {character["XP"]}/2000'
 
             embed = discord.Embed(title=character['name'], description=desc, color=bar_color)
             embed.set_image(url=character['image_url'])

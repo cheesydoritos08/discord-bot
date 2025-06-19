@@ -338,7 +338,6 @@ class User_Collection(commands.Cog):
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def all_character_collection(self, ctx, *, filter=None):
         # Gets the user characters
-        print(filter)
         user_characters = database_handler.all_characters.find({})
 
         embed, user_characters = await self.return_character_list(
