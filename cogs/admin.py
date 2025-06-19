@@ -1,5 +1,7 @@
 from discord.ext import commands
 import handlers.database_handler as database_handler
+from utils.utility_functions import cooldown_calculator, create_error_embed
+import asyncio
 
 class Owner_Commands(commands.Cog):
     def __init__(self, bot):
@@ -21,6 +23,39 @@ class Owner_Commands(commands.Cog):
             await self.bot.load_extension(f'cogs.{extension}')
             await ctx.send(f'Loaded {extension} cog')
 
+    # Searches for a character and changes their stat for all users
+    @commands.command(name="updchar")
+    async def update_fighting_character(self, ctx, character, stat, value, convertToString):
+        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            if convertToString.lower() == "false":
+                value = int(value)
+        
+            database_handler.users.update_many({"characters.name": character.replace("_", " ").title()}, {"$set": {f"characters.$.{stat}": value}})
+            return await ctx.send(f"{character} has  had {stat} changed to {value}")
+
+
+
+    # Searches the effects of the given character and updates them for all users
+    @commands.command(name="updeffect")
+    async def update_effects_in_support_characters(self, ctx, character, effect, key, value, convertToString):
+        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            if convertToString.lower() == "false":
+                value = int(value)
+
+            index = None
+
+            user_char = database_handler.users.find_one({"characters.name": character.replace("_", " ").title()}, { "characters.$": 1})
+
+            for i, char_effect in enumerate(user_char['characters'][0]['effects']):
+                if effect == char_effect['stat']:
+                    index = i
+            
+            if index is None:
+                return await ctx.send("Something went wrong.")
+
+            database_handler.users.update_many({"characters.name": character.replace("_", " ").title()}, {"$set": {f"characters.$.effects.{index}.{key}": value}})
+            return await ctx.send(f"{character}'s {effect} has been had {key} changed to {value}")
+
 
     # Unloads the specified extension
     @commands.command()
@@ -41,6 +76,35 @@ class Owner_Commands(commands.Cog):
         if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
             database_handler.add_item(ctx=ctx, item=item)
             await ctx.send(f"{item} has been added.")
+
+    
+    @update_fighting_character.error
+    @update_effects_in_support_characters.error
+    @unload.error
+    @load.error
+    @reload.error
+    @add_item.error
+    @level_up.error
+    async def cooldown_error(self, ctx, error):
+        # Sends a cooldown message if command is reused when on cooldown
+        if isinstance(error, commands.CommandOnCooldown):
+            user_id = ctx.author.id
+            cooldown_string = cooldown_calculator(round(error.retry_after))
+
+            if user_id not in self.warned_cooldown_users:
+                self.warned_cooldown_users.add(user_id)
+                await ctx.send(f'Can\'t you be patient and just wait for {cooldown_string}')
+            
+            # cleanup after cooldown
+            async def remove_after():
+                await asyncio.sleep(error.retry_after)
+                self.warned_cooldown_users.discard(user_id)
+
+            asyncio.create_task(remove_after())
+        elif isinstance(error, commands.CommandNotFound):
+            pass
+        else:
+            await create_error_embed(ctx=ctx, error=error)
 
 
 async def setup(bot):
