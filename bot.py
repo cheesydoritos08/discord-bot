@@ -129,10 +129,12 @@ async def on_dbl_vote(data):
             claim_time = datetime.datetime.now()   
             claim_time_timestamp = round(time.time())
             time_difference = claim_time - last_claim
+            member = await bot.fetch_user(user_id)
 
             # Calculates whether to reset the streak or not
             if time_difference > datetime.timedelta(hours=24):
                 database_handler.users.update_one({'_id': user_id}, {'$set': {'vote.vote_streak': 1}})
+                await member.send(f"You lost your voting streak!")
                 streak = 1
             else:
                 database_handler.inc_value_to_users(user_id=user_id, key='vote.vote_streak', value=1)
@@ -189,7 +191,6 @@ async def on_dbl_vote(data):
             database_handler.inc_value_to_users(user_id=user_id, key='economy.yen', value=reward)
 
 
-            member = await bot.fetch_user(user_id)
             await member.send(f"You have received 2000 yen and a {character['name']} shard from voting!")
             database_handler.users.update_one({"_id": user_id}, {"$set": {"vote.last_vote_time": claim_time_timestamp}})
             

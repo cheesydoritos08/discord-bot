@@ -142,7 +142,7 @@ class Utilites(commands.Cog):
         embed = discord.Embed(title="Vote for the Lookism Bot!",
                                 description="By voting for the bot on Top.gg, you get 2000 yen and \na random fragment of your choice. The greater your vote\nstreak, the higher the chance of you getting a legendary\nfragment whenever you vote.")
 
-        embed.set_footer(text=f"Vote Streak: {user_profile.get("vote_streak")}")
+        embed.set_footer(text=f"Vote Streak: {user_profile.get("vote", {}).get("vote_streak")}")
         
         await ctx.send(view=view, embed=embed)
         

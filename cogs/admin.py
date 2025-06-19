@@ -25,21 +25,27 @@ class Owner_Commands(commands.Cog):
 
     # Searches for a character and changes their stat for all users
     @commands.command(name="updchar")
-    async def update_fighting_character(self, ctx, character, stat, value, convertToString):
+    async def update_character(self, ctx, character, stat, value, convertToInt = ""):
         if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-            if convertToString.lower() == "false":
+            if convertToInt.lower() == "t":
                 value = int(value)
         
             database_handler.users.update_many({"characters.name": character.replace("_", " ").title()}, {"$set": {f"characters.$.{stat}": value}})
-            return await ctx.send(f"{character} has  had {stat} changed to {value}")
-
-
+            return await ctx.send(f"{character} has had {stat} changed to {value}")
+        
+    # Removes a stat from a character    
+    @commands.command(name="unupdchar")
+    async def un_update_character(self, ctx, character, stat):
+        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+        
+            database_handler.users.update_many({"characters.name": character.replace("_", " ").title()}, {"$unset": {f"characters.$.{stat}": ""}})
+            return await ctx.send(f"{character} has had {stat} changed to None")
 
     # Searches the effects of the given character and updates them for all users
     @commands.command(name="updeffect")
-    async def update_effects_in_support_characters(self, ctx, character, effect, key, value, convertToString):
+    async def update_effects_in_support_characters(self, ctx, character, effect, key, value, convertToInt = ""):
         if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-            if convertToString.lower() == "false":
+            if convertToInt.lower() == "t":
                 value = int(value)
 
             index = None
@@ -54,7 +60,7 @@ class Owner_Commands(commands.Cog):
                 return await ctx.send("Something went wrong.")
 
             database_handler.users.update_many({"characters.name": character.replace("_", " ").title()}, {"$set": {f"characters.$.effects.{index}.{key}": value}})
-            return await ctx.send(f"{character}'s {effect} has been had {key} changed to {value}")
+            return await ctx.send(f"{character}'s {effect} has had {key} changed to {value}")
 
 
     # Unloads the specified extension
@@ -78,7 +84,8 @@ class Owner_Commands(commands.Cog):
             await ctx.send(f"{item} has been added.")
 
     
-    @update_fighting_character.error
+    @update_character.error
+    @un_update_character.error
     @update_effects_in_support_characters.error
     @unload.error
     @load.error
