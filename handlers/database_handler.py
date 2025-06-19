@@ -134,12 +134,12 @@ def update_stats(character, index, user_id):
         if char["name"] == character["name"]:
             team_character = True
 
-    character['LVL'] += levels
+    new_character_level = character['LVL'] + levels
     character['XP'] = remaning_xp
 
-    if character['LVL'] > leveling_cap:
-        levels = character["LVL"] - leveling_cap
-        character["LVL"] = leveling_cap
+    if new_character_level > leveling_cap:
+        levels = leveling_cap - character["LVL"]
+        new_character_level = leveling_cap
         character["XP"] = 0
 
     stat_increase = {
@@ -176,7 +176,7 @@ def update_stats(character, index, user_id):
     users.update_one({"_id": user_id}, {"$set": {f"characters.{index}.HP": round(character["HP"])}})
     users.update_one({"_id": user_id}, {"$set": {f"characters.{index}.ATK": round(character["ATK"])}})
     users.update_one({"_id": user_id}, {"$set": {f"characters.{index}.SPD": round(character["SPD"])}})
-    users.update_one({'_id': user_id}, {'$set': {f'characters.{index}.LVL': character['LVL']}}) 
+    users.update_one({'_id': user_id}, {'$set': {f'characters.{index}.LVL': new_character_level}}) 
     users.update_one({'_id': user_id}, {'$set': {f'characters.{index}.XP': character['XP']}}) 
 
 
