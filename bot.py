@@ -41,8 +41,7 @@ async def clear_cached_prefixes():
             guild_prefixes_dictionary.pop(k, None)
         
     except Exception as e:
-        print(e)
-
+        create_error_embed(error=e, msg="This occured while caching the server prefixes.")
 
 # Gets the prefix for the bot to use every time a command is called, using a cache whenever it's available
 async def get_prefix(bot, message):
@@ -64,7 +63,7 @@ async def get_prefix(bot, message):
             return  guild_prefixes_dictionary[guild_id]
     
     except Exception as e:
-        print(e)
+        create_error_embed(error=e, msg="This occured while getting the server prefixes for the user.")
 
 
 # Creates a variable to reference the bot and sets the prefix and intent permissions
@@ -105,7 +104,7 @@ async def on_startup_load():
         bot.topgg_webhook = topgg.WebhookManager(bot).dbl_webhook("/dblwebhook", AUTHORIZATION_CODE)
         bot.topgg_webhook.run(25869)  
     except Exception as e:
-        print(e)
+        create_error_embed(error=e, msg="This occured on the startup load function")
 
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py'):
@@ -197,7 +196,7 @@ async def on_dbl_vote(data):
             Timer(user_id=user_id, name="bot_vote", starttime=claim_time_timestamp, timer_length=60 * 60 * 12).create_timer()
             
         except Exception as e:
-            create_error_embed(error=e)
+            create_error_embed(error=e, msg="This occured while handling a user voting for the bot.")
             
 @bot.event
 async def on_dbl_test(data):
@@ -221,9 +220,10 @@ async def main():
                 retry_after = e.response.headers.get("Retry-After", 60)
                 await asyncio.sleep(retry_after)
             else:
-               await create_error_embed(error=e, ctx=None)
+                create_error_embed(error=e, msg="This occurred during an HTTP exception retry")
         except Exception as e:
-            await create_error_embed(error=e, ctx=None)
+            create_error_embed(error=e, msg="This occured while running the main function.")
         finally:
             bot.topgg_webhook.close()
+            
 asyncio.run(main())

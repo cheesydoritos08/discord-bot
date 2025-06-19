@@ -349,7 +349,6 @@ class Economy(commands.Cog):
         try:
             item_being_bought, amount = arg
         except Exception as e:
-            print(e)
             return await ctx.send("Do I really have to remind you to use the correct format?: `?buy <item name> <amount>`")
 
 
@@ -391,7 +390,6 @@ class Economy(commands.Cog):
         try:
             item_being_sold, amount = arg
         except Exception as e:
-            print(e)
             return await ctx.send("How many times do I have to tell you what the correct format is?: `?sell <item name> <amount>`")
 
         sellable_items = list(database_handler.items.find({"sell_price": {"$exists": True}}))

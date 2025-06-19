@@ -48,15 +48,19 @@ class Profile_and_Status(commands.Cog):
 
         embed.set_author(name='Profile')
 
-        embed.add_field(name='Details', value='', inline=False)
         embed.add_field(
             name='Character Rarities',
             value=f'Common: {user_profile.get("common_characters")}        \nEpic: {user_profile.get("epic_characters")}\nRare: {user_profile.get("rare_characters")}                 \nLegendary: {user_profile.get("legendary_characters")}',
-            inline=False,
+            inline=True,
         )
         embed.add_field(
             name='Character Thresholds',
             value=f'1T: {user_profile.get("threshold_one_characters")}\n2T: {user_profile.get("threshold_two_characters")}\n3T: {user_profile.get("threshold_three_characters")}\n4T: {user_profile.get("threshold_four_characters")}',
+            inline=True,
+        )
+        embed.add_field(
+            name='',
+            value='',
             inline=False,
         )
         embed.add_field(
@@ -66,7 +70,7 @@ class Profile_and_Status(commands.Cog):
         )
         embed.add_field(
             name='Other',
-            value=f'Pity: {user_profile.get("pity")}\nBalance: ¥{user_profile.get("economy").get("yen")}',
+            value=f'Pity: {user_profile.get("pity")}\nBalance: ¥{user_profile.get("economy").get("yen")}\nVote Streak: {user_profile.get("vote", {}).get('vote_streak')}',
             inline=True,
         )
 

@@ -69,16 +69,12 @@ class Utilites(commands.Cog):
         if amount < 1:
             return await ctx.send("Doesn't work like that.")
 
-        print(character, amount)
         for char in user_profile["characters"]:
             if char["name"].lower() == character.lower():
                 leveling_cap = 30
                 if char['LVL'] == leveling_cap:
                     return await ctx.send(f'You can\'t go past level {leveling_cap}.')
                 
-                print("weeee")
-                print(database_handler.increment_character_xp(user_id=ctx.author.id, xp=amount * 1000, character=character,return_xp=True))
-                print("booo")
                 database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.xp_chip.amount", value=-amount)
                 update_quests(user_id=ctx.author.id, quest_id="use_xp_chip", amount=1)
                 return await ctx.send(f"{character} has been leveled up.")

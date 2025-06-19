@@ -110,15 +110,19 @@ async def log_error_embed(bot):
             embed.add_field(name="Additional Info:",
                             value="This most likely occured on startup/resume or from a background process that doesn't have access to context like voting or searching through the database.")
 
+        embed.add_field(name="Developer Message",
+                        value=error['developer_message']['value'])
+        
         await report.send(embed=embed)    
 
         database_handler.errors.delete_one({"_id": error["_id"]})
+    
     except Exception as e:
-        print(e)
+        print(f"Error in logging error embed: {e}")
 
 
 
-def create_error_embed(error, ctx=None):
+def create_error_embed(error, ctx=None, msg="None given"):
     error_message = {
         "initial_embed": {
             "title": "An error occured",
@@ -127,6 +131,9 @@ def create_error_embed(error, ctx=None):
         },
         "additional_info": {
             "value": ""
+        },
+        "developer_message": {
+            "value": msg
         }
     }
     try:
@@ -134,7 +141,7 @@ def create_error_embed(error, ctx=None):
             error_message["additional_info"]["value"] = f"User: {ctx.author}\nChannel Sent in: {ctx.channel}\nMessage Sent: {ctx.message.content}\n Guild: {ctx.guild}\n Command Name: {ctx.invoked_with}"
             error_message["initial_embed"]["timestamp"] = datetime.datetime.fromtimestamp(ctx.message.created_at.timestamp())
     except Exception as e:
-        print(e)
+        print(f"Error in creating error embed: {e}")
     
     database_handler.errors.insert_one(error_message)
 

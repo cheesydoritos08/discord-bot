@@ -212,10 +212,10 @@ class TutorialButton(discord.ui.View):
             "Setting up the bot is really easy! If you're not an adminstrator, you can skip the next two pages. If you're an administrator, you can type ?addprefix [prefix] to add a prefix to the server. The square brackets are required for the command to work and the characters typed inside of them are case sensitive so be careful! If you want a space between your prefix and the commands, make sure to include it in the brackets as well.",
             "To view the list of prefixes you currently have set, type ?viewprefixes. Adding a prefix to the bot will not remove other prefixes so make sure to remove any unwanted prefixes!",
             "To remove a prefix, type ?removeprefix [prefix]. Once again, the command is case sensitive so make sure to type the prefix exactly as it's show in the viewprefixes command!",
-            "Finally, you can get to the fun part, gambling! To gamble for characters, you need to buy some tickets. You already have some money in your wallet so use the ?shop command to buy some standard or limited banner tickets. To buy an item, type ?buy <item name> <amount> (The <>s are not included in the command.)",
+            "Finally, you can get to the fun part, gambling! To gamble for characters, you need to buy some tickets. You already have some money in your wallet so use the ?shop command to buy some standard or limited banner tickets. To buy an item, type ?buy <item name> <amount>. You can also sell items in the shop if you type ?sell <item name> <amount>. (The <>s are not included in the command.)",
             "After you buy some tickets, roll on either banner to get characters. To roll on the limited banner, type ?roll limited and to roll on the standard banner, type ?roll standard. You can only roll one character at a time.",
             "Rolling on the limited time banner grants you the chance to roll the legendary character for the week. The legendary character on the banner rotates from week to week and you can check the current legendary by visiting the bot's support server!",
-            "When you roll duplicates, you get shards which will be stored in your shard inventory. Though these don\'t do anything now, in the near future they will be very important in unlocking character thresholds so make sure to save up a lot of them because you're going to need them!",
+            "When you roll duplicates, you get shards which will be stored in your shard inventory. To see your shard inventory, type ?shards. Though these don\'t do anything now, in the near future they will be very important in unlocking character thresholds so make sure to save up a lot of them because you're going to need them!",
             "After rolling your characters, you can add them to your team with ?addteammember <character full name> (<>s not included). Your team can then be used to challenge other players or to fight in raids.",
             "To challenge a player, type ?challenge <@user> (<>s not included). Challenging other players grants you money and xp which helps you level up your characters!",
             "Besides granting you yen and xp, challenging players also increases your ELO score on every win! By increasing your ELO score, you can unlock new ranks which given you *permanent* money boosts to your account. To check your ELO score and rank, you can use the ?profile command!",
@@ -246,7 +246,7 @@ class TutorialButton(discord.ui.View):
         ]
 
     def add_invite_button(self):
-        if self.index == 6 or self.index == 14:
+        if self.index == 6 or self.index == 15:
             self.add_item(self.button)
 
 
