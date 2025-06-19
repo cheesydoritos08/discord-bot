@@ -152,13 +152,13 @@ def update_stats(character, index, user_id):
                    "atk": 3,
                    "spd": 2},
         'Epic': {"type": "percent",
-                   "hp": 2,
-                   "atk": 2,
-                   "spd": 2},
+                   "hp": 3,
+                   "atk": 3,
+                   "spd": 3},
         'Legendary': {"type": "percent",
-                   "hp": 2,
-                   "atk": 2,
-                   "spd": 2},
+                   "hp": 3,
+                   "atk": 3,
+                   "spd": 3},
                     }  
     
     for x in range(levels):
