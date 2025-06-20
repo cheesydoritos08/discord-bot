@@ -1,4 +1,5 @@
 from discord.ext import commands
+import discord
 import handlers.database_handler as database_handler
 from utils.utility_functions import cooldown_calculator, create_error_embed
 import asyncio
@@ -83,7 +84,22 @@ class Owner_Commands(commands.Cog):
             database_handler.add_item(ctx=ctx, item=item)
             await ctx.send(f"{item} has been added.")
 
+    @commands.command(name="viewguild")
+    async def view_guild_info(self, ctx, id : int):
+        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            guild = await self.bot.fetch_guild(id, with_counts=True)
+
+            embed = discord.Embed(title=guild.name,
+                                  color=discord.Color.pink())
+            embed.add_field(name="Info",
+                            value=f"Owner Name: {await self.bot.fetch_user(guild.owner_id)}\nOwner ID: {guild.owner_id}\nDescription: {guild.description}\nOnline Members: {guild.approximate_presence_count}\nTotal Members: {guild.approximate_member_count}\nDay Created: {guild.created_at}\nUnavailable?: {guild.unavailable}")
+            
+            embed.set_thumbnail(url=guild.icon)
+
+            return await ctx.send(embed=embed)
     
+
+    @view_guild_info.error
     @update_character.error
     @un_update_character.error
     @update_effects_in_support_characters.error

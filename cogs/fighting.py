@@ -130,7 +130,7 @@ class Fighting(commands.Cog):
     @commands.cooldown(rate=1, per=2, type=commands.BucketType.user)
     @commands.command(name='addteammember', 
                       aliases=['addtm'],
-                      help="This command allows you to add a team member to your team. The format for this command is `?addteammember <character name>`")
+                      help="This command allows you to add a team member to your team. A team consists of three fighter characters and one support character. The format for this command is `?addteammember <character name>`")
     async def add_to_team(self, ctx, *, character_name):
         # Checks to see if the user has a profile or not
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):

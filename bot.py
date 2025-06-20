@@ -14,9 +14,6 @@ import topgg
 
 discord_invite = 'https://discord.com/oauth2/authorize?client_id=1371573491391922278&scope=bot+applications.commands&permissions=414464691264'
 
-# REMINDER TO SELF ::::> CREATE A PREFIX COMMAND SO THAT SERVER OWNERS CAN CHANGE THE PREFIX THAT THEY WANT FOR THEIR
-#                        SERVER. USE THIS REDDIT THREAD FOR HELP: https://www.reddit.com/r/Discord_Bots/comments/zo8way/discordpy_bot_multithreading/
-
 # Secures the token as a variable
 load_dotenv('.env')
 TOKEN: str = (
@@ -33,6 +30,7 @@ intents.message_content = True
 # Holds all the cached guild prfixes
 guild_prefixes_dictionary = {}
 
+
 # Creates a loop that clears the cache every 10 seconds
 @tasks.loop(seconds=10)
 async def clear_cached_prefixes():
@@ -46,6 +44,9 @@ async def clear_cached_prefixes():
 # Gets the prefix for the bot to use every time a command is called, using a cache whenever it's available
 async def get_prefix(bot, message):
     try:
+        if message.guild is None: 
+            return ["?"]
+        
         guild_id = message.guild.id
 
         if guild_prefixes_dictionary.get(guild_id):
@@ -58,6 +59,7 @@ async def get_prefix(bot, message):
             return  guild_prefixes_dictionary[guild_id]
         
         elif current_guild_prefixes is None:
+            # Shouldn't ever run but just in case
             database_handler.guild_prefixes.insert_one({"_id": guild_id, "prefixes": ["?"]})
             guild_prefixes_dictionary[guild_id] = ["?"]
             return  guild_prefixes_dictionary[guild_id]
@@ -69,6 +71,16 @@ async def get_prefix(bot, message):
 # Creates a variable to reference the bot and sets the prefix and intent permissions
 bot = commands.Bot(command_prefix=get_prefix, activity=discord.Activity(type=discord.ActivityType.watching, name="Type ?tut to start!"), intents=intents, help_command=None)
 bot.remove_command('help')
+
+@bot.event
+async def on_guild_join(guild):
+        database_handler.guild_prefixes.insert_one({"_id": guild.id, "prefixes": ["?"]})
+        guild_prefixes_dictionary[guild.id] = ["?"]    
+
+@bot.event
+async def on_guild_remove(guild):
+        database_handler.guild_prefixes.find_one_and_delete({"_id": guild.id})
+
 
 # Catches when the bot goes online
 @bot.event

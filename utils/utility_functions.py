@@ -83,7 +83,7 @@ def update_quests(user_id, quest_id, amount):
 async def log_error_embed(bot):
     try:
         error_list = []
-        for error in database_handler.errors.find({}).limit(3):
+        for error in database_handler.errors.find({}).limit(1):
             error_list.append(error)
 
         if not error_list:
@@ -110,6 +110,7 @@ async def log_error_embed(bot):
             embed.add_field(name="Additional Info:",
                             value="This most likely occured on startup/resume or from a background process that doesn't have access to context like voting or searching through the database.")
 
+
         embed.add_field(name="Developer Message",
                         value=error['developer_message']['value'])
         
@@ -122,7 +123,7 @@ async def log_error_embed(bot):
 
 
 
-def create_error_embed(error, ctx=None, msg="None given"):
+def create_error_embed(error, ctx=None, msg="None given."):
     error_message = {
         "initial_embed": {
             "title": "An error occured",
@@ -136,6 +137,7 @@ def create_error_embed(error, ctx=None, msg="None given"):
             "value": msg
         }
     }
+    print(error_message["developer_message"]['value'])
     try:
         if ctx is not None:
             error_message["additional_info"]["value"] = f"User: {ctx.author}\nChannel Sent in: {ctx.channel}\nMessage Sent: {ctx.message.content}\n Guild: {ctx.guild}\n Command Name: {ctx.invoked_with}"

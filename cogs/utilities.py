@@ -128,15 +128,15 @@ class Utilites(commands.Cog):
                 return await ctx.send("You don't have a profile. Use ?tut to get started.")
             
         user_profile = database_handler.users.find_one({"_id": ctx.author.id})
-        if user_profile.get("timers", {}).get("bot_vote") != 0:
-                return await ctx.send("You've voted already.")
             
         view = discord.ui.View()
         button = discord.ui.Button(style=discord.ButtonStyle.url, url="https://top.gg/bot/1371573491391922278", label="Vote for the bot!")
+        button = discord.ui.Button(style=discord.ButtonStyle.url, url="https://top.gg/discord/servers/723715072636399616", label="Vote for the server!")
+
         view.add_item(button)
 
-        embed = discord.Embed(title="Vote for the Lookism Bot!",
-                                description="By voting for the bot on Top.gg, you get 2000 yen and \na random fragment of your choice. The greater your vote\nstreak, the higher the chance of you getting a legendary\nfragment whenever you vote.")
+        embed = discord.Embed(title="Vote for the Lookism Bot and the server!",
+                                description="By voting for the bot and the server on Top.gg, you get 2000 yen and \na random fragment of your choice. The greater your vote\nstreak, the higher the chance of you getting a legendary\nfragment whenever you vote. Voting for the server doesn't\ngive you anything but is much appreciated!")
 
         embed.set_footer(text=f"Vote Streak: {user_profile.get("vote", {}).get("vote_streak")}")
         
