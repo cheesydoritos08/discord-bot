@@ -131,9 +131,10 @@ class Utilites(commands.Cog):
             
         view = discord.ui.View()
         button = discord.ui.Button(style=discord.ButtonStyle.url, url="https://top.gg/bot/1371573491391922278", label="Vote for the bot!")
-        button = discord.ui.Button(style=discord.ButtonStyle.url, url="https://top.gg/discord/servers/723715072636399616", label="Vote for the server!")
+        button2 = discord.ui.Button(style=discord.ButtonStyle.url, url="https://top.gg/discord/servers/723715072636399616", label="Vote for the server!")
 
         view.add_item(button)
+        view.add_item(button2)
 
         embed = discord.Embed(title="Vote for the Lookism Bot and the server!",
                                 description="By voting for the bot and the server on Top.gg, you get 2000 yen and \na random fragment of your choice. The greater your vote\nstreak, the higher the chance of you getting a legendary\nfragment whenever you vote. Voting for the server doesn't\ngive you anything but is much appreciated!")
