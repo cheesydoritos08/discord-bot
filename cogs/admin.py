@@ -87,16 +87,20 @@ class Owner_Commands(commands.Cog):
     @commands.command(name="viewguild")
     async def view_guild_info(self, ctx, id : int):
         if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-            guild = await self.bot.fetch_guild(id, with_counts=True)
 
-            embed = discord.Embed(title=guild.name,
-                                  color=discord.Color.pink())
-            embed.add_field(name="Info",
-                            value=f"Owner Name: {await self.bot.fetch_user(guild.owner_id)}\nOwner ID: {guild.owner_id}\nDescription: {guild.description}\nOnline Members: {guild.approximate_presence_count}\nTotal Members: {guild.approximate_member_count}\nDay Created: {guild.created_at}\nUnavailable?: {guild.unavailable}")
-            
-            embed.set_thumbnail(url=guild.icon)
+            # guild = await self.bot.fetch_guild(id, with_counts=True)
+            guilds = self.bot.guilds
 
-            return await ctx.send(embed=embed)
+            for guild in guilds:
+                    
+                embed = discord.Embed(title=guild.name,
+                                    color=discord.Color.pink())
+                embed.add_field(name="Info",
+                                value=f"Owner Name: {await self.bot.fetch_user(guild.owner_id)}\nOwner ID: {guild.owner_id}\nDescription: {guild.description}\nOnline Members: {guild.approximate_presence_count}\nTotal Members: {guild.approximate_member_count}\nDay Created: {guild.created_at}\nUnavailable?: {guild.unavailable}")
+                
+                embed.set_thumbnail(url=guild.icon)
+
+                await ctx.send(embed=embed)
     
 
     @view_guild_info.error
