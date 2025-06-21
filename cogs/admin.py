@@ -92,6 +92,7 @@ class Owner_Commands(commands.Cog):
             guilds = self.bot.guilds
 
             for guild in guilds:
+                guild = await self.bot.fetch_guild(guild.id, with_counts=True)
                     
                 embed = discord.Embed(title=guild.name,
                                     color=discord.Color.pink())
