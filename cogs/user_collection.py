@@ -17,7 +17,7 @@ class User_Collection(commands.Cog):
 
     def add_character_to_inventory(self, rarity, user_id):
         # Chooses a character based off of the rarity
-        rated_up_legendary_character = "Kitae Kim"
+        rated_up_legendary_character = "Goo Kim"
 
         if rarity == "Legendary":
             rolled_character = database_handler.all_characters.find_one({"name": rated_up_legendary_character})
