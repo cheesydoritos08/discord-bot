@@ -2,6 +2,7 @@ from discord.ext import commands
 import discord
 import handlers.database_handler as database_handler
 from utils.utility_functions import cooldown_calculator, create_error_embed
+from utils.buttons import ViewGuildsButton
 import asyncio
 
 class Owner_Commands(commands.Cog):
@@ -85,23 +86,22 @@ class Owner_Commands(commands.Cog):
             await ctx.send(f"{item} has been added.")
 
     @commands.command(name="viewguild")
-    async def view_guild_info(self, ctx, id : int):
+    async def view_guild_info(self, ctx, id : int = None):
         if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            
+            if id:
+                guilds = []
+                guilds.append(self.bot.get_guild(id))
+
+                print(guilds)
+            else:
+                guilds = self.bot.guilds
 
             # guild = await self.bot.fetch_guild(id, with_counts=True)
-            guilds = self.bot.guilds
 
-            for guild in guilds:
-                guild = await self.bot.fetch_guild(guild.id, with_counts=True)
-                    
-                embed = discord.Embed(title=guild.name,
-                                    color=discord.Color.pink())
-                embed.add_field(name="Info",
-                                value=f"Owner Name: {await self.bot.fetch_user(guild.owner_id)}\nOwner ID: {guild.owner_id}\nDescription: {guild.description}\nOnline Members: {guild.approximate_presence_count}\nTotal Members: {guild.approximate_member_count}\nDay Created: {guild.created_at}\nUnavailable?: {guild.unavailable}")
-                
-                embed.set_thumbnail(url=guild.icon)
+            view = ViewGuildsButton(bot=self.bot, guilds=guilds, ctx=ctx)
 
-                await ctx.send(embed=embed)
+            await ctx.send(embed=await view.create_embed(guilds[0]), view=view)
     
 
     @view_guild_info.error

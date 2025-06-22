@@ -181,6 +181,54 @@ class ShardInventoryButton(discord.ui.View):
             embed = self.create_embed(shards=shards_on_current_page)
             await interaction.response.edit_message(embed=embed, view=self)
 
+# Buttons for the view guilds command
+class ViewGuildsButton(discord.ui.View):
+        def __init__(self, bot, guilds, ctx=None):
+            super().__init__()
+            self.index = 0
+            self.bot = bot
+            self.guilds = guilds
+            self.ctx = ctx
+
+        async def interaction_check(self, interaction: discord.Interaction) -> bool:
+            if interaction.user != self.ctx.author:
+                await interaction.response.send_message(
+                    'Only the author of the command can perform this action.',
+                    ephemeral=True,
+                )
+                return False
+            return True
+
+        # Creates the embed for the pages
+        async def create_embed(self, guild):
+            guild = await self.bot.fetch_guild(guild.id, with_counts=True)
+                    
+            embed = discord.Embed(title=guild.name,
+                                    color=discord.Color.pink())
+            embed.add_field(name="Info",
+                                value=f"Owner Name: {await self.bot.fetch_user(guild.owner_id)}\nOwner ID: {guild.owner_id}\nDescription: {guild.description}\nOnline Members: {guild.approximate_presence_count}\nTotal Members: {guild.approximate_member_count}\nDay Created: {guild.created_at}\nUnavailable?: {guild.unavailable}")
+                
+            embed.set_thumbnail(url=guild.icon)
+            embed.set_footer(text=f"{self.index+1} / {len(self.guilds)}")
+            return embed
+
+        # Controls the back button
+        @discord.ui.button(label='Back', style=discord.ButtonStyle.red)
+        async def previous_message(
+            self, interaction: discord.Interaction, button: discord.ui.Button
+        ):
+            # Cycles through the list of chracters and sets the new embed to the corresponding page
+            self.index = (self.index - 1) % len(self.guilds)
+            embed = await self.create_embed(self.guilds[self.index])
+            await interaction.response.edit_message(embed=embed, view=self)
+
+        # Controls the next button
+        @discord.ui.button(label='Next', style=discord.ButtonStyle.red)
+        async def next_message(self, interaction: discord.Interaction, button: discord.ui.Button):
+            self.index = (self.index + 1) % len(self.guilds)
+            embed = await self.create_embed(self.guilds[self.index])
+            await interaction.response.edit_message(embed=embed, view=self)
+
 # Creates the buttons sent for the tutorial
 class TutorialButton(discord.ui.View):
     def __init__(self, *, timeout=60):
