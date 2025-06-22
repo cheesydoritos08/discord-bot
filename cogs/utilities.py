@@ -11,6 +11,7 @@ from utils.timer import Timer
 class Utilites(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.warned_cooldown_users = set()
 
     # Allows users to use xp and yen boosts
     @commands.command(name="boost")
@@ -76,8 +77,12 @@ class Utilites(commands.Cog):
                     return await ctx.send(f'You can\'t go past level {leveling_cap}.')
                 
                 database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.xp_chip.amount", value=-amount)
+                database_handler.increment_character_xp(user_id=ctx.author.id, character=character.lower(), xp= 1000 * amount)
                 update_quests(user_id=ctx.author.id, quest_id="use_xp_chip", amount=1)
-                return await ctx.send(f"{character} has been leveled up.")
+
+                char_level = database_handler.users.find_one({"_id": ctx.author.id, "characters.name": character.title()}, {'characters.$': 1}).get('characters')[0]['LVL']
+
+                return await ctx.send(f"{character} has been leveled up. They are currently level {char_level}")
 
     # Displays the current timers and how much time is left on them
     @commands.command(name="timers",
@@ -181,6 +186,7 @@ class Utilites(commands.Cog):
                 await asyncio.sleep(error.retry_after)
                 self.warned_cooldown_users.discard(user_id)
 
+            
             asyncio.create_task(remove_after())
         elif isinstance(error, commands.CommandNotFound):
             pass

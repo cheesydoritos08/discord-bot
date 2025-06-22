@@ -137,7 +137,6 @@ def create_error_embed(error, ctx=None, msg="None given."):
             "value": msg
         }
     }
-    print(error_message["developer_message"]['value'])
     try:
         if ctx is not None:
             error_message["additional_info"]["value"] = f"User: {ctx.author}\nChannel Sent in: {ctx.channel}\nMessage Sent: {ctx.message.content}\n Guild: {ctx.guild}\n Command Name: {ctx.invoked_with}"
