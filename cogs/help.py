@@ -24,6 +24,10 @@ class Help(commands.Cog):
                     value=" ".join([f'`{str(x)}`' for x in self.bot.commands if x.cog_name == cog]),
                     inline=False
             )
+            help_embed.set_footer(
+                text="Special thanks to the /Spartucus server for helping me test the bot! You can join their server with this link: discord.gg/5hQzPCaWqy",
+            )
+
             help_embed.add_field(
                 name="Details",
                 value="Type `?help <command name>` for more details about each command.",
