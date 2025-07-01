@@ -59,20 +59,20 @@ class TradeView(discord.ui.View):
          self.disable_buttons()
 
          for offer, offer_number in self.trade_offered.items():
-            if offer != "Yen":
+            if offer != "Won":
               database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"inventory.shards.{offer}", value=-offer_number)
               database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"inventory.shards.{offer}", value=offer_number)
-            elif offer == "Yen":
-              database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"economy.yen", value=-offer_number)
-              database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"economy.yen", value=offer_number)                
+            elif offer == "Won":
+              database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"economy.won", value=-offer_number)
+              database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"economy.won", value=offer_number)                
 
          for offer, offer_number in self.trade_received.items():
-            if offer != "Yen":
+            if offer != "Won":
               database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"inventory.shards.{offer}", value=offer_number)
               database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"inventory.shards.{offer}", value=-offer_number)
-            elif offer == "Yen":
-              database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"economy.yen", value=offer_number)
-              database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"economy.yen", value=-offer_number)  
+            elif offer == "Won":
+              database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"economy.won", value=offer_number)
+              database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"economy.won", value=-offer_number)  
          
          embed = self.create_embed(title = f"{self.receiver_user} has accepted the trade!", color = discord.Color.dark_green())
          
@@ -121,14 +121,14 @@ def handle_offer(offer, ctx, user_id):
 
         # Makes sure that money is in the first slot if presented
         try:
-            offer_dictionary["Yen"] = int(offer[0])
+            offer_dictionary["Won"] = int(offer[0])
             offer.pop(0)
         except ValueError:
             money_offered = False
         
-        # Checks to make sure user has enoug yen
-        if money_offered and offer_dictionary["Yen"] > user_profile.get("economy").get("yen"):
-            return "Error occurred", f"{ctx.bot.get_user(user_id)} does not have enough yen."
+        # Checks to make sure user has enough won
+        if money_offered and offer_dictionary["Won"] > user_profile.get("economy").get("won"):
+            return "Error occurred", f"{ctx.bot.get_user(user_id)} does not have enough won."
 
         # Stores the args in a dictionary format
         for arg in offer:
@@ -146,7 +146,7 @@ def handle_offer(offer, ctx, user_id):
             
         # Checks to see if the user owns the shards
         for key, value in offer_dictionary.copy().items():
-            if key == "Yen":
+            if key == "won":
                 continue
 
             shard_in_inventory = False

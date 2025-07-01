@@ -70,7 +70,7 @@ class Profile_and_Status(commands.Cog):
         )
         embed.add_field(
             name='Other',
-            value=f'Pity: {user_profile.get("pity")}\nBalance: ¥{user_profile.get("economy").get("yen")}\nVote Streak: {user_profile.get("vote", {}).get('vote_streak')}',
+            value=f'Pity: {user_profile.get("pity")}\nBalance: ₩{user_profile.get("economy").get("won")}\nVote Streak: {user_profile.get("vote", {}).get('vote_streak')}',
             inline=True,
         )
 
@@ -81,7 +81,7 @@ class Profile_and_Status(commands.Cog):
 
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     @commands.command(name='quests',
-                      help="This command shows all of your daily quests. For every quest completed, you gain 1000 yen and 2 standard banner tickets. Quests reset every 24 hours.")
+                      help="This command shows all of your daily quests. For every quest completed, you gain 1000 won and 2 standard banner tickets. Quests reset every 24 hours.")
     async def generate_quests(self, ctx):
         # Checks to see if the user has a profile or not
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):

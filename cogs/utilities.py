@@ -13,7 +13,7 @@ class Utilites(commands.Cog):
         self.bot = bot
         self.warned_cooldown_users = set()
 
-    # Allows users to use xp and yen boosts
+    # Allows users to use xp and won boosts
     @commands.command(name="boost")
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def use_boost(self, ctx, *, item : InventoryConverter):
@@ -24,7 +24,7 @@ class Utilites(commands.Cog):
         user_profile = database_handler.users.find_one({"_id": ctx.author.id})
         inventory = user_profile.get("inventory")
        
-        if item != "yen_booster" and item != "xp_booster":
+        if item != "won_booster" and item != "xp_booster":
             return await ctx.send("Not a valid boost item.")
     
         # Determines what to do based on the item mentioned
@@ -41,8 +41,8 @@ class Utilites(commands.Cog):
             database_handler.users.update_one({"_id": ctx.author.id}, {"$set": {f"buffs.{item}.multiplier": inventory[item]["multiplier"]}})
             database_handler.users.update_one({"_id": ctx.author.id}, {"$set": {f"buffs.{item}.active": True}})
 
-            if item == "yen_booster":
-                update_quests(user_id=ctx.author.id, quest_id="use_yen_booster", amount=1)
+            if item == "won_booster":
+                update_quests(user_id=ctx.author.id, quest_id="use_won_booster", amount=1)
             elif item == "xp_booster":
                 update_quests(user_id=ctx.author.id, quest_id="use_xp_booster", amount=1)
 
@@ -127,7 +127,7 @@ class Utilites(commands.Cog):
         await ctx.send(embed=embed, view=view)
         
     @commands.command(name="vote",
-                      help="This command lets you vote for the bot on top.gg! Voting for the bot rewards you 2000 yen and one shard of a random rarity, all the way up to Legendary!")
+                      help="This command lets you vote for the bot on top.gg! Voting for the bot rewards you 2000 won and one shard of a random rarity, all the way up to Legendary!")
     async def vote_for_bot(self, ctx):
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
                 return await ctx.send("You don't have a profile. Use ?tut to get started.")
@@ -142,7 +142,7 @@ class Utilites(commands.Cog):
         view.add_item(button2)
 
         embed = discord.Embed(title="Vote for the Lookism Bot and the server!",
-                                description="By voting for the bot and the server on Top.gg, you get 2000 yen and \na random fragment of your choice. The greater your vote\nstreak, the higher the chance of you getting a legendary\nfragment whenever you vote. Voting for the server doesn't\ngive you anything but is much appreciated!")
+                                description="By voting for the bot and the server on Top.gg, you get 2000 won and \na random fragment of your choice. The greater your vote\nstreak, the higher the chance of you getting a legendary\nfragment whenever you vote. Voting for the server doesn't\ngive you anything but is much appreciated!")
 
         embed.set_footer(text=f"Vote Streak: {user_profile.get("vote", {}).get("vote_streak")}")
         

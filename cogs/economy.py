@@ -23,7 +23,7 @@ class Economy(commands.Cog):
     # Balance command
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     @commands.command(aliases=['bal'],
-                      help="This command display the amount of yen you currently have!")
+                      help="This command display the amount of won you currently have!")
     async def balance(self, ctx):
         # Stores the user and user profile into a variable
         user = ctx.message.author
@@ -36,12 +36,12 @@ class Economy(commands.Cog):
         user_profile = database_handler.users.find_one({'_id': user.id})
 
         # Stores the balance in a variable
-        balance = user_profile.get('economy').get('yen')
+        balance = user_profile.get('economy').get('won')
 
         # Creates an embed with all the info
         embed = discord.Embed(
             title=f"{user}'s Balance",
-            description=f'Balance: ¥{balance}',
+            description=f'Balance: ₩{balance}',
             color=discord.Color.dark_green(),
         )
         
@@ -98,7 +98,7 @@ class Economy(commands.Cog):
         streak_multipler = (streak - 1) / 100
         daily_amount *= 1.00 + streak_multipler
 
-        database_handler.inc_value_to_users(user_id=user.id, key='economy.yen', value=daily_amount)
+        database_handler.inc_value_to_users(user_id=user.id, key='economy.won', value=daily_amount)
 
         # Determines what shard to give to user ever 5 days of their streak
         if streak % 5 == 0:
@@ -160,17 +160,17 @@ class Economy(commands.Cog):
         if shard_obtained:
             embed = discord.Embed(
                 title='* Daily Reward *',
-                description=f"You've obtained ¥{daily_amount}! This has been added to your balance.\nYou also obtained a {character['name']} shard! This has been added to your inventory.",
+                description=f"You've obtained ₩{daily_amount}! This has been added to your balance.\nYou also obtained a {character['name']} shard! This has been added to your inventory.",
                 color=discord.Color.dark_magenta(),
             )
         else:
             embed = discord.Embed(
                 title='* Daily Reward *',
-                description=f"You've obtained ¥{daily_amount}! This has been added to your balance.",
+                description=f"You've obtained ₩{daily_amount}! This has been added to your balance.",
                 color=discord.Color.dark_magenta(),
             )
 
-        update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_yen", amount=daily_amount)
+        update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_won", amount=daily_amount)
         embed.set_footer(text=f'Current Streak: {streak}')
 
         # Updates the claim time for the daily bonus
@@ -186,14 +186,14 @@ class Economy(commands.Cog):
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
     @commands.command(name='highlow', 
                       aliases=['hl'],
-                      help="This commands allows you to play a guessing game. The bot draws a card and you have to guess whether the next card drawn will be higher, lower or the same. If you win, you get 100 yen!")
+                      help="This commands allows you to play a guessing game. The bot draws a card and you have to guess whether the next card drawn will be higher, lower or the same. If you win, you get 100 won!")
     async def high_or_low(self, ctx):
         # Checks to see if the user has a profile or not
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
             return
 
         # Sets the win amount and creates the card list
-        win_amount = 100 * check_boosts(user_id=ctx.author.id,type="yen_booster")
+        win_amount = 100 * check_boosts(user_id=ctx.author.id,type="won_booster")
         cards_list = [
             'Ace: 🂡',
             '2: 🂢',
@@ -242,13 +242,13 @@ class Economy(commands.Cog):
             # Sends a response based on the message sent by the user
             if msg.content.lower() == answer:
                 await ctx.send(
-                    f'The next card was a {second_card}! Congrats. Here\'s ¥{win_amount} for winning.'
+                    f'The next card was a {second_card}! Congrats. Here\'s ₩{win_amount} for winning.'
                 )
                 database_handler.inc_value_to_users(
-                    user_id=msg.author.id, key='economy.yen', value=win_amount
+                    user_id=msg.author.id, key='economy.won', value=win_amount
                 )
                 update_quests(user_id=ctx.author.id, quest_id="win_highlow", amount=1)
-                update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_yen", amount=win_amount)
+                update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_won", amount=win_amount)
 
             elif (
                 msg.content.lower() == 'higher'
@@ -286,7 +286,7 @@ class Economy(commands.Cog):
             try:
                 bet = int(msg.content)
                 if bet > database_handler.users.find_one({'_id': ctx.author.id}).get('economy').get(
-                    'yen'
+                    'won'
                 ):
                     return await ctx.send('How about you try getting enough money first before you gamble.')
             except ValueError:
@@ -307,17 +307,17 @@ class Economy(commands.Cog):
                     
                 
                 database_handler.inc_value_to_users(
-                    user_id=msg.author.id, key='economy.yen', value=(bet * check_boosts(user_id=ctx.author.id, type="yen_booster"))
+                    user_id=msg.author.id, key='economy.won', value=(bet * check_boosts(user_id=ctx.author.id, type="won_booster"))
                 )
 
-                update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_yen", amount=(bet * check_boosts(user_id=ctx.author.id, type="yen_booster")))
+                update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_won", amount=(bet * check_boosts(user_id=ctx.author.id, type="won_booster")))
 
             elif msg.content.lower() == 'heads' or msg.content.lower() == 'tails':
                 await ctx.send(
                     f'It was {result}. Unlucky. Thanks for the money though.'
                 )
                 database_handler.inc_value_to_users(
-                    user_id=msg.author.id, key='economy.yen', value=-bet
+                    user_id=msg.author.id, key='economy.won', value=-bet
                 )
             else:
                 await ctx.send("Wrong word.")
@@ -360,23 +360,23 @@ class Economy(commands.Cog):
         for item in buyable_items:
             if  item_being_bought == item["name"]:
                 user_profile = database_handler.users.find_one({"_id": ctx.author.id})
-                user_yen = user_profile.get("economy").get("yen")
+                user_won = user_profile.get("economy").get("won")
                 user_inventory = user_profile.get("inventory")
                 price = item["buy_price"] * amount
 
-                if user_yen < price:
+                if user_won < price:
                     return await ctx.send("Don't try to buy something if you're broke.")
                 
                 for user_item in user_inventory:
                     if user_item == item["name"]:
                         database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount)
-                        database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.yen", value=-price)
+                        database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=-price)
                         update_quests(user_id=ctx.author.id, quest_id="buy_five_items", amount=amount)
                         return await ctx.send(f"You bought {amount} {item['emoji']} {item["name"].replace("_", " ").title().replace("Xp", "XP")}(s).")
 
                 database_handler.add_item(user_id=ctx.author.id, item=item_being_bought)
                 database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount)
-                database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.yen", value=-price)
+                database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=-price)
                 update_quests(user_id=ctx.author.id, quest_id="buy_five_items", amount=amount)
                 return await ctx.send(f"You bought {amount} {item['emoji']} {item['name'].replace("_", " ").title().replace("Xp", "XP")}(s).")
             
@@ -411,15 +411,15 @@ class Economy(commands.Cog):
                 for user_item in user_inventory:
                     if user_item == item["name"]:
                         database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=-amount)
-                        database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.yen", value=sell_amount)
+                        database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=sell_amount)
                         update_quests(user_id=ctx.author.id, quest_id="sell_five_items", amount=amount)
-                        update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_yen", amount=sell_amount)
+                        update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_won", amount=sell_amount)
                         return await ctx.send(f"You sold {amount} {item["emoji"]} {item["name"].replace("_", " ").title().replace("Xp", "XP")}(s).")
         
         return await ctx.send("What gave you the bright idea to try and pass this off as a valid item?")
                     
     # Allows users to trade with one another
-    @commands.command(help = "This command lets you trade shards and money with another player. The format for this command is `?trade <user> [your offer] [their offer]`. The offer should be formatted like this: [<money amount>, <shard first name^amount>]' So if you wanted to trade 2 Johan Seong shards and a Mary Kim shard for 1000 yen and a Goo Kim shard, the command would look like this: ?trade <user> [johan^2, mary^1] [1000, goo^1]")
+    @commands.command(help = "This command lets you trade shards and money with another player. The format for this command is `?trade <user> [your offer] [their offer]`. The offer should be formatted like this: [<money amount>, <shard first name^amount>]' So if you wanted to trade 2 Johan Seong shards and a Mary Kim shard for 1000 won and a Goo Kim shard, the command would look like this: ?trade <user> [johan^2, mary^1] [1000, goo^1]")
     async def trade(self, ctx, *, arg: TradeArgumentConverter):
         target_user, offers, receives = arg
 

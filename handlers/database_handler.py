@@ -30,13 +30,13 @@ def create_new_profile(user_id):
         '_id': user_id,
         'characters': [],
         'inventory': {'shards': {}},
-        'economy': {'yen': 5000, 'daily_streak': 0, 'last_claim_time': 0},
+        'economy': {'won': 5000, 'daily_streak': 0, 'last_claim_time': 0},
         'wins': 0,
         'losses': 0,
         'elo': {
             "score": 1000,
             "ranking": "None",
-            "yen_booster": 1},
+            "won_booster": 1},
         'common_characters': 0,
         'rare_characters': 0,
         'epic_characters': 0,
@@ -59,11 +59,11 @@ def create_new_profile(user_id):
         'buffs': {
             'xp_booster': {'active': False,
                            'multiplier': 0},
-            'yen_booster':  {'active': False,
+            'won_booster':  {'active': False,
                            'multiplier': 0}
         },
         'timers': {
-            'yen_booster': 0,
+            'won_booster': 0,
             'xp_booster': 0,
             'daily_claim': 0,
             'daily_quests': 0,

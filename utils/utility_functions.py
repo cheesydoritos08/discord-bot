@@ -8,12 +8,12 @@ def check_boosts(user_id, type):
     multiplier = 1
     user_profile = database_handler.users.find_one({"_id": user_id})
     buffs_list = user_profile.get("buffs")
-    rank_boost = user_profile.get("elo").get("yen_booster")
+    rank_boost = user_profile.get("elo").get("won_booster")
 
     if buffs_list[type]["active"]:
         multiplier = buffs_list[type]["multiplier"]
 
-    if type == "yen_booster":
+    if type == "won_booster":
         multiplier *= rank_boost
         
     return multiplier
@@ -49,7 +49,7 @@ def update_quests(user_id, quest_id, amount):
             database_handler.users.update_one({"_id": user_id}, {"$set": {f"quests.{i}.total_completed": quest["total_completed"]}})
         
         if quest["_id"] == quest_id and quest["total_completed"] >= quest["total_needed"]: 
-            database_handler.inc_value_to_users(user_id=user_id, key="economy.yen", value=1000)
+            database_handler.inc_value_to_users(user_id=user_id, key="economy.won", value=1000)
             standard_ticket_in_inventory = False
 
             for item in user_inventory:

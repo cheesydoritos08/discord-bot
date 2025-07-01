@@ -236,7 +236,7 @@ class RaidInstance():
                 "standard_ticket": 40,
                 "limited_ticket": 25,
                 "xp_booster": 10,
-                "yen_booster": 10
+                "won_booster": 10
             },
 
             20:  {
@@ -245,7 +245,7 @@ class RaidInstance():
                 "standard_ticket": 50,
                 "limited_ticket": 30,
                 "xp_booster": 30,
-                "yen_booster": 30
+                "won_booster": 30
             },
         }
 

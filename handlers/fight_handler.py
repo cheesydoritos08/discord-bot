@@ -65,12 +65,12 @@ class GameInstance:
         for item in elo_dictionary:
             if elo > item["min"]:
                 database_handler.users.update_one({"_id": user.id}, {"$set": {"elo.ranking": item["rank"]}})
-                database_handler.users.update_one({"_id": user.id}, {"$set": {"elo.yen_booster": item["boost"]}})
+                database_handler.users.update_one({"_id": user.id}, {"$set": {"elo.won_booster": item["boost"]}})
                 database_handler.users.update_one({"_id": user.id}, {"$set": {"elo.score": elo}})
                 return
 
         database_handler.users.update_one({"_id": user.id}, {"$set": {"elo.ranking": "None"}})
-        database_handler.users.update_one({"_id": user.id}, {"$set": {"elo.yen_booster": 1}})
+        database_handler.users.update_one({"_id": user.id}, {"$set": {"elo.won_booster": 1}})
         database_handler.users.update_one({"_id": user.id}, {"$set": {"elo.score": elo}})
         return
     
@@ -278,12 +278,12 @@ class GameInstance:
                 else self.player_two_team
             )
 
-            payout = round(random.randint(500, 1000) * check_boosts(user_id = winning_player.id, type="yen_booster"))
-            update_quests(user_id=winning_player.id, quest_id="earn_five_thousand_yen", amount=payout)
+            payout = round(random.randint(500, 1000) * check_boosts(user_id = winning_player.id, type="won_booster"))
+            update_quests(user_id=winning_player.id, quest_id="earn_five_thousand_won", amount=payout)
 
             embed = discord.Embed(
                 title=f"{winning_player} won the fight!",
-                description=f"{winning_player} has received {payout} yen for winning this fight.",
+                description=f"{winning_player} has received {payout} won for winning this fight.",
                 color= discord.Color.brand_green(),
             )
 
@@ -309,7 +309,7 @@ class GameInstance:
 
             await self.ctx.send(embed=embed)
 
-            database_handler.inc_value_to_users(user_id=winning_player.id, key="economy.yen", value=payout)
+            database_handler.inc_value_to_users(user_id=winning_player.id, key="economy.won", value=payout)
             database_handler.inc_value_to_users(user_id=winning_player.id, key="wins", value=1)
             database_handler.inc_value_to_users(user_id=losing_player.id, key="losses", value=1)
 

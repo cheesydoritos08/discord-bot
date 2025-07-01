@@ -17,7 +17,7 @@ class Timer():
         asyncio.create_task(new_timer())
 
     def complete_task(self):        
-        if self.name == "yen_booster":
+        if self.name == "won_booster":
             database_handler.users.update_one({"_id": self.user_id}, {"$set": {f"buffs.{self.name}.active": False}})
             database_handler.users.update_one({"_id": self.user_id}, {"$set": {f"buffs.{self.name}.multiplier": 0}})
             database_handler.users.update_one({"_id": self.user_id}, {"$set": {f"timers.{self.name}": 0}})   

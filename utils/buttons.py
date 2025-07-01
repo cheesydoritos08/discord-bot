@@ -21,7 +21,7 @@ class ShopButtons(discord.ui.View):
 
         for item in self.items[int(self.index * 2):int(((self.index * 2) + 2))]:
             embed.add_field(name=f"°˖✧ {item["emoji"]} {item["name"].replace("_", " ").title().replace("Xp", "XP")} ✧˖°",
-                value=f"`Buy Price:` ¥{item["buy_price"]}\n`Sell Price:` ¥{item["sell_price"]}",
+                value=f"`Buy Price:` ₩{item["buy_price"]}\n`Sell Price:` ₩{item["sell_price"]}",
                 inline=True)
 
         embed.set_footer(text="•─•°• To buy or sell an item, type ?buy/sell <item name> <amount> •°•─•")
@@ -266,7 +266,7 @@ class TutorialButton(discord.ui.View):
             "When you roll duplicates, you get shards which will be stored in your shard inventory. To see your shard inventory, type ?shards. Though these don\'t do anything now, in the near future they will be very important in unlocking character thresholds so make sure to save up a lot of them because you're going to need them!",
             "After rolling your characters, you can add them to your team with ?addteammember <character full name> (<>s not included). Each team consists of three fighters and one support! Your team can then be used to challenge other players or to fight in raids.",
             "To challenge a player, type ?challenge <@user> (<>s not included). Challenging other players grants you money and xp which helps you level up your characters!",
-            "Besides granting you yen and xp, challenging players also increases your ELO score on every win! By increasing your ELO score, you can unlock new ranks which given you *permanent* money boosts to your account. To check your ELO score and rank, you can use the ?profile command!",
+            "Besides granting you won and xp, challenging players also increases your ELO score on every win! By increasing your ELO score, you can unlock new ranks which given you *permanent* money boosts to your account. To check your ELO score and rank, you can use the ?profile command!",
             "There's a global leaderboard that displays the current all time highest ELOs across the entire bot database! If you're strong enough, you could end up on there!",
             "If you don't have any friends to challenge, you can run the raid command by typing ?raid! Going on raids grants you xp and items that can be used on yourself or on your team members! Raid levels are also replayable so once you beat a level, you can always go back and start from it by typing ?raid <level> (<>s not included).",
             'Besides challenging players to fights, you can earn money through completeling daily quests with the ?quests command, claiming your daily reward with the ?daily command, voting for bot on Top.gg with the ?vote command, gambling your money with the ?coinflip command and playing higher or lower with the ?highlow command!',
