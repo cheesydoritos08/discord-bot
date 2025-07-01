@@ -3,7 +3,7 @@ import copy
 import random
 import discord
 import handlers.database_handler as database_handler
-from utils.utility_functions import update_quests, check_boosts
+from utils.utility_functions import update_quests, check_boosts, create_error_embed
 
 # Instantiates a new raid for the user
 class RaidInstance():
@@ -218,25 +218,28 @@ class RaidInstance():
     def calculate_level_rewards(self):
         rewards_dictionary = {
             5: {
-                "raid_token": 50,
+                "raid_token": 40,
                 "standard_ticket": 30,
-                "limited_ticket": 10
+                "limited_ticket": 10,
+                "ev_stone": 10
                 },
 
             10: {                
                 "xp_chip": 20,
-                "raid_token": 60,
+                "raid_token": 50,
                 "standard_ticket": 30,
-                "limited_ticket": 20
+                "limited_ticket": 20,
+                "ev_stone": 20
                 },
 
             15: {
                 "xp_chip": 30,
-                "raid_token": 70,
+                "raid_token": 60,
                 "standard_ticket": 40,
                 "limited_ticket": 25,
                 "xp_booster": 10,
-                "won_booster": 10
+                "won_booster": 10,
+                "ev_stone": 20
             },
 
             20:  {
@@ -245,7 +248,8 @@ class RaidInstance():
                 "standard_ticket": 50,
                 "limited_ticket": 30,
                 "xp_booster": 30,
-                "won_booster": 30
+                "won_booster": 30,
+                "ev_stone": 30
             },
         }
 
@@ -260,11 +264,11 @@ class RaidInstance():
                 excess_round_attempts = math.fabs(self.round - len(self.enemies))
                 range_of_rewards = 4
 
-                if excess_round_attempts >= 11:
+                if excess_round_attempts > 5:
                     range_of_rewards = 1
-                elif excess_round_attempts >= 7:
+                elif excess_round_attempts <= 5:
                     range_of_rewards = 2
-                elif excess_round_attempts >= 4:
+                elif excess_round_attempts <= 2:
                     range_of_rewards = 3
                 
                 if self.player_rewards.get(item) is None:
@@ -345,7 +349,7 @@ class RaidInstance():
                             database_handler.inc_value_to_users(user_id=interaction.user.id, key=f"inventory.{reward}.amount", value=amount)
                             reward_given = True
                     except Exception as e:
-                        raise e
+                         create_error_embed(error=e, ctx=self.ctx)
                 
                 if not reward_given:
                     database_handler.add_item(user_id=self.ctx.author.id, item=reward)
