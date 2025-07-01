@@ -219,21 +219,22 @@ class RaidInstance():
         rewards_dictionary = {
             5: {
                 "raid_token": 50,
-                "standard_ticket": 20
+                "standard_ticket": 30,
+                "limited_ticket": 10
                 },
 
             10: {                
                 "xp_chip": 20,
                 "raid_token": 60,
                 "standard_ticket": 30,
-                "limited_ticket": 10
+                "limited_ticket": 20
                 },
 
             15: {
                 "xp_chip": 30,
                 "raid_token": 70,
                 "standard_ticket": 40,
-                "limited_ticket": 20,
+                "limited_ticket": 25,
                 "xp_booster": 10,
                 "yen_booster": 10
             },

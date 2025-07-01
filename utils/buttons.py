@@ -19,7 +19,7 @@ class ShopButtons(discord.ui.View):
     def create_embed(self):
         embed = discord.Embed(title="•─•°• Shop •°•─•")
 
-        for item in self.items[int(self.index * 3):int(((self.index * 3) + 3))]:
+        for item in self.items[int(self.index * 2):int(((self.index * 2) + 2))]:
             embed.add_field(name=f"°˖✧ {item["emoji"]} {item["name"].replace("_", " ").title().replace("Xp", "XP")} ✧˖°",
                 value=f"`Buy Price:` ¥{item["buy_price"]}\n`Sell Price:` ¥{item["sell_price"]}",
                 inline=True)
@@ -30,12 +30,12 @@ class ShopButtons(discord.ui.View):
 
     @discord.ui.button(label="Back", style=discord.ButtonStyle.red)
     async def back_button(self, interaction, button):
-        self.index = (self.index - 1) % (len(self.items) / 3)
+        self.index = (self.index - 1) % (len(self.items) / 2)
         await interaction.response.edit_message(embed=self.create_embed(), view=self)
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.red)
     async def next_button(self, interaction, button):
-        self.index = (self.index + 1) % (len(self.items) / 3)
+        self.index = (self.index + 1) % (len(self.items) / 2)
         await interaction.response.edit_message(embed=self.create_embed(), view=self)
 
  # Buttons for the my characters command
