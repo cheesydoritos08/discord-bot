@@ -21,8 +21,10 @@ class User_Collection(commands.Cog):
 
         if rarity == "Legendary":
             rolled_character = database_handler.all_characters.find_one({"name": rated_up_legendary_character})
+            rolled_character.pop('threshold_requirements')
         else:
             rolled_character = random.choice(database_handler.all_characters_search('rarity', rarity))
+            rolled_character.pop('threshold_requirements')
         
         user_character = database_handler.user_character_finder(
             user_id=user_id, character_name=rolled_character['name']
