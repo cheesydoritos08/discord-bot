@@ -218,38 +218,35 @@ class RaidInstance():
     def calculate_level_rewards(self):
         rewards_dictionary = {
             5: {
-                "raid_token": 40,
+                "raid_token": 30,
                 "standard_ticket": 30,
                 "limited_ticket": 10,
                 "ev_stone": 10
                 },
 
             10: {                
-                "xp_chip": 20,
-                "raid_token": 50,
+                "raid_token": 40,
                 "standard_ticket": 30,
                 "limited_ticket": 20,
-                "ev_stone": 20
+                "ev_stone": 10
                 },
 
             15: {
-                "xp_chip": 30,
-                "raid_token": 60,
+                "raid_token": 50,
                 "standard_ticket": 40,
                 "limited_ticket": 25,
-                "xp_booster": 10,
-                "won_booster": 10,
-                "ev_stone": 20
+                "xp_booster": 5,
+                "won_booster": 5,
+                "ev_stone": 10
             },
 
             20:  {
-                "xp_chip": 40,
-                "raid_token": 100,
+                "raid_token": 60,
                 "standard_ticket": 50,
                 "limited_ticket": 30,
-                "xp_booster": 30,
-                "won_booster": 30,
-                "ev_stone": 30
+                "xp_booster": 10,
+                "won_booster": 10,
+                "ev_stone": 15
             },
         }
 
