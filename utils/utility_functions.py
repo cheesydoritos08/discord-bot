@@ -127,7 +127,7 @@ def create_error_embed(error, ctx=None, msg="None given."):
     error_message = {
         "initial_embed": {
             "title": "An error occured",
-            "description": f"**Error:** \n{error}",
+            "description": f"**Error:** \n{type(error).__name__}: {error}",
             "timestamp": ""
         },
         "additional_info": {

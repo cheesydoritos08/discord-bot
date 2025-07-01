@@ -1,5 +1,6 @@
 import discord
 import math
+from utils.utility_functions import create_error_embed
 import handlers.database_handler as database_handler
 
 # Buttons for the shop command
@@ -110,6 +111,44 @@ class CharacterButton(discord.ui.View):
             self.index = (self.index - 1) % len(self.characters)
             embed = self.create_embed(self.characters[self.index])
             await interaction.response.edit_message(embed=embed, view=self)
+        
+        # Controls the extra info
+        @discord.ui.button(label='More Info', style=discord.ButtonStyle.gray)
+        async def display_more_info(self, interaction: discord.Interaction, button: discord.ui.Button):
+            try:
+                character = database_handler.all_characters.find_one({"name": self.characters[self.index]['name']})
+        
+                embed = discord.Embed(title="-ˋˏ ༻ Threshold Requirements ༺ ˎˊ-")
+
+                for threshold in character.get('threshold_requirements').keys():
+                    threshold_reqs_string = ""
+                    for item, value in character['threshold_requirements'].get(threshold).items():
+                        if item == "won":
+                            threshold_reqs_string += f"> ❥ {item.replace("_", " ").title()}: ₩{value}\n"
+                        elif item == "shards":
+                            shard_emoji = character.get("emoji")
+                            threshold_reqs_string += f"> ❥ {item.replace("_", " ").title()} {shard_emoji}: {value}\n"
+                        elif item == "characters":
+                            for char in character['threshold_requirements'][threshold]["characters"]:
+                                character_emoji = database_handler.all_characters.find_one({"name": char['name']}).get("emoji")
+                                threshold_reqs_string += f"> ❥ {char['threshold']}T {char['name']} {character_emoji}\n"
+                        else:
+                            item_emoji = database_handler.items.find_one({"name": item}).get("emoji")
+                            threshold_reqs_string += f"> ❥ {item.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")} {item_emoji}: {value}\n"
+
+
+                    embed.add_field(name=f"-ˋˏ ༻ {threshold.replace("_", " ").title()} ༺ ˎˊ-",
+                                    value=threshold_reqs_string,
+                                    inline=False)
+
+                embed.set_thumbnail(url=character.get('image_url'))
+
+                embed.set_footer(text="Unlocking new thresholds makes your characters much stronger!")
+
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+            except Exception as e:
+                create_error_embed(error=e, ctx = self.ctx)
+
 
         # Controls the next button
         @discord.ui.button(label='Next', style=discord.ButtonStyle.red)
@@ -117,6 +156,8 @@ class CharacterButton(discord.ui.View):
             self.index = (self.index + 1) % len(self.characters)
             embed = self.create_embed(self.characters[self.index])
             await interaction.response.edit_message(embed=embed, view=self)
+
+
 
 # Buttons for the shard inventory command
 class ShardInventoryButton(discord.ui.View):
