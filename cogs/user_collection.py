@@ -18,6 +18,7 @@ class User_Collection(commands.Cog):
     def add_character_to_inventory(self, rarity, user_id):
         # Chooses a character based off of the rarity
         rated_up_legendary_character = "Mujin Jin"
+        print(rated_up_legendary_character)
 
         if rarity == "Legendary":
             rolled_character = database_handler.all_characters.find_one({"name": rated_up_legendary_character})
@@ -25,24 +26,33 @@ class User_Collection(commands.Cog):
         else:
             rolled_character = random.choice(database_handler.all_characters_search('rarity', rarity))
             rolled_character.pop('threshold_requirements')
-        
+        print(rolled_character['name'])
         user_character = database_handler.user_character_finder(
             user_id=user_id, character_name=rolled_character['name']
         )
-
+        print(user_character)
         if rarity == "Epic":
             update_quests(user_id=user_id, quest_id="roll_epic_character", amount=1)
 
         # Checks if the user already owns character
         if user_character is not None:
             # Adds a shard for that character if already owned
-            database_handler.inc_value_to_users(
-                user_id=user_id,
-                key=f'inventory.shards.{rolled_character["name"]}',
-                value=1,
-            )
+            shard = rarity.lower() + "_shard"
+            print(shard)
+            user_inventory = database_handler.users.find_one({"_id": user_id}).get('inventory')
+            for user_item in user_inventory:
+                if user_item == shard:
+                    print("go")
+                    database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.{shard}.amount", value=1)
+                    update_quests(user_id=user_id, quest_id="roll_five_characters", amount=1)
+                    return rolled_character, True
+
+            print('gs')
+            database_handler.add_item(user_id=user_id, item=shard)
+            database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.{shard}.amount", value=1)
             update_quests(user_id=user_id, quest_id="roll_five_characters", amount=1)
             return rolled_character, True
+        
         else:
             # Adds character to user inventory if unowned
             database_handler.add_array_to_users(
@@ -126,7 +136,7 @@ class User_Collection(commands.Cog):
 
     # The roll command
     @commands.command(help="This command allows you to roll on the standard or limited time banner. The format for this command is `?roll <banner name>`")
-    @commands.cooldown(rate=1, per=3, type=commands.BucketType.user)
+    @commands.cooldown(rate=1, per=0, type=commands.BucketType.user)
     async def roll(self, ctx, *, banner=None):
         # Determines what happens depending on the banner chosen
         user = ctx.author
@@ -152,6 +162,7 @@ class User_Collection(commands.Cog):
             )
 
             # Checks to see if the user has enough tickets for the banner
+            print(1)
             user_tickets = user_profile.get('inventory').get('standard_ticket')
 
             if user_tickets is None:
@@ -166,6 +177,7 @@ class User_Collection(commands.Cog):
 
             # Gets the character rolled on the banner and checks if it's a duplicate
             character, is_duplicate = self.standard_banner_roll(user.id)
+            print(2)
 
         # Runs when the user selected limited time banner
         elif banner.lower() == 'limited':
@@ -197,6 +209,7 @@ class User_Collection(commands.Cog):
             pity = user_profile.get('pity')
 
         # Determines the color of the side bar on the embed based on rarity
+        print(3)
         if character['rarity'] == 'Common':
             bar_color = discord.Color.green()
             thumbnail_url = 'https://files.catbox.moe/fen419.png'
@@ -236,6 +249,7 @@ class User_Collection(commands.Cog):
                 database_handler.users.update_one({"_id": user.id}, {"$set": {"pity": 0}})
                 pity = 0
 
+        print(4)
         # Creates the embed and sends it
         if character['class'] == 'Support':
             embed = discord.Embed(
@@ -250,6 +264,7 @@ class User_Collection(commands.Cog):
                 color=bar_color,
             )
 
+        print(5)
         if pity is not None:
             embed.set_footer(text=f'Pity: {pity}/190 | Rolled by {user}')
         else:
@@ -260,11 +275,13 @@ class User_Collection(commands.Cog):
         embed.set_author(name=banner_name, icon_url=banner_icon_url)
 
         await ctx.send(embed=embed)
+        print(6)
         if is_duplicate:
             update_quests(user_id=ctx.author.id, quest_id="obtain_one_character_shard", amount=1)
             await ctx.send(
                 f"{character['emoji']} {character['name']} is a duplicate. You have received 1 shard instead."
             )
+        print(8)
 
     # Returns the character list for the called function
     async def return_character_list(self, ctx, characters, filter): 

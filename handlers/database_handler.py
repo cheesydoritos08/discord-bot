@@ -29,7 +29,7 @@ def create_new_profile(user_id):
     new_profile = {
         '_id': user_id,
         'characters': [],
-        'inventory': {'shards': {}},
+        'inventory': {},
         'economy': {'won': 5000, 'daily_streak': 0, 'last_claim_time': 0},
         'wins': 0,
         'losses': 0,
@@ -104,6 +104,7 @@ def user_character_finder(user_id, character_name):
                 return character
         return None
     except Exception as e:
+        print('meee')
         create_error_embed(error=e)
         return None
 

@@ -126,7 +126,14 @@ class CharacterButton(discord.ui.View):
                         if item == "won":
                             threshold_reqs_string += f"> ❥ {item.replace("_", " ").title()}: ₩{value}\n"
                         elif item == "shards":
-                            shard_emoji = character.get("emoji")
+                            emoji_dict = {
+                                "Common": "<:common_shard:1390037115362087013>",
+                                "Rare": "<:rare_shard:1390037161293774993>",
+                                "Epic:": "<:epic_shard:1390037195485610115>",
+                                "Legendary": "<:legendary_shard:1390037232982954027>",
+                            }
+
+                            shard_emoji = emoji_dict[character.get("rarity")]
                             threshold_reqs_string += f"> ❥ {item.replace("_", " ").title()} {shard_emoji}: {value}\n"
                         elif item == "characters":
                             for char in character['threshold_requirements'][threshold]["characters"]:

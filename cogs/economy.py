@@ -342,7 +342,7 @@ class Economy(commands.Cog):
         await ctx.send(embed=shop_buttons.create_embed(), view=shop_buttons)
 
     # Allows a user to buy an item from the shop
-    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)   
+    @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)   
     @commands.command(name="buy",
                       help = "This command lets you buy any item in the shop. The format for this command is `?buy <item name> <amount>`")
     async def buy_item(self, ctx, *, arg : BuySellConverter):

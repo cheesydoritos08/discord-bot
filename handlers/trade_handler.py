@@ -146,7 +146,7 @@ def handle_offer(offer, ctx, user_id):
             
         # Checks to see if the user owns the shards
         for key, value in offer_dictionary.copy().items():
-            if key == "won":
+            if key == "Won":
                 continue
 
             shard_in_inventory = False
