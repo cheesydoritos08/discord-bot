@@ -5,7 +5,6 @@ import time
 import handlers.database_handler as database_handler
 from utils.utility_functions import cooldown_calculator, create_error_embed
 from utils.timer import Timer
-from utils.buttons import CharacterButton, ShardInventoryButton
 from discord.ext import commands
 
 
