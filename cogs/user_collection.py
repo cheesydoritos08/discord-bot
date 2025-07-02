@@ -131,7 +131,7 @@ class User_Collection(commands.Cog):
 
     # The roll command
     @commands.command(help="This command allows you to roll on the standard or limited time banner. The format for this command is `?roll <banner name>`")
-    @commands.cooldown(rate=1, per=0, type=commands.BucketType.user)
+    @commands.cooldown(rate=1, per=3, type=commands.BucketType.user)
     async def roll(self, ctx, *, banner=None):
         # Determines what happens depending on the banner chosen
         user = ctx.author
@@ -416,7 +416,9 @@ class User_Collection(commands.Cog):
 
             embed.set_footer(text="∘₊✧──── ───── ───── ────✧₊∘")
             
-        await ctx.send(embed=embed)   
+        await ctx.send(embed=embed)  
+
+     
 
     @display_inventory.error
     @all_character_collection.error
