@@ -418,7 +418,7 @@ class Economy(commands.Cog):
         return await ctx.send("What gave you the bright idea to try and pass this off as a valid item?")
                     
     # Allows users to trade with one another
-    @commands.command(help = "This command lets you trade shards and money with another player. The format for this command is `?trade <user> [your offer] [their offer]`. The offer should be formatted like this: [<money amount>, <shard first name^amount>]' So if you wanted to trade 2 Johan Seong shards and a Mary Kim shard for 1000 won and a Goo Kim shard, the command would look like this: ?trade <user> [johan^2, mary^1] [1000, goo^1]")
+    @commands.command(help = "This command lets you trade items and money with another player. The format for this command is `?trade <user> [your offer] [their offer]`. The offer should be formatted like this: [<money amount>, <item name^amount>]' So if you wanted to trade 2 epic shards and a raid token for 1000 won and a standard ticket, the command would look like this: ?trade <user> [epic shard^2, raid token^1] [1000, standard ticket^1]")
     async def trade(self, ctx, *, arg: TradeArgumentConverter):
         target_user, offers, receives = arg
 

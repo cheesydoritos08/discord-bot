@@ -547,6 +547,7 @@ class User_Collection(commands.Cog):
             return await ctx.send("You can't surpass more than four thresholds.")
         
         numtowords = {
+            1: 'one',
             2: 'two',
             3: 'three',
             4: 'four'  
@@ -638,6 +639,9 @@ class User_Collection(commands.Cog):
                 if item_name == req:  
                     item_info['amount'] -= value
 
+        user_profile[f'threshold_{numtowords[user_character['threshold']]}_characters'] -= 1
+        user_profile[f'threshold_{numtowords[user_character['threshold'] + 1]}_characters'] += 1
+
         database_handler.users.replace_one({"_id": ctx.author.id}, user_profile)
 
         if user_character['class'] != "Support":
@@ -646,6 +650,8 @@ class User_Collection(commands.Cog):
         else:
             self.evolve_support_character(user_id=ctx.author.id, character=user_character)
             return await ctx.send(f"{user_character['name']} has been evolved")
+        
+
 
 
     @display_inventory.error
