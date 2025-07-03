@@ -74,6 +74,8 @@ def create_new_profile(user_id):
 
     users.insert_one(new_profile)
 
+        
+
 
 # Update value of specified key
 def inc_value_to_users(user_id, key, value):
@@ -120,7 +122,14 @@ def all_characters_search(key, query):
 
 # Sets the stats of the character when they level up based on their rarity
 def update_stats(character, index, user_id):
-    leveling_cap = 30
+    threshold_level_reqs = {
+            1: 50,
+            2: 100,
+            3: 150,
+            4: 200
+        } 
+    
+    leveling_cap = threshold_level_reqs[character['threshold']]
 
     if character["LVL"] >= leveling_cap:
         character["XP"] = 0
@@ -144,34 +153,90 @@ def update_stats(character, index, user_id):
         character["XP"] = 0
 
     stat_increase = {
-        'Common': {"type": "flat",
-                   "hp": 10,
-                   "atk": 2,
-                   "spd": 2},
-        'Rare':  {"type": "flat",
-                   "hp": 15,
-                   "atk": 3,
-                   "spd": 2},
-        'Epic': {"type": "percent",
-                   "hp": 3,
-                   "atk": 3,
-                   "spd": 3},
-        'Legendary': {"type": "percent",
-                   "hp": 3,
-                   "atk": 3,
-                   "spd": 3},
-                    }  
-    
+        1: {
+            'Common': {"type": "flat",
+                    "hp": 10,
+                    "atk": 2,
+                    "spd": 2},
+            'Rare':  {"type": "flat",
+                    "hp": 15,
+                    "atk": 3,
+                    "spd": 2},
+            'Epic': {"type": "percent",
+                    "hp": 3,
+                    "atk": 3,
+                    "spd": 3},
+            'Legendary': {"type": "percent",
+                    "hp": 3,
+                    "atk": 3,
+                    "spd": 3},
+            },
+        2: {
+            'Common': {"type": "flat",
+                    "hp": 20,
+                    "atk": 4,
+                    "spd": 4},
+            'Rare':  {"type": "flat",
+                    "hp": 25,
+                    "atk": 5,
+                    "spd": 4},
+            'Epic': {"type": "percent",
+                    "hp": 1,
+                    "atk": 1,
+                    "spd": 1},
+            'Legendary': {"type": "percent",
+                    "hp": 1,
+                    "atk": 1,
+                    "spd": 1},
+            },
+        3: {
+            'Common': {"type": "flat",
+                    "hp": 30,
+                    "atk": 6,
+                    "spd": 5},
+            'Rare':  {"type": "flat",
+                    "hp": 35,
+                    "atk": 5,
+                    "spd": 4},
+            'Epic': {"type": "percent",
+                    "hp": 1,
+                    "atk": 1,
+                    "spd": 0.5},
+            'Legendary': {"type": "percent",
+                    "hp": 1,
+                    "atk": 1,
+                    "spd": 1},
+            },
+        4: {
+            'Common': {"type": "flat",
+                    "hp": 30,
+                    "atk": 6,
+                    "spd": 5},
+            'Rare':  {"type": "flat",
+                    "hp": 35,
+                    "atk": 5,
+                    "spd": 4},
+            'Epic': {"type": "percent",
+                    "hp": 1,
+                    "atk": 1,
+                    "spd": 0.5},
+            'Legendary': {"type": "percent",
+                    "hp": 1,
+                    "atk": 1,
+                    "spd": 0.5},
+            }    
+    }
+  
     for x in range(levels):
-        if stat_increase[character["rarity"]]["type"] == "flat":
-            character["HP"] += stat_increase[character["rarity"]]["hp"]
-            character["ATK"] += stat_increase[character["rarity"]]["atk"]
-            character["SPD"] += stat_increase[character["rarity"]]["spd"]
+        if stat_increase[character['threshold']][character["rarity"]]["type"] == "flat":
+            character["HP"] += stat_increase[character['threshold']][character["rarity"]]["hp"]
+            character["ATK"] += stat_increase[character['threshold']][character["rarity"]]["atk"]
+            character["SPD"] += stat_increase[character['threshold']][character["rarity"]]["spd"]
         
-        elif stat_increase[character["rarity"]]["type"] == "percent":
-            character["HP"] *= (1 + (stat_increase[character["rarity"]]["hp"] / 100))
-            character["ATK"] *= (1 + (stat_increase[character["rarity"]]["atk"] / 100))
-            character["SPD"] *= (1 + (stat_increase[character["rarity"]]["spd"] / 100))
+        elif stat_increase[character['threshold']][character["rarity"]]["type"] == "percent":
+            character["HP"] *= (1 + (stat_increase[character['threshold']][character["rarity"]]["hp"] / 100))
+            character["ATK"] *= (1 + (stat_increase[character['threshold']][character["rarity"]]["atk"] / 100))
+            character["SPD"] *= (1 + (stat_increase[character['threshold']][character["rarity"]]["spd"] / 100))
         
 
     users.update_one({"_id": user_id}, {"$set": {f"characters.{index}.HP": round(character["HP"])}})

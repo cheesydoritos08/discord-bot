@@ -434,6 +434,7 @@ class Economy(commands.Cog):
         trade_offered = offers[1:-1].split(", ")
         trade_received= receives[1:-1].split(", ")
 
+
         for i, offer in enumerate(trade_offered):
             if trade_offered[i] == "":
                 trade_offered.pop(i)

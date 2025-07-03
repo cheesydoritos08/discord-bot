@@ -57,26 +57,50 @@ class TradeView(discord.ui.View):
     @discord.ui.button(label='Accept', style=discord.ButtonStyle.green, custom_id="accept_button")
     async def accept_offer(self, interaction: discord.Interaction, button: discord.ui.Button):
          self.disable_buttons()
+         offerer_inventory = database_handler.users.find_one({"_id": self.offerer_user.id}).get('inventory')
+         receiver_inventory = database_handler.users.find_one({"_id": self.receiver_user.id}).get('inventory')
 
          for offer, offer_number in self.trade_offered.items():
             if offer != "Won":
-              database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"inventory.shards.{offer}", value=-offer_number)
-              database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"inventory.shards.{offer}", value=offer_number)
+                offer = offer.lower().replace(" ", "_")
+
+                item_found = False
+                for item in receiver_inventory.keys():
+                    if item == offer:
+                        database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"inventory.{offer}.amount", value=offer_number)
+                        item_found = True
+            
+                if not item_found:
+                    database_handler.add_item(user_id=self.receiver_user.id, item=offer)
+                    database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"inventory.{offer}.amount", value=offer_number)
+
+                database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"inventory.{offer}.amount", value=-offer_number)
             elif offer == "Won":
               database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"economy.won", value=-offer_number)
               database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"economy.won", value=offer_number)                
 
          for offer, offer_number in self.trade_received.items():
             if offer != "Won":
-              database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"inventory.shards.{offer}", value=offer_number)
-              database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"inventory.shards.{offer}", value=-offer_number)
+                offer = offer.lower().replace(" ", "_")
+
+                item_found = False
+                for item in offerer_inventory.keys():
+                    if item == offer:
+                        database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"inventory.{offer}.amount", value=offer_number)
+                        item_found = True
+            
+                if not item_found:
+                    database_handler.add_item(user_id=self.offerer_user.id, item=offer)
+                    database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"inventory.{offer}.amount", value=offer_number)
+
+                database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"inventory.{offer}.amount", value=-offer_number)
             elif offer == "Won":
               database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"economy.won", value=offer_number)
               database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"economy.won", value=-offer_number)  
          
          embed = self.create_embed(title = f"{self.receiver_user} has accepted the trade!", color = discord.Color.dark_green())
          
-         if self.ctx.guild.id == 1375646826157310012:
+         if self.ctx.guild.id == 1382922154957344838:
             update_quests(user_id=self.offerer_user.id, quest_id="trade_with_player", amount=1)
 
          self.remove_user_from_trade_state()
@@ -138,6 +162,7 @@ def handle_offer(offer, ctx, user_id):
             separated_args = arg.split("^")
             try:
                 if is_int(separated_args[1]):
+                        separated_args[0] = separated_args[0].title().replace("Ev", "EV").replace("Xp", "XP").replace("_", " ")
                         offer_dictionary[separated_args[0]] = int(separated_args[1])
                 else:
                     return "Error occurred", "Each offer should be formatted as such: `[money_amount, shard_name^amount, shard_name2^amount]`"
@@ -148,16 +173,18 @@ def handle_offer(offer, ctx, user_id):
         for key, value in offer_dictionary.copy().items():
             if key == "Won":
                 continue
+            
+            key = key.replace(" ", "_").lower()
 
-            shard_in_inventory = False
-            user_shards = user_profile.get("inventory").get("shards")
-            for shard, amount in user_shards.items():
-                first_name = shard.split(" ")[0]
-                if first_name.lower() == key.lower() and amount >= value:
-                    shard_in_inventory = True
-                    offer_dictionary[shard] = offer_dictionary.pop(key)
+            item_found = False
+
+            for item, item_info in user_profile.get('inventory').items():
+                if item == key and item_info['amount'] < value:
+                    return "Error occured", "Someone doesn't have enough items to trade lol"
+                elif item == key and item_info['amount'] >= value:
+                    item_found = True
             
-            if not shard_in_inventory:
-                return "Error occurred", f"{ctx.bot.get_user(user_id)} does not have enough {key.title()} shards."
-            
+            if not item_found:
+                return "Error occured", "Someone doesn't have enough items to trade lol"
+
         return offer_dictionary, " "

@@ -256,7 +256,7 @@ class User_Collection(commands.Cog):
             )
 
         if pity is not None:
-            embed.set_footer(text=f'Pity: {pity}/190 | Rolled by {user}')
+            embed.set_footer(text=f'Pity: {pity}/100 | Rolled by {user}')
         else:
             embed.set_footer(text=f'Rolled by {user}')
 
@@ -377,8 +377,9 @@ class User_Collection(commands.Cog):
                       colour=0xcb7667)
 
             for item in inventory:
-                if item != "shards" and inventory.get(item, {}).get("amount"):
+                if inventory.get(item, {}).get("amount"):
                     item_name = item.replace("_", " ").title().replace("Xp", "XP")
+                    
                     inventory_display_string += f"**{inventory[item]['emoji']} {item_name}**: {inventory[item]['amount']}\n"
 
             if inventory_display_string == "":
@@ -418,14 +419,47 @@ class User_Collection(commands.Cog):
             
         await ctx.send(embed=embed)  
 
+    # finish later
+    async def evolve_fighter_character(self, user_id, character):
+        evolution_dictionary = {
+            "Striker": {
+                "ATK": 1.25,
+                "HP": 1.20,
+                "SPD": 1.15,
+                'crit_chance': 5,
+                'crit_damage': 0.3
+            },
+            "Grappler": {
+                "ATK": 1.20,
+                "HP": 1.25,
+                "SPD": 1.15,
+                'stun_chance': 5,
+            },
+            "Weaver": {
+                "ATK": 1.15,
+                "HP": 1.20,
+                "SPD": 1.25,
+                'reflect_chance': 5,
+                'reflect_percent': 10
+            }
+        }
+
+        user_characters = database_handler.users.find_one({"_id": user_id}).get('characters')
+
+        for i, user_character in enumerate(user_characters):
+            if user_character['name'] == character['name']:
+                pass
+
 
     # Allows the user to evolve their character to a new threshold
     @commands.command(name="evolve",
                       help="This command allows you to evolve your character to the next threshold if you meet the requirements. The format for this command is ?evolve <character name>")
     async def evolve_character(self, ctx, *, character=None):
+        # Checks to see if an argument was passed
         if character is None:
             return await ctx.send("Enter a character.")
         
+        # Gets the user character passed and see if the user owns it
         user_character = database_handler.user_character_finder(user_id=ctx.author.id, character_name=character)
 
         if user_character is None:
@@ -440,14 +474,89 @@ class User_Collection(commands.Cog):
             4: 'four'  
                     }
         
+        # Gets the threshold requirements and defines user variables
         character_threshold_requirements = database_handler.all_characters.find_one({'name': user_character['name']}, {"threshold_requirements": 1, "_id": 0 })['threshold_requirements'].get(f'threshold_{numtowords[user_character["threshold"] + 1]}')
-        
+        user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+        user_inventory = user_profile.get('inventory')
+        user_balance = user_profile.get('economy').get('won')
+
+        # Creates an embed to be displayed showing all the met requirements
+        embed = discord.Embed(title="-ˋˏ ༻ Threshold Requirements ༺ ˎˊ-")
+        threshold_reqs_string = ""
+
+        threshold_level_reqs = {
+            1: 50,
+            2: 100,
+            3: 150
+        }
+
+        requirements = 0
+        met_requirements = 0
+
+        if user_character['class'] != "Support":
+            requirements += 1
+            # Checks to see if the level requirement is met by non support characters
+            if user_character['LVL'] < threshold_level_reqs[user_character['threshold']]:
+                threshold_reqs_string += f"> ❥ Level: {threshold_level_reqs[user_character['threshold']]} ❌\n"
+            else:
+                threshold_reqs_string += f"> ❥ Level: {threshold_level_reqs[user_character['threshold']]} ✅\n"
+                met_requirements += 1
+
+        # Checks each requirement for evolution in the character
         for req, value in character_threshold_requirements.items():
-            if req == "characters":
-                for character_name, threshold in character_threshold_requirements.get('characters').items():
-                    await ctx.send(f"{character_name}: {threshold}")
+            if req == "characters":                
+                for item in character_threshold_requirements.get('characters'):
+                    requirements += 1
+                    req_character = database_handler.user_character_finder(user_id=ctx.author.id, character_name=item['name'])
+
+                    if req_character is None:
+                        threshold_reqs_string += f"> ❥ {item['threshold']}T {item['name']} ❌\n"
+                    elif req_character['threshold'] < item['threshold']:
+                        threshold_reqs_string += f"> ❥ {item['threshold']}T {item['name']} ❌\n"
+                    else:
+                        threshold_reqs_string += f"> ❥ {item['threshold']}T {item['name']} ✅\n"
+                        met_requirements += 1
+
+                continue
+
+            if req == "won":
+                requirements += 1
+                if user_balance < value:
+                    threshold_reqs_string += f"> ❥ Won: ₩{value} ❌\n"
+                else:
+                    met_requirements += 1
+                    threshold_reqs_string += f"> ❥ Won: ₩{value} ✅\n"
+
+                continue
             
-            await ctx.send(f"{req}: {value}")    
+            item_found = False
+
+            for item_name, item_info  in user_inventory.items():
+                if item_name == req and item_info['amount'] >= value:  
+                    threshold_reqs_string += f"> ❥ {req.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")}: {value} ✅\n"
+                    met_requirements += 1
+                    item_found = True
+
+            if not item_found:
+                threshold_reqs_string += f"> ❥ {req.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")}: {value} ❌\n"
+            
+            requirements += 1
+        
+        if met_requirements == requirements and user_character['class'] != "Support":
+            #evolve_fighter_character()
+            return await ctx.send(f"{user_character['name']} has been evolved")
+        elif met_requirements == requirements:
+            #evolve_support_character()
+            return await ctx.send(f"{user_character['name']} has been evolved")
+
+
+
+        embed.add_field(name="",
+                        value=threshold_reqs_string)
+        
+        return await ctx.send(embed=embed)
+
+
         
         
 
