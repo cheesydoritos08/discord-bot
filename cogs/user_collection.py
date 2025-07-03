@@ -94,25 +94,25 @@ class User_Collection(commands.Cog):
 
         def choose_rarity():
             # Determines the rarity of each tier depending on current pity
-            if pity > 189:
+            if pity > 99:
                 rarities = {'Legendary': 100}
                 database_handler.users.update_one(
                     filter={'_id': user_id}, update={'$set': {'pity': 0}}
                 )
-            elif pity > 169:
+            elif pity > 69:
                 rarities = {
                     'Legendary': 10,
-                    'Epic': 5,
+                    'Epic': 15,
                     'Rare': 30,
-                    'Common': 55,
+                    'Common': 45,
                 }
                 database_handler.inc_value_to_users(user_id=user_id, key='pity', value=1)
             else:
                 rarities = {
                     'Legendary': 1,
-                    'Epic': 99,
-                    'Rare': 200,
-                    'Common': 700,
+                    'Epic': 9,
+                    'Rare': 20,
+                    'Common': 70,
                 }
                 database_handler.inc_value_to_users(user_id=user_id, key='pity', value=1)
 
