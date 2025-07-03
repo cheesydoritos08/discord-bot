@@ -18,7 +18,6 @@ class User_Collection(commands.Cog):
     def add_character_to_inventory(self, rarity, user_id):
         # Chooses a character based off of the rarity
         rated_up_legendary_character = "Mujin Jin"
-
         if rarity == "Legendary":
             rolled_character = database_handler.all_characters.find_one({"name": rated_up_legendary_character})
             rolled_character.pop('threshold_requirements')
@@ -420,7 +419,7 @@ class User_Collection(commands.Cog):
         await ctx.send(embed=embed)  
 
     # finish later
-    async def evolve_fighter_character(self, user_id, character):
+    def evolve_fighter_character(self, user_id, character):
         evolution_dictionary = {
             "Striker": {
                 "ATK": 1.25,
@@ -444,11 +443,42 @@ class User_Collection(commands.Cog):
             }
         }
 
-        user_characters = database_handler.users.find_one({"_id": user_id}).get('characters')
+        user_profile = database_handler.users.find_one({"_id": user_id})
+        user_characters = user_profile.get('characters')
+        user_team = user_profile.get('team')
 
         for i, user_character in enumerate(user_characters):
             if user_character['name'] == character['name']:
-                pass
+                character['ATK'] = round(character['ATK'] * evolution_dictionary[character['class']]['ATK'])
+                character['HP'] = round(character['HP'] * evolution_dictionary[character['class']]['HP'])
+                character['SPD'] = round(character['SPD'] * evolution_dictionary[character['class']]['SPD'])
+            
+                if character['class'] == "Striker":
+                    character['crit_chance'] = round(character['crit_chance'] + evolution_dictionary[character['class']]['crit_chance'], 1)
+                    character['crit_damage'] += evolution_dictionary[character['class']]['crit_damage']
+                
+                elif character['class'] == "Weaver":
+                    character['reflect_chance'] += evolution_dictionary[character['class']]['reflect_chance']
+                    character['reflect_percent'] += evolution_dictionary[character['class']]['reflect_percent']
+                
+                elif character['class'] == "Grappler":
+                    character['stun_chance'] += evolution_dictionary[character['class']]['stun_chance']
+                    
+                    if character['threshold'] == 2:
+                        character['stun_duration'] += 1
+            
+                character['threshold'] += 1
+                database_handler.users.update_one({"_id": user_id}, {"$set": {f"characters.{i}": character}})
+                break
+        
+        for i, user_character in enumerate(user_team):
+            if user_character['name'] == character['name']:
+                character['current_hp'] = character['HP']
+                database_handler.users.update_one({"_id": user_id}, {"$set": {f"team.{i}": character}})
+        
+
+
+
 
 
     # Allows the user to evolve their character to a new threshold
@@ -543,7 +573,7 @@ class User_Collection(commands.Cog):
             requirements += 1
         
         if met_requirements == requirements and user_character['class'] != "Support":
-            #evolve_fighter_character()
+            self.evolve_fighter_character(user_id=ctx.author.id, character=user_character)
             return await ctx.send(f"{user_character['name']} has been evolved")
         elif met_requirements == requirements:
             #evolve_support_character()

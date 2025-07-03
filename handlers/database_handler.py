@@ -136,14 +136,8 @@ def update_stats(character, index, user_id):
         users.update_one({'_id': user_id}, {'$set': {f'characters.{index}.XP': character["XP"]}}) 
         return
 
-    
-    team_character = False
     levels, remaning_xp = divmod(character["XP"], 2000)
     team = users.find_one({"_id": user_id}).get("team")
-    for char in team:
-        if char["name"] == character["name"]:
-            team_character = True
-
     new_character_level = character['LVL'] + levels
     character['XP'] = remaning_xp
 
@@ -234,28 +228,18 @@ def update_stats(character, index, user_id):
             character["SPD"] += stat_increase[character['threshold']][character["rarity"]]["spd"]
         
         elif stat_increase[character['threshold']][character["rarity"]]["type"] == "percent":
-            character["HP"] *= (1 + (stat_increase[character['threshold']][character["rarity"]]["hp"] / 100))
-            character["ATK"] *= (1 + (stat_increase[character['threshold']][character["rarity"]]["atk"] / 100))
-            character["SPD"] *= (1 + (stat_increase[character['threshold']][character["rarity"]]["spd"] / 100))
+            character["HP"] = round(character["HP"] * (1 + (stat_increase[character['threshold']][character["rarity"]]["hp"] / 100)))
+            character["ATK"] = round(character["ATK"] * (1 + (stat_increase[character['threshold']][character["rarity"]]["atk"] / 100)))
+            character["SPD"] = round(character["SPD"] * (1 + (stat_increase[character['threshold']][character["rarity"]]["spd"] / 100)))
         
-
-    users.update_one({"_id": user_id}, {"$set": {f"characters.{index}.HP": round(character["HP"])}})
-    users.update_one({"_id": user_id}, {"$set": {f"characters.{index}.ATK": round(character["ATK"])}})
-    users.update_one({"_id": user_id}, {"$set": {f"characters.{index}.SPD": round(character["SPD"])}})
-    users.update_one({'_id': user_id}, {'$set': {f'characters.{index}.LVL': new_character_level}}) 
-    users.update_one({'_id': user_id}, {'$set': {f'characters.{index}.XP': character['XP']}}) 
-
-
-
-    if not team_character:
-        return
+    character['LVL'] = new_character_level
+ 
+    users.update_one({"_id": user_id}, {"$set": {f"characters.{index}": character}})
     
     for i, char in enumerate(team):
         if char["name"] == character["name"]:
-            users.update_one({"_id": user_id}, {"$set": {f"team.{i}.HP": round(character["HP"])}})
-            users.update_one({"_id": user_id}, {"$set": {f"team.{i}.current_hp": round(character["HP"])}})
-            users.update_one({"_id": user_id}, {"$set": {f"team.{i}.ATK": round(character["ATK"])}})
-            users.update_one({"_id": user_id}, {"$set": {f"team.{i}.SPD": round(character["SPD"])}})
+            character['current_hp'] = character['HP']
+            users.update_one({"_id": user_id}, {"$set": {f"team.{i}": character}})
 
 
 def increment_character_xp(user_id, character, xp, return_xp=False):
