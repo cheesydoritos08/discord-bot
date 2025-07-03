@@ -78,7 +78,7 @@ class CharacterButton(discord.ui.View):
         def create_embed(self, character):
             bar_color, rarity_icon = self.set_rarity_indicators(character)
             if character['class'] == 'Support':
-                desc = f'> **Rarity:** {character["rarity"]}\n> **Class:** {character["class"]}\n> **Effect:** {character["description"]}'
+                desc = f'> **Rarity:** {character["rarity"]}\n> **Class:** {character["class"]}\n> **Threshold:** {character["threshold"]}\n> **Effect:** {character["description"]}'
             else:
                 special_effect = ""
                 special_effect_description = ""
@@ -93,7 +93,7 @@ class CharacterButton(discord.ui.View):
                     special_effect_description = f"Gives the character a {character['reflect_chance']}% to reflect {character['reflect_percent']}% chance of the damage dealt to them back to their attacker"
 
 
-                desc = f'> **Rarity:** {character["rarity"]}\n> **Class:** {character["class"]}\n> **ATK:** {character["ATK"]}\n> **HP:** {character["HP"]}\n> **SPD:** {character["SPD"]}\n> **LVL:** {character["LVL"]}\n> **Special Effect**: {special_effect}\n> **Special Effect Description**: {special_effect_description}\n> **XP:** {character["XP"]}/2000'
+                desc = f'> **Rarity:** {character["rarity"]}\n> **Class:** {character["class"]}\n> **ATK:** {character["ATK"]}\n> **HP:** {character["HP"]}\n> **SPD:** {character["SPD"]}\n> **LVL:** {character["LVL"]}\n> **Threshold:** {character["threshold"]}\n> **Special Effect**: {special_effect}\n> **Special Effect Description**: {special_effect_description}\n> **XP:** {character["XP"]}/2000'
 
             embed = discord.Embed(title=character['name'], description=desc, color=bar_color)
             embed.set_image(url=character['image_url'])
