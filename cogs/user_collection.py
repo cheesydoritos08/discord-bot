@@ -378,7 +378,7 @@ class User_Collection(commands.Cog):
 
             for item in inventory:
                 if inventory.get(item, {}).get("amount"):
-                    item_name = item.replace("_", " ").title().replace("Xp", "XP")
+                    item_name = item.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")
                     
                     inventory_display_string += f"**{inventory[item]['emoji']} {item_name}**: {inventory[item]['amount']}\n"
 
@@ -403,7 +403,7 @@ class User_Collection(commands.Cog):
             if inventory.get(item) is None:
                 return await ctx.send("Search for a valid item.")
             elif item != "shards" and inventory[item]["amount"]:
-                item_name = item.replace("_", " ").title().replace("Xp", "XP")
+                item_name = item.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")
                 inventory_display_string += f"**{item_name}**: {inventory[item]['amount']}\n"
             else:
                 return await ctx.send("You do not have this item.")
