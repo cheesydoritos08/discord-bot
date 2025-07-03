@@ -418,9 +418,42 @@ class User_Collection(commands.Cog):
             
         await ctx.send(embed=embed)  
 
-     
+
+    # Allows the user to evolve their character to a new threshold
+    @commands.command(name="evolve",
+                      help="This command allows you to evolve your character to the next threshold if you meet the requirements. The format for this command is ?evolve <character name>")
+    async def evolve_character(self, ctx, *, character=None):
+        if character is None:
+            return await ctx.send("Enter a character.")
+        
+        user_character = database_handler.user_character_finder(user_id=ctx.author.id, character_name=character)
+
+        if user_character is None:
+            return await ctx.send("You can't evolve a character you don't have.")
+        
+        if user_character.get('threshold') >= 4:
+            return await ctx.send("You can't surpass more than four thresholds.")
+        
+        numtowords = {
+            2: 'two',
+            3: 'three',
+            4: 'four'  
+                    }
+        
+        character_threshold_requirements = database_handler.all_characters.find_one({'name': user_character['name']}, {"threshold_requirements": 1, "_id": 0 })['threshold_requirements'].get(f'threshold_{numtowords[user_character["threshold"] + 1]}')
+        
+        for req, value in character_threshold_requirements.items():
+            if req == "characters":
+                for character_name, threshold in character_threshold_requirements.get('characters').items():
+                    await ctx.send(f"{character_name}: {threshold}")
+            
+            await ctx.send(f"{req}: {value}")    
+        
+        
+
 
     @display_inventory.error
+    @evolve_character.error
     @all_character_collection.error
     @user_character_collection.error
     @roll.error

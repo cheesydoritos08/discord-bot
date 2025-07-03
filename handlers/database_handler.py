@@ -104,7 +104,6 @@ def user_character_finder(user_id, character_name):
                 return character
         return None
     except Exception as e:
-        print('meee')
         create_error_embed(error=e)
         return None
 

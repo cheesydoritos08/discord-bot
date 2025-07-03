@@ -351,7 +351,6 @@ class Economy(commands.Cog):
         except Exception as e:
             return await ctx.send("Do I really have to remind you to use the correct format?: `?buy <item name> <amount>`")
 
-
         buyable_items = list(database_handler.items.find({"buy_price": {"$exists": True}}))
 
         if amount < 1:
