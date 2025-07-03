@@ -31,12 +31,12 @@ class ShopButtons(discord.ui.View):
 
     @discord.ui.button(label="Back", style=discord.ButtonStyle.red)
     async def back_button(self, interaction, button):
-        self.index = (self.index - 1) % (len(self.items) / 2)
+        self.index = (self.index - 1) % (math.ceil(len(self.items) / 2))
         await interaction.response.edit_message(embed=self.create_embed(), view=self)
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.red)
     async def next_button(self, interaction, button):
-        self.index = (self.index + 1) % (len(self.items) / 2)
+        self.index = (self.index + 1) % (math.ceil(len(self.items) / 2))
         await interaction.response.edit_message(embed=self.create_embed(), view=self)
 
  # Buttons for the my characters command
