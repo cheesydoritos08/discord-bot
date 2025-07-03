@@ -418,7 +418,7 @@ class User_Collection(commands.Cog):
             
         await ctx.send(embed=embed)  
 
-    # finish later
+    # Evolves the fighting character based on their rarity and class
     def evolve_fighter_character(self, user_id, character):
         evolution_dictionary = {
             "Striker": {
@@ -475,11 +475,59 @@ class User_Collection(commands.Cog):
             if user_character['name'] == character['name']:
                 character['current_hp'] = character['HP']
                 database_handler.users.update_one({"_id": user_id}, {"$set": {f"team.{i}": character}})
+    
+    # Evolves the support character based on rarity
+    def evolve_support_character(self, user_id, character):
+        evolution_dictionary = {
+            "Common": {
+                "buff": 3,
+                "daily": 50
+                      },
+            "Rare": {
+                "buff": 5,
+                "daily": 100
+                    },
+            "Epic": {
+                "buff": 10,
+                "daily": 150
+                    },
+            "Legendary": {
+                "buff": 15,
+                "daily": 200
+                    },
+        }
+
+        user_profile = database_handler.users.find_one({"_id": user_id})
+        user_characters = user_profile.get('characters')
+        user_team = user_profile.get('team')
+
+        for i, user_character in enumerate(user_characters):
+            if user_character['name'] == character['name']:
+                description_string = ""
+                for index, effect in enumerate(character.get('effects')):
+                    if index == len(character.get('effects')) - 1 and index != 0:
+                        description_string += " and "
+                        pass
+
+                    effect['amount'] += evolution_dictionary[character['rarity']][effect['type']]
+
+                    if effect['stat'] == "crit_chance" or effect['stat'] == "reflect_chance" or effect['stat'] == "stun_chance":
+                        description_string += f"increases the {effect['stat'].replace("_", " ")} of all eligible team members by {effect['amount']}%, "
+                    elif effect['type'] == "buff": 
+                        description_string += f"increases the {effect['stat'].upper()} of all team members by {effect['amount']}%, "
+                    elif effect['type'] == "daily":
+                        description_string += f"increases the amount received from the daily command by {effect['amount']}, "
+
+                description_string = description_string[0].upper() + description_string[1:-2] 
+                character['description'] = description_string
+                character['threshold'] += 1
+
+                database_handler.users.update_one({"_id": user_id}, {"$set": {f"characters.{i}": character}})
+                break
         
-
-
-
-
+        for i, user_character in enumerate(user_team):
+            if user_character['name'] == character['name']:
+                database_handler.users.update_one({"_id": user_id}, {"$set": {f"team.{i}": character}})
 
     # Allows the user to evolve their character to a new threshold
     @commands.command(name="evolve",
@@ -571,24 +619,33 @@ class User_Collection(commands.Cog):
                 threshold_reqs_string += f"> ❥ {req.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")}: {value} ❌\n"
             
             requirements += 1
-        
-        if met_requirements == requirements and user_character['class'] != "Support":
+
+        if met_requirements != requirements:
+            embed.add_field(name="",
+                            value=threshold_reqs_string)
+            
+            return await ctx.send(embed=embed)
+
+        for req, value in character_threshold_requirements.items():
+            if req == "won":
+                user_profile['economy']['won'] -= value
+                continue
+            
+            if req == "characters":
+                continue
+
+            for item_name, item_info  in user_inventory.items():
+                if item_name == req:  
+                    item_info['amount'] -= value
+
+        database_handler.users.replace_one({"_id": ctx.author.id}, user_profile)
+
+        if user_character['class'] != "Support":
             self.evolve_fighter_character(user_id=ctx.author.id, character=user_character)
             return await ctx.send(f"{user_character['name']} has been evolved")
-        elif met_requirements == requirements:
-            #evolve_support_character()
+        else:
+            self.evolve_support_character(user_id=ctx.author.id, character=user_character)
             return await ctx.send(f"{user_character['name']} has been evolved")
-
-
-
-        embed.add_field(name="",
-                        value=threshold_reqs_string)
-        
-        return await ctx.send(embed=embed)
-
-
-        
-        
 
 
     @display_inventory.error
