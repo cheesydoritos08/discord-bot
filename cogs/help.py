@@ -8,13 +8,13 @@ class Help(commands.Cog):
         self.bot = bot
 
     @commands.command(help="This command gives you a list of all the commands available for users!")
-    async def help(self, ctx, args=None):
+    async def help(self, ctx, command=None):
         help_embed = discord.Embed(title="Commands", color=0x14545d)
         cogs_list = [x for x in dict(self.bot.cogs).keys()]
         command_names_list = [x.name for x in self.bot.commands]
 
         # If there are no arguments, just list the commands:
-        if not args:
+        if not command:
             for cog in cogs_list:
                 if cog == "Owner_Commands":
                     continue
@@ -32,11 +32,11 @@ class Help(commands.Cog):
             )
 
         # If the argument is a command, get the help text from that command:
-        elif args in command_names_list:
-            all_aliases = " , ".join(self.bot.get_command(args).aliases) or "None"
+        elif command in command_names_list:
+            all_aliases = " , ".join(self.bot.get_command(command).aliases) or "None"
             help_embed.add_field(
-                name=args,
-                value=f"**Aliases:** {all_aliases}\n **Description:** {self.bot.get_command(args).help}"
+                name=command,
+                value=f"**Aliases:** {all_aliases}\n **Description:** {self.bot.get_command(command).help}"
             )
 
         # If someone is just trolling:
