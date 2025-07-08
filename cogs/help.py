@@ -36,7 +36,7 @@ class Help(commands.Cog):
             all_aliases = " , ".join(self.bot.get_command(command).aliases) or "None"
             help_embed.add_field(
                 name=command,
-                value=f"**Aliases:** {all_aliases}\n **Description:** {self.bot.get_command(command).help}"
+                value=f"**Other names for the command:** {all_aliases}\n **Description:** {self.bot.get_command(command).help}"
             )
 
         # If someone is just trolling:

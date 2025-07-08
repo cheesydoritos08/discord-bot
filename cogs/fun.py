@@ -34,7 +34,45 @@ class Fun(commands.Cog):
         
         return await ctx.send(embed=embed)
 
+    @commands.command(name='whowouldwin',
+                      aliases = ['www'],
+                      help="This command **randomly** decides between the two opponents presented who would win in a fight. The command can only accept two opponents at a time. Make sure the names of the opponents are separated by a comma else the output might look funky. The format for this command is `?whowouldwin <name1>, <name2>`.")
+    async def who_would_win(self, ctx, *, user_input : str = None):
+        if user_input is None:
+            return await ctx.send("Give me two opponents for me to pick from. The format is `?whowouldwin <name1>, <name2>`.")
+        
+        opponents_list = [x.strip().title() for x in user_input.split(",")]
+
+        if len(opponents_list) != 2:
+            return await ctx.send("I can only pick from two opponents. No more, no less.")
+        
+        response_list = [
+            [" would get absolutely obliterated by ", "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExNnh6enlrYXA1OXVxMGZidmU2enhlbWJ3cW16emI4dnI3dXF4Ymw0YyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/NuiEoMDbstN0J2KAiH/giphy.gif"],
+            [" would get bodied by ", "https://i.imgur.com/JmzyW2T.gif"],
+            [" would get turned into a punching bag by ", "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZGtjNnp6eDZucnltemd0ZDhjdDB5ODN1bmxmNjRvbHYybmkxN2psMCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/NY3tXwOBUwQYq7lbXx/giphy.gif"],
+            [" would humble ", "https://i.imgur.com/rLLmiAm.gif"],
+            [" would no-diff ", "https://i.imgur.com/yPvRIbF.gif"], 
+            [" wouldn't stand a chance against ", "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExdDVsb2Z2ZTI5ZnQ3aXB2MmpocXlyam5xMWs2eDJxb3R3ODVvb3ZrNiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xULW8G5jO9gxUsGGQg/giphy.gif"],
+            [" wouldn't land a single hit on ", "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExejd0NDBmZ2szNWpjeXp6YXp2dmVzanM4N2VtZTh0M2ZrdmFlaXQ2ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/hzx9toaSQPHRm/giphy.gif"],
+            [" would defintely low-diff ", "https://i.imgur.com/MZD5y6d.gif"] ,
+            [" would get stomped with zero effort by ", "https://i.imgur.com/8BHnbJB.gif"],
+            [" would get turned into a statistic by ", "https://i.imgur.com/aqUZ94Z.gif"],
+            [" can't even get past Kenta. Why would he even be able to touch ", "https://i.imgur.com/io6CwI0.gif"]
+        ]
+
+        first_opponent = opponents_list[random.randint(0, 1)]
+        opponents_list.remove(first_opponent)
+        second_opponent = opponents_list[0]
+        response = response_list[random.randint(0, len(response_list) - 1)]
+
+        embed = discord.Embed(title=f"{first_opponent}{response[0]}{second_opponent}")
+        embed.set_footer(text = "Feel free to suggest more gifs in the support server! To get the link, type ?invite.")
+        embed.set_image(url=response[1]) 
+
+        return await ctx.send(embed = embed)
+
     @random_quote_generator.error
+    @who_would_win.error
     async def cooldown_error(self, ctx, error):
         # Sends a cooldown message if command is reused when on cooldown
         if isinstance(error, commands.CommandOnCooldown):
