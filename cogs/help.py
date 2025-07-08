@@ -48,8 +48,6 @@ class Help(commands.Cog):
 
         await ctx.send(embed=help_embed)
 
-    # NOTES: Finish tutorial command when all commands have been implemented
-
     # Sends a tutorial to the user when user types $tutorial
     @commands.command(aliases=['tut'], 
                       help='This command gives you a tutorial of the bot! Very useful c:')
