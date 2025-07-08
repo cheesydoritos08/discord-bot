@@ -20,7 +20,7 @@ class ShopButtons(discord.ui.View):
     def create_embed(self):
         embed = discord.Embed(title="•─•°• Shop •°•─•")
 
-        for item in self.items[int(self.index * 2):int(((self.index * 2) + 2))]:
+        for item in self.items[int(self.index * 3):int(((self.index * 3) + 3))]:
             embed.add_field(name=f"°˖✧ {item["emoji"]} {item["name"].replace("_", " ").title().replace("Xp", "XP")} ✧˖°",
                 value=f"`Buy Price:` ₩{item["buy_price"]}\n`Sell Price:` ₩{item["sell_price"]}",
                 inline=True)
@@ -31,12 +31,12 @@ class ShopButtons(discord.ui.View):
 
     @discord.ui.button(label="Back", style=discord.ButtonStyle.red)
     async def back_button(self, interaction, button):
-        self.index = (self.index - 1) % (math.ceil(len(self.items) / 2))
+        self.index = (self.index - 1) % (math.ceil(len(self.items) / 3))
         await interaction.response.edit_message(embed=self.create_embed(), view=self)
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.red)
     async def next_button(self, interaction, button):
-        self.index = (self.index + 1) % (math.ceil(len(self.items) / 2))
+        self.index = (self.index + 1) % (math.ceil(len(self.items) / 3))
         await interaction.response.edit_message(embed=self.create_embed(), view=self)
 
  # Buttons for the my characters command
@@ -238,7 +238,7 @@ class TutorialButton(discord.ui.View):
             'End of the Tutorial'
         ]
         self.descriptions = [
-            "Welcome to the Lookism Bot! This tutorial goes the core mechanics of the bot so feel free to revisit it as much as you want! If you ever want to find out more about a command, use the ?help command. (Pictures are unrelated to the tutorial, they just look cool. All credits go to the original creators.)",
+            "Welcome to the Lookism Bot! This tutorial goes the core mechanics of the bot so feel free to revisit it as much as you want! If you ever want to find out more about a command, use the ?help command. DISCLAIMER: This bot was meant to be used in a server. Using the bot in direct messages may lead to the bot working incorrectly. Do so at your own risk. (Pictures are unrelated to the tutorial, they just look cool. All credits go to the original creators.)",
             "Setting up the bot is really easy! If you're not an adminstrator, you can skip the next two pages. If you're an administrator, you can type ?addprefix [prefix] to add a prefix to the server. The square brackets are required for the command to work and the characters typed inside of them are case sensitive so be careful! If you want a space between your prefix and the commands, make sure to include it in the brackets as well.",
             "To view the list of prefixes you currently have set, type ?viewprefixes. Adding a prefix to the bot will not remove other prefixes so make sure to remove any unwanted prefixes!",
             "To remove a prefix, type ?removeprefix [prefix]. Once again, the command is case sensitive so make sure to type the prefix exactly as it's show in the viewprefixes command!",
