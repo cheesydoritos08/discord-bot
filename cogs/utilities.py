@@ -162,7 +162,24 @@ class Utilites(commands.Cog):
                               color=discord.Color.dark_purple())
         
         await ctx.send(embed=embed)
+
+    @commands.command(name="craft",
+                      help="This command allows you to craft items with the materials that you have. The format for this command is ?craft <item name> <amount> To see all crafting recipes, just type ?craft. ")
+    @commands.cooldown(rate=1, per=3, type=commands.BucketType.user)
+    async def craft_item(self, ctx, *, arg = None):
+        if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+            return
+        
+        # If arg is none, then display all the crafting recipes
+        # If arg isn't none, separate the argument into the amount and item and check to see if they have enough materials to craft item
+        # If they have enough, subtract materials from inventory and add item to inventory
+        # If they don't have enough, don't add anything and tell them they are missing materials
+
+
     
+        await ctx.send()
+
+    @craft_item.error
     @vote_for_bot.error
     @view_prefixes.error
     @vote_for_bot.error

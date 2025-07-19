@@ -4,6 +4,7 @@ import random
 import discord
 import handlers.database_handler as database_handler
 from utils.utility_functions import update_quests, check_boosts, create_error_embed
+from utils.buttons import RaidFighterButton
 
 # Instantiates a new raid for the user
 class RaidInstance():
@@ -63,7 +64,7 @@ class RaidInstance():
 
         for char in team:
             if char["class"] != "Support" and char["current_hp"] > 0:
-                button = RaidButton(label=char["name"], character=char, raid=self)
+                button = RaidFighterButton(label=char["name"], character=char, raid=self)
                 button.callback = button.on_button_click
                 self.view.add_item(button)
 
@@ -578,50 +579,14 @@ class RaidView(discord.ui.View):
         database_handler.users.update_one({"_id": self.raid.ctx.author.id}, {"$set": {"in_raid": False}})
         return await super().on_timeout()
     
-# Creates the buttons pressed by the user
-class RaidButton(discord.ui.Button):
+
+
+class RaidItemButton(discord.ui.Button):
     def __init__(self, label, character, raid):
         super().__init__(label=label, style=discord.ButtonStyle.red)
         self.character = character
         self.raid = raid
 
     async def on_button_click(self, interaction: discord.Interaction):        
-        current_team = None
-        
-        if self.raid.turn == "user":
-            current_team = self.raid.enemies
-            self.raid.user_character = self.character
-            self.raid.turn = "enemy"
-        elif self.raid.turn == "enemy":
-            current_team = self.raid.team
-            self.raid.enemy_character = self.character
-            self.raid.turn = "user"
-            self.raid.determine_final_damage()
-        
-        # Creates an embed displaying the current fight
-        embed = self.raid.create_embed()
-        
-        if current_team == self.raid.team:
-            embed.set_footer(text="Choose your fighter!")
-        else:
-            embed.set_footer(text="Choose which enemy to attack!")
-
-        view = self.raid.create_character_buttons(
-                team=current_team
-            )
-
-        self.raid.check_level_end()
-        raid_over = await self.raid.check_raid_end(interaction)
-
-        if not raid_over:
-                # Sends a message to indicate who can go next
-                await interaction.response.edit_message(
-                    embed=embed,
-                    view=view,
-                )
-                self.raid.combat_log = ["Awaiting player actions..."]
-        elif raid_over:
-            self.raid.send_timeout_message = False
-
-
+        embed = discord.Embed()
            

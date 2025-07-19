@@ -357,6 +357,7 @@ class FighterButton(discord.ui.Button):
                 )
                 self.game.combat_log = ["Awaiting player actions..."]
 
+# Creates the button for the invite command
 class InviteButton(discord.ui.View):
     def __init__(self, *, timeout = 10):
         super().__init__(timeout=timeout)
@@ -365,4 +366,49 @@ class InviteButton(discord.ui.View):
 
         self.add_item(server_button)
         self.add_item(invite_button)
-    
+
+# Creates the buttons pressed by the user
+class RaidFighterButton(discord.ui.Button):
+    def __init__(self, label, character, raid):
+        super().__init__(label=label, style=discord.ButtonStyle.red)
+        self.character = character
+        self.raid = raid
+
+    async def on_button_click(self, interaction: discord.Interaction):        
+        current_team = None
+        
+        if self.raid.turn == "user":
+            current_team = self.raid.enemies
+            self.raid.user_character = self.character
+            self.raid.turn = "enemy"
+        elif self.raid.turn == "enemy":
+            current_team = self.raid.team
+            self.raid.enemy_character = self.character
+            self.raid.turn = "user"
+            self.raid.determine_final_damage()
+        
+        # Creates an embed displaying the current fight
+        embed = self.raid.create_embed()
+        
+        if current_team == self.raid.team:
+            embed.set_footer(text="Choose your fighter!")
+        else:
+            embed.set_footer(text="Choose which enemy to attack!")
+
+        view = self.raid.create_character_buttons(
+                team=current_team
+            )
+
+        self.raid.check_level_end()
+        raid_over = await self.raid.check_raid_end(interaction)
+
+        if not raid_over:
+                # Sends a message to indicate who can go next
+                await interaction.response.edit_message(
+                    embed=embed,
+                    view=view,
+                )
+                self.raid.combat_log = ["Awaiting player actions..."]
+        elif raid_over:
+            self.raid.send_timeout_message = False
+
