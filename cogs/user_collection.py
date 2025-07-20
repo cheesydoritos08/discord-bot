@@ -3,7 +3,7 @@ import handlers.database_handler as database_handler
 import random
 import asyncio
 from utils.utility_functions import cooldown_calculator, update_quests, create_error_embed
-from utils.buttons import CharacterButton
+from utils.buttons import CharacterButton, InventoryButtons
 from utils.converters import InventoryConverter
 from discord.ext import commands
 
@@ -364,59 +364,18 @@ class User_Collection(commands.Cog):
     async def display_inventory(self, ctx, *, arg : InventoryConverter = None):
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
             return
-
+        
         inventory = database_handler.users.find_one({"_id": ctx.author.id}).get("inventory")
-        embed = None
-        inventory_display_string = ""
 
+        view = InventoryButtons(ctx=ctx, items=inventory)
        
         if arg is None:
-            embed = discord.Embed(title=f"{ctx.author}'s Inventory",
-                      description="∘₊✧─── ──── ──── ───✧₊∘",
-                      colour=0xcb7667)
-
-            for item in inventory:
-                if inventory.get(item, {}).get("amount"):
-                    item_name = item.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")
-                    
-                    inventory_display_string += f"**{inventory[item]['emoji']} {item_name}**: {inventory[item]['amount']}\n"
-
-            if inventory_display_string == "":
-                return await ctx.send("You have nothing in your inventory.")
-
-            embed.add_field(name="",
-                value=inventory_display_string,
-                inline=False)
-
-            embed.set_thumbnail(url=ctx.author.display_avatar)
-
-            embed.set_footer(text="∘₊✧──── ───── ───── ────✧₊∘")
-
+            embed = await view.create_embed()
         else:
-            item = arg
-
-            embed = discord.Embed(title=f"{ctx.author}'s Inventory",
-                      description="∘₊✧─── ──── ──── ───✧₊∘",
-                      colour=0xcb7667)
+            embed = await view.create_embed(item = arg)
+ 
             
-            if inventory.get(item) is None:
-                return await ctx.send("Search for a valid item.")
-            elif item != "shards" and inventory[item]["amount"]:
-                item_name = item.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")
-                inventory_display_string += f"**{item_name}**: {inventory[item]['amount']}\n"
-            else:
-                return await ctx.send("You do not have this item.")
-
-            
-            embed.add_field(name="",
-                value=inventory_display_string,
-                inline=False)
-
-            embed.set_thumbnail(url=ctx.author.display_avatar)
-
-            embed.set_footer(text="∘₊✧──── ───── ───── ────✧₊∘")
-            
-        await ctx.send(embed=embed)  
+        await ctx.send(view=view, embed=embed)  
 
     # Evolves the fighting character based on their rarity and class
     def evolve_fighter_character(self, user_id, character):

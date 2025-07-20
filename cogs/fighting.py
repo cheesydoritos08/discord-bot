@@ -118,10 +118,10 @@ class Fighting(commands.Cog):
         if fighter_characters != []:
             database_handler.inc_value_to_users(user_id=ctx.author.id, key="inventory.raid_token.amount", value=-1)
 
-            raid = raid_handler.RaidInstance(level=level, team = user_team, ctx = ctx)
+            raid = raid_handler.RaidInstance(level=level, team = user_team, ctx = ctx, bot = self.bot)
             embed = raid.create_embed()
             view = raid.create_character_buttons(team=user_team)
-            database_handler.users.update_one({'_id': ctx.author.id}, {'$set': {'in_raid': True}})
+           # database_handler.users.update_one({'_id': ctx.author.id}, {'$set': {'in_raid': True}})
             await ctx.send(embed=embed, view = view)
         else:
             return await ctx.send("You need a team to run this command.")

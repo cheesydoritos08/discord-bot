@@ -1,7 +1,85 @@
 import discord
 import math
+import random
+import asyncio
 from utils.utility_functions import create_error_embed
 import handlers.database_handler as database_handler
+
+# Buttons for the inventory command
+class InventoryButtons(discord.ui.View):
+    def __init__(self, *, timeout = 180, items, ctx):
+        super().__init__(timeout=timeout)
+        self.index = 0
+        self.items = items
+        self.num_on_items_per_page = 5
+        self.ctx = ctx
+    
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user != self.ctx.author:
+            await interaction.response.send_message('Only the author of the command can perform this action.', ephemeral=True,)
+            return False
+        return True
+
+    async def create_embed(self, item = None):
+        items_display_string = ""
+       
+        if item is None:
+            embed = discord.Embed(title=f"{self.ctx.author}'s Inventory",
+                      description="∘₊✧─── ──── ──── ───✧₊∘",
+                      colour=0xcb7667)
+
+            for item in list(self.items.keys())[int(self.index *  self.num_on_items_per_page) : int(((self.index *  self.num_on_items_per_page) +  self.num_on_items_per_page))]:
+                if self.items.get(item, {}).get("amount"):
+                    item_name = item.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")
+                    
+                    items_display_string+= f"**{self.items[item]['emoji']} {item_name}**: {self.items[item]['amount']}\n"
+
+            if items_display_string == "":
+                return await self.ctx.send("You have nothing in your inventory.")
+
+            embed.add_field(name="",
+                value=items_display_string,
+                inline=False)
+
+            embed.set_thumbnail(url=self.ctx.author.display_avatar)
+
+            embed.set_footer(text="∘₊✧──── ───── ───── ────✧₊∘")
+
+        else:
+            embed = discord.Embed(title=f"{self.ctx.author}'s Inventory",
+                      description="∘₊✧─── ──── ──── ───✧₊∘",
+                      colour=0xcb7667)
+            
+            if self.items.get(item) is None:
+                return await self.ctx.send("Search for a valid item.")
+            elif self.items[item]["amount"]:
+                item_name = item.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")
+                items_display_string += f"**{item_name}**: {self.items[item]['amount']}\n"
+            else:
+                return await self.ctx.send("You do not have this item.")
+
+            embed.add_field(name="",
+                value=items_display_string,
+                inline=False)
+
+            embed.set_thumbnail(url=self.ctx.author.display_avatar)
+
+            embed.set_footer(text="∘₊✧──── ───── ───── ────✧₊∘")
+            
+        return embed
+
+    @discord.ui.button(label="Back", style=discord.ButtonStyle.red)
+    async def back_button(self, interaction, button):
+        self.index = (self.index - 1) % (math.ceil(len(self.items) /  self.num_on_items_per_page))
+        await interaction.response.edit_message(embed=await self.create_embed(), view=self)
+
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.red)
+    async def next_button(self, interaction, button):
+        self.index = (self.index + 1) % (math.ceil(len(self.items) /  self.num_on_items_per_page))
+        await interaction.response.edit_message(embed=await self.create_embed(), view=self)
+
+ # Buttons for the my characters command
+
 
 # Buttons for the shop command
 class ShopButtons(discord.ui.View):
@@ -412,3 +490,62 @@ class RaidFighterButton(discord.ui.Button):
         elif raid_over:
             self.raid.send_timeout_message = False
 
+class RaidItemButton(discord.ui.Button):
+    def __init__(self, label, raid):
+        super().__init__(label=label, style=discord.ButtonStyle.red)
+        self.raid = raid
+
+    async def on_button_click(self, interaction: discord.Interaction): 
+        await interaction.response.defer()
+
+        user_profile = database_handler.users.find_one({"_id": self.raid.ctx.author.id})
+        user_inventory = user_profile.get('inventory')
+
+        user_item_inventory = {k:v for (k, v) in user_inventory.items() if "effects" in v}
+        print(user_inventory)
+        embed = discord.Embed(title="Hello")
+        
+        await interaction.followup.send(embed=embed)
+        # make it so that the bot prompts the user to choose an item 3 times before skipping their turn
+        for x in range(3):
+            def check(msg):
+                return msg.author == self.raid.ctx.author and msg.channel == self.raid.ctx.channel
+
+            try:
+                msg = await self.raid.bot.wait_for('message', timeout=5, check=check)
+
+                 
+
+
+            except asyncio.TimeoutError as e:
+                if x == 2:
+                    user_alive_characters = [char for char in user_profile.get('team') if char['current_hp'] > 0]
+                    self.raid.turn = "enemy"
+                    self.raid.user_character = user_alive_characters[random.randint(0, (len(user_alive_characters) - 1))]
+
+                    view = self.raid.create_character_buttons(
+                        team=self.raid.enemies
+                    )
+
+                    embed = self.raid.create_embed()
+                    
+                    self.raid.check_level_end()
+                    raid_over = await self.raid.check_raid_end(interaction)
+                    if not raid_over:
+
+                            # Sends a message to indicate who can go next
+                            await interaction.followup.send(
+                                embed=embed,
+                                view=view,
+                            )
+
+                            self.raid.combat_log = ["Awaiting player actions..."]
+                    elif raid_over:
+                        self.raid.send_timeout_message = False
+            except Exception as e:
+                create_error_embed(error=e, ctx=self.raid.ctx, msg="This occured when the raid item button was pressed.")
+            
+
+
+        #send_message(embed=embed)
+           
