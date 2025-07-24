@@ -78,7 +78,6 @@ def update_quests(user_id, quest_id, amount):
             database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.limited_ticket.amount", value=5)
 
 
-
 @tasks.loop(seconds=5.0, reconnect=True)
 async def log_error_embed(bot):
     try:
@@ -120,7 +119,6 @@ async def log_error_embed(bot):
     
     except Exception as e:
         print(f"Error in logging error embed: {e}")
-
 
 
 def create_error_embed(error, ctx=None, msg="None given."):

@@ -7,12 +7,13 @@ import handlers.database_handler as database_handler
 
 # Buttons for the inventory command
 class InventoryButtons(discord.ui.View):
-    def __init__(self, *, timeout = 180, items, ctx):
+    def __init__(self, *, timeout = 180, items, ctx, numbered = False):
         super().__init__(timeout=timeout)
         self.index = 0
         self.items = items
         self.num_on_items_per_page = 5
         self.ctx = ctx
+        self.numbered = numbered
     
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user != self.ctx.author:
@@ -29,13 +30,20 @@ class InventoryButtons(discord.ui.View):
                       colour=0xcb7667)
 
             for item in list(self.items.keys())[int(self.index *  self.num_on_items_per_page) : int(((self.index *  self.num_on_items_per_page) +  self.num_on_items_per_page))]:
-                if self.items.get(item, {}).get("amount"):
+                position = 1
+                if self.items.get(item, {}).get("amount") > 0:
                     item_name = item.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")
+
+                    if self.numbered:
+                        item_name = f"{position}. {item_name}"
+                        position += 1
                     
-                    items_display_string+= f"**{self.items[item]['emoji']} {item_name}**: {self.items[item]['amount']}\n"
+                    items_display_string += f"**{self.items[item]['emoji']} {item_name}**: {self.items[item]['amount']}\n"
 
             if items_display_string == "":
-                return await self.ctx.send("You have nothing in your inventory.")
+                if not self.numbered:
+                    await self.ctx.send("You have nothing in your inventory.")
+                return False
 
             embed.add_field(name="",
                 value=items_display_string,
@@ -44,6 +52,7 @@ class InventoryButtons(discord.ui.View):
             embed.set_thumbnail(url=self.ctx.author.display_avatar)
 
             embed.set_footer(text="∘₊✧──── ───── ───── ────✧₊∘")
+
 
         else:
             embed = discord.Embed(title=f"{self.ctx.author}'s Inventory",
@@ -78,15 +87,13 @@ class InventoryButtons(discord.ui.View):
         self.index = (self.index + 1) % (math.ceil(len(self.items) /  self.num_on_items_per_page))
         await interaction.response.edit_message(embed=await self.create_embed(), view=self)
 
- # Buttons for the my characters command
-
-
 # Buttons for the shop command
 class ShopButtons(discord.ui.View):
     def __init__(self, *, timeout = 180, items, ctx):
         super().__init__(timeout=timeout)
         self.index = 0
         self.items = items
+        self.num_of_items_per_page = 3
         self.ctx = ctx
     
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -98,7 +105,7 @@ class ShopButtons(discord.ui.View):
     def create_embed(self):
         embed = discord.Embed(title="•─•°• Shop •°•─•")
 
-        for item in self.items[int(self.index * 3):int(((self.index * 3) + 3))]:
+        for item in self.items[int(self.index * self.num_of_items_per_page):int(((self.index * self.num_of_items_per_page) + self.num_of_items_per_page))]:
             embed.add_field(name=f"°˖✧ {item["emoji"]} {item["name"].replace("_", " ").title().replace("Xp", "XP")} ✧˖°",
                 value=f"`Buy Price:` ₩{item["buy_price"]}\n`Sell Price:` ₩{item["sell_price"]}",
                 inline=True)
@@ -109,12 +116,12 @@ class ShopButtons(discord.ui.View):
 
     @discord.ui.button(label="Back", style=discord.ButtonStyle.red)
     async def back_button(self, interaction, button):
-        self.index = (self.index - 1) % (math.ceil(len(self.items) / 3))
+        self.index = (self.index - 1) % (math.ceil(len(self.items) / self.num_of_items_per_page))
         await interaction.response.edit_message(embed=self.create_embed(), view=self)
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.red)
     async def next_button(self, interaction, button):
-        self.index = (self.index + 1) % (math.ceil(len(self.items) / 3))
+        self.index = (self.index + 1) % (math.ceil(len(self.items) / self.num_of_items_per_page))
         await interaction.response.edit_message(embed=self.create_embed(), view=self)
 
  # Buttons for the my characters command
@@ -494,58 +501,107 @@ class RaidItemButton(discord.ui.Button):
     def __init__(self, label, raid):
         super().__init__(label=label, style=discord.ButtonStyle.red)
         self.raid = raid
+        self.pressed = False
 
-    async def on_button_click(self, interaction: discord.Interaction): 
-        await interaction.response.defer()
-
+    async def prompt_user_for_item(self, interaction, inventory_embed, inventory_view, inventory_length, embed_message_id):
         user_profile = database_handler.users.find_one({"_id": self.raid.ctx.author.id})
-        user_inventory = user_profile.get('inventory')
 
-        user_item_inventory = {k:v for (k, v) in user_inventory.items() if "effects" in v}
-        print(user_inventory)
-        embed = discord.Embed(title="Hello")
-        
-        await interaction.followup.send(embed=embed)
-        # make it so that the bot prompts the user to choose an item 3 times before skipping their turn
         for x in range(3):
             def check(msg):
                 return msg.author == self.raid.ctx.author and msg.channel == self.raid.ctx.channel
 
             try:
-                msg = await self.raid.bot.wait_for('message', timeout=5, check=check)
+                msg = await self.raid.bot.wait_for('message', timeout=10, check=check)
+                self.pressed = False
 
-                 
-
-
+                item_number = int(msg.content)
+                
+                if item_number < 1 or item_number > inventory_length:
+                    if x == 2:
+                        raise asyncio.TimeoutError
+                    
+                    await interaction.followup.send("Please enter the number for the corresponding item you want to use.", ephemeral = True)
+                    continue
+                else:
+                    inventory_items = inventory_view.items
+                    item = {k:v for k, v in inventory_items.items() if k == list(inventory_items.keys())[item_number - 1]}
+                    await self.use_item(item=item)
+                    
             except asyncio.TimeoutError as e:
-                if x == 2:
                     user_alive_characters = [char for char in user_profile.get('team') if char['current_hp'] > 0]
                     self.raid.turn = "enemy"
                     self.raid.user_character = user_alive_characters[random.randint(0, (len(user_alive_characters) - 1))]
-
-                    view = self.raid.create_character_buttons(
-                        team=self.raid.enemies
-                    )
+                    view = self.raid.create_character_buttons(team=self.raid.enemies)
 
                     embed = self.raid.create_embed()
                     
                     self.raid.check_level_end()
                     raid_over = await self.raid.check_raid_end(interaction)
                     if not raid_over:
+                        # Sends a message to indicate who can go next
+                        await interaction.followup.edit_message(message_id= embed_message_id, embed=embed, view=view)
+                        self.raid.combat_log = ["Awaiting player actions..."]
+                        self.pressed = False
 
-                            # Sends a message to indicate who can go next
-                            await interaction.followup.send(
-                                embed=embed,
-                                view=view,
-                            )
-
-                            self.raid.combat_log = ["Awaiting player actions..."]
                     elif raid_over:
                         self.raid.send_timeout_message = False
+
+                    self.pressed = False
+            except TypeError as e:
+                    create_error_embed(error=e, ctx=self.raid.ctx, msg="This occured when the raid item button was pressed and a type error happened.")
+                    await interaction.followup.send("Please enter the number for the corresponding item you want to use.", ephemeral=True, view = inventory_view, embed = inventory_embed)
+                    continue
             except Exception as e:
-                create_error_embed(error=e, ctx=self.raid.ctx, msg="This occured when the raid item button was pressed.")
-            
+                    create_error_embed(error=e, ctx=self.raid.ctx, msg="This occured when the raid item button was pressed and a general exception was caught.")
+        
+    async def use_item(self, item):
+        print(item)
+        pass
+
+    async def on_button_click(self, interaction: discord.Interaction): 
+        try:
+            await interaction.response.defer()
+            if self.pressed:
+                print(self.pressed, 2)
+
+                return
+
+            embed_message_id = interaction.message.id
+            self.pressed = True
+
+            for child in self.raid.view.children:
+                if child.label != "Items":
+                    child.disabled = True
+
+            user_profile = database_handler.users.find_one({"_id": self.raid.ctx.author.id})
+            user_inventory = user_profile.get('inventory')
+
+            user_item_inventory = {k:v for (k, v) in user_inventory.items() if "effects" in v}
+            user_item_inventory = {k:v for (k, v) in user_item_inventory.items() if user_item_inventory.get(k).get("amount") > 0}
+
+            view = InventoryButtons(items=user_item_inventory, ctx=self.raid.ctx, numbered=True)
+            embed = await view.create_embed()
+
+            if not embed:
+                for child in self.raid.view.children:
+                    if child.label != "Items":
+                        child.disabled = False
+                    else:
+                        child.disabled = True
+
+                return await interaction.followup.edit_message(message_id = embed_message_id, view=self.raid.view)
 
 
-        #send_message(embed=embed)
-           
+            asyncio.create_task(self.prompt_user_for_item(interaction=interaction, inventory_embed=embed, inventory_view=view, inventory_length=len(user_item_inventory.keys()), embed_message_id= embed_message_id))
+
+            await interaction.followup.send(embed = embed, view = view, ephemeral= True)
+            await interaction.followup.edit_message(message_id = embed_message_id, view=self.raid.view)
+        except Exception as e:
+            create_error_embed(error=e, ctx=self.raid.ctx, msg="This occured from the raid item button")
+
+        
+
+
+        # make it so that the bot prompts the user to choose an item 3 times before skipping their turn
+
+               

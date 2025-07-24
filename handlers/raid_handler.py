@@ -63,17 +63,21 @@ class RaidInstance():
     def create_character_buttons(self, team):
         try:
             self.view.clear_items()
-
+            # view is changed after the button is created, using the unupdated version of the view
             for char in team:
                 if char["class"] != "Support" and char["current_hp"] > 0:
                     button = RaidFighterButton(label=char["name"], character=char, raid=self)
                     button.callback = button.on_button_click
                     self.view.add_item(button)
+                    button.raid = self
 
             if self.turn == 'user':
                 button = RaidItemButton(label="Items", raid=self)
                 button.callback = button.on_button_click
                 self.view.add_item(button)
+                button.raid = self
+
+
 
             return self.view
         except Exception as e:

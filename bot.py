@@ -236,6 +236,6 @@ async def main():
         except Exception as e:
             create_error_embed(error=e, msg="This occured while running the main function.")
         finally:
-            bot.topgg_webhook.close()
+            await bot.topgg_webhook.close()
             
 asyncio.run(main())
