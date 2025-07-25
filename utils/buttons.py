@@ -472,6 +472,8 @@ class RaidFighterButton(discord.ui.Button):
             self.raid.turn = "user"
             self.raid.determine_final_damage()
         
+        print("raid_fighter_button", self.raid.team)
+        
         # Creates an embed displaying the current fight
         embed = self.raid.create_embed()
         
@@ -528,23 +530,13 @@ class RaidItemButton(discord.ui.Button):
                     await self.use_item(item=item)
                     
             except asyncio.TimeoutError as e:
-                    user_alive_characters = [char for char in user_profile.get('team') if char['current_hp'] > 0]
+                    user_alive_characters = [char for char in self.raid.team if char['current_hp'] > 0]
                     self.raid.turn = "enemy"
                     self.raid.user_character = user_alive_characters[random.randint(0, (len(user_alive_characters) - 1))]
                     view = self.raid.create_character_buttons(team=self.raid.enemies)
 
-#                    embed = self.raid.create_embed()
-                    # FIX: View is not updating with the damage taken when the character is selected randomly due to skipped turn
- #                   self.raid.check_level_end()
-  #                  raid_over = await self.raid.check_raid_end(interaction)
-  #                  if not raid_over:
-                        # Sends a message to indicate who can go next
+                    # Sends a message to indicate who can go next
                     await interaction.followup.edit_message(message_id= embed_message_id, view=view)
-        #                self.raid.combat_log = ["Awaiting player actions..."]
-      ##                  self.pressed = False
-
-   #                 elif raid_over:
-       #                 self.raid.send_timeout_message = False
 
                     self.pressed = False
                     break

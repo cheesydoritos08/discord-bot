@@ -71,11 +71,13 @@ class RaidInstance():
                     self.view.add_item(button)
                     button.raid = self
 
+
             if self.turn == 'user':
                 button = RaidItemButton(label="Items", raid=self)
                 button.callback = button.on_button_click
                 self.view.add_item(button)
                 button.raid = self
+                print("create_character_button", self.team)
 
 
 
