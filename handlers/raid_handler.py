@@ -101,25 +101,25 @@ class RaidInstance():
                 10: {"rarity": "Rare",
                     "number_of_enemies": 4,
                     "stat_multiplier": {
-                        "HP": 1,
-                        "ATK": 2,
-                        "SPD": 1
+                        "HP": 5,
+                        "ATK": 3,
+                        "SPD": 3
                     }},
 
                 15: {"rarity": "Epic",
                     "number_of_enemies": 3,
                     "stat_multiplier": {
-                        "HP": 2,
-                        "ATK": 2,
-                        "SPD": 2
+                        "HP": 10,
+                        "ATK": 4,
+                        "SPD": 4
                     }},
 
                 20:  {"rarity": "Legendary",
                     "number_of_enemies": 2,
                     "stat_multiplier": {
-                        "HP": 2,
-                        "ATK": 3,
-                        "SPD": 3
+                        "HP": 15,
+                        "ATK": 5,
+                        "SPD": 5
                     }},
             }
 
@@ -484,10 +484,15 @@ class RaidInstance():
                     f"{attacker['name']} lands a hit for {damage} damage."
                 )
 
+            print(self.user_character['name'], self.user_character['current_hp'], "Before")
             defender["current_hp"] -= int(round(damage))
+
             if defender["current_hp"] <= 0:
                 defender["current_hp"] = 0
                 self.combat_log.append(f"{defender['name']} has died!")
+            
+            print(self.user_character['name'], self.user_character['current_hp'], "Before")
+
             return damage
         except Exception as e:
             create_error_embed(error=e, ctx=self.ctx, msg="This occured when handling the attack for each character in the raid")
@@ -527,63 +532,28 @@ class RaidInstance():
 
             if user_speed >= enemy_speed:
                 if not self.state["user"]["stunned"]:
-                    self.combat_log.append(
-                            f"**{self.user_character['name']} attacked before {self.enemy_character['name']} could even blink!**"   
-                    )
+                    self.combat_log.append(f"**{self.user_character['name']} attacked before {self.enemy_character['name']} could even blink!**"   )
                 else:
-                    self.combat_log.append(
-                            f"**{self.enemy_character['name']} takes advantage of {self.user_character['name']}'s stunned state and attacks!**"   
-                    )  
-                user_damage = self.handle_attack(
-                    self.user_character, self.enemy_character, "user"
-                )
-                enemy_damage = self.handle_attack(
-                    self.enemy_character, self.user_character, "enemy"
-                )
-                self.handle_reflect(
-                    self.user_character,
-                    self.enemy_character,
-                    "user",
-                    "enemy",
-                    enemy_damage,
-                )
-                self.handle_reflect(
-                    self.enemy_character,
-                    self.user_character,
-                    "enemy",
-                    "user",
-                    user_damage,
-                )
+                    self.combat_log.append(f"**{self.enemy_character['name']} takes advantage of {self.user_character['name']}'s stunned state and attacks!**"   )  
+                
+                user_damage = self.handle_attack(self.user_character, self.enemy_character, "user")
+                enemy_damage = self.handle_attack(self.enemy_character, self.user_character, "enemy")
+
+                self.handle_reflect(self.user_character,self.enemy_character,"user","enemy", enemy_damage,)
+                self.handle_reflect(self.enemy_character,self.user_character,"enemy","user",user_damage,)
+
 
             elif user_speed < enemy_speed:
                 if not self.state["enemy"]["stunned"]:
-                    self.combat_log.append(
-                            f"**{self.enemy_character['name']} attacked before {self.user_character['name']} could even blink!**"   
-                    )
+                    self.combat_log.append(f"**{self.enemy_character['name']} attacked before {self.user_character['name']} could even blink!**"   )
                 else:
-                    self.combat_log.append(
-                            f"**{self.user_character['name']} takes advantage of {self.enemy_character['name']}'s stunned state and attacks!**"   
-                    )  
-                damage1 = self.handle_attack(
-                    self.enemy_character, self.user_character, "enemy"
-                )
-                damage2 = self.handle_attack(
-                    self.user_character, self.enemy_character, "user"
-                )
-                self.handle_reflect(
-                    self.enemy_character,
-                    self.user_character,
-                    "enemy",
-                    "user",
-                    damage2,
-                )
-                self.handle_reflect(
-                    self.user_character,
-                    self.enemy_character,
-                    "user",
-                    "enemy",
-                    damage1,
-                )
+                    self.combat_log.append(f"**{self.user_character['name']} takes advantage of {self.enemy_character['name']}'s stunned state and attacks!**"   )  
+               
+                enemy_damage = self.handle_attack(self.enemy_character, self.user_character, "enemy")
+                user_damage = self.handle_attack(self.user_character, self.enemy_character, "user")
+                
+                self.handle_reflect(self.enemy_character,self.user_character,"enemy","user", user_damage,)
+                self.handle_reflect(self.user_character,self.enemy_character,"user","enemy", enemy_damage,)
 
             self.reset_round()
         except Exception as e:

@@ -533,21 +533,25 @@ class RaidItemButton(discord.ui.Button):
                     self.raid.user_character = user_alive_characters[random.randint(0, (len(user_alive_characters) - 1))]
                     view = self.raid.create_character_buttons(team=self.raid.enemies)
 
-                    embed = self.raid.create_embed()
-                    
-                    self.raid.check_level_end()
-                    raid_over = await self.raid.check_raid_end(interaction)
-                    if not raid_over:
+#                    embed = self.raid.create_embed()
+                    # FIX: View is not updating with the damage taken when the character is selected randomly due to skipped turn
+ #                   self.raid.check_level_end()
+  #                  raid_over = await self.raid.check_raid_end(interaction)
+  #                  if not raid_over:
                         # Sends a message to indicate who can go next
-                        await interaction.followup.edit_message(message_id= embed_message_id, embed=embed, view=view)
-                        self.raid.combat_log = ["Awaiting player actions..."]
-                        self.pressed = False
+                    await interaction.followup.edit_message(message_id= embed_message_id, view=view)
+        #                self.raid.combat_log = ["Awaiting player actions..."]
+      ##                  self.pressed = False
 
-                    elif raid_over:
-                        self.raid.send_timeout_message = False
+   #                 elif raid_over:
+       #                 self.raid.send_timeout_message = False
 
                     self.pressed = False
+                    break
             except TypeError as e:
+                    if x == 2:
+                        raise asyncio.TimeoutError
+                    
                     create_error_embed(error=e, ctx=self.raid.ctx, msg="This occured when the raid item button was pressed and a type error happened.")
                     await interaction.followup.send("Please enter the number for the corresponding item you want to use.", ephemeral=True, view = inventory_view, embed = inventory_embed)
                     continue

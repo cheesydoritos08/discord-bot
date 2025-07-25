@@ -145,13 +145,19 @@ class Economy(commands.Cog):
             # Stores the rarity and whether a shard was obtained in two variables
             rarity, shard_obtained = choose_rarity()
 
-            # Picks a character shard based off of the rarity
-            character = random.choice(
-                database_handler.all_characters_search(key='rarity', query=rarity)
-            )
-            database_handler.inc_value_to_users(
-                user_id=user.id, key=f'inventory.shards.{character["name"]}', value=1
-            )
+            # Picks a shard based off of the rarity
+            shard = rarity.lower() + "_shard"
+            user_id = ctx.author.id
+
+            for x in range(1):
+                user_inventory = database_handler.users.find_one({"_id": user_id}).get('inventory')
+                for user_item in user_inventory:
+                    if user_item == shard:
+                        database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.{shard}.amount", value=1)
+                        break
+
+                database_handler.add_item(user_id=user_id, item=shard)
+                database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.{shard}.amount", value=1)
             
         update_quests(user_id=ctx.author.id, quest_id="use_daily_command", amount=1)
 
@@ -160,7 +166,7 @@ class Economy(commands.Cog):
         if shard_obtained:
             embed = discord.Embed(
                 title='* Daily Reward *',
-                description=f"You've obtained ₩{daily_amount}! This has been added to your balance.\nYou also obtained a {character['name']} shard! This has been added to your inventory.",
+                description=f"You've obtained ₩{daily_amount}! This has been added to your balance.\nYou also obtained a {rarity} shard! This has been added to your inventory.",
                 color=discord.Color.dark_magenta(),
             )
         else:
