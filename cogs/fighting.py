@@ -34,9 +34,7 @@ class Fighting(commands.Cog):
         if database_handler.users.find_one({'_id': ctx.author.id}).get('in_challenge'):
             return await ctx.send('Finish your fight first.')
         elif database_handler.users.find_one({'_id': other_player.id}).get('in_challenge'):
-            return await ctx.send(
-                'Let them finish their fight first. No 2v1s.'
-            )
+            return await ctx.send('Let them finish their fight first. No 2v1s.')
 
         player_one_team = database_handler.users.find_one({'_id': ctx.author.id}).get('team', [])
         player_two_team = database_handler.users.find_one({'_id': other_player.id}).get('team', [])
@@ -56,6 +54,7 @@ class Fighting(commands.Cog):
 
         try:
             msg = await self.bot.wait_for('message', timeout=15.0, check=check)
+            # Determines what happens when the other player accepts/declines
             if msg.content.lower() == 'accept':
                 game = fight_handler.GameInstance(ctx, ctx.author, other_player, player_one_team, player_two_team)
                 embed = game.create_embed()
@@ -85,7 +84,7 @@ class Fighting(commands.Cog):
             database_handler.users.update_one({'_id': other_player.id}, {'$set': {'in_challenge': False}})
             await ctx.send('I have better things to do than sit and wait for you.')
         except Exception as e:
-            raise e
+            create_error_embed(error=e, ctx=ctx, msg="This occurred when a user tried to send a message accepting/declining a challenge.")
     
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
     @commands.command(help="This command allows you to start a raid. The format for this command is `?raid <level> (Optional)`. If you decide to put in a level, it will start you off at that level as long as you've already completed it once. Else, the command will start you off at your current level.")
@@ -97,6 +96,7 @@ class Fighting(commands.Cog):
         user_profile = database_handler.users.find_one({"_id": ctx.author.id})
         user_inventory = user_profile["inventory"]
 
+        # Checks to see if the user has token
         if user_inventory.get("raid_token") is None:
             return await ctx.send("Go buy some token first.")
         elif user_inventory["raid_token"]["amount"] == 0:
@@ -106,6 +106,7 @@ class Fighting(commands.Cog):
         if user_profile.get("in_raid"):
             return await ctx.send("Finish your raid first.")
         
+        # 
         if level is None:
             level = user_profile["raid_level"]
         elif user_profile["raid_level"] < level:
@@ -175,7 +176,7 @@ class Fighting(commands.Cog):
                     if effect['type'] != 'daily':
                         fighting_effects += 1
                 if fighting_effects < 1:
-                    return await ctx.send('Can\'t be used in a fight. Not like that changes much for you.')
+                    return await ctx.send('Supports with no fighting buffs can\'t be used in a fight. Not like that changes much for you.')
 
                 # Adds character to team if they pass the check
                 await add_character()
@@ -205,9 +206,7 @@ class Fighting(commands.Cog):
             if character_name.lower() == member['name'].lower():
                 removed_member = member
                 user_team.remove(member)
-                database_handler.users.update_one(
-                    {'_id': ctx.author.id}, {'$set': {'team': user_team}}
-                )
+                database_handler.users.update_one({'_id': ctx.author.id}, {'$set': {'team': user_team}})
 
         # Sends a message to the user indicating the removal of the character
         if removed_member:
@@ -222,15 +221,11 @@ class Fighting(commands.Cog):
                       help="This command allows you to view all of the current members on your team. Your team can be used to challenge other players or to fight in raids.")
     async def view_team(self, ctx, *, member: discord.Member = None):
         # Checks to make sure the target has a profile and isn't a bot
-        if member is None and not await database_handler.check_existing_profile(
-            ctx=ctx, user_id=ctx.author.id
-        ):
+        if member is None and not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
             return
         elif member is None:
             user = ctx.author
-        elif not await database_handler.check_existing_profile(
-            ctx=ctx, user_id=member.id, another_user=True
-        ):
+        elif not await database_handler.check_existing_profile(ctx=ctx, user_id=member.id, another_user=True):
             return
         elif member and not member.bot:
             user = member
@@ -279,7 +274,7 @@ class Fighting(commands.Cog):
     @add_to_team.error
     @challenge.error
     @raid.error
-    async def cooldown_error(self, ctx, error):
+    async def error_handler(self, ctx, error):
         # Sends a cooldown message if command is reused when on cooldown
         if isinstance(error, commands.CommandOnCooldown):
             user_id = ctx.author.id

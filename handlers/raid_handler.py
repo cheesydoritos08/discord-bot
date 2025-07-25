@@ -45,25 +45,29 @@ class RaidInstance():
 
     # Applys stat boost for entire team if applicable
     def apply_stat_boosts(self):
-        user_support = next((c for c in self.team if c["class"] == "Support"), None)
+        try:
+            user_support = next((c for c in self.team if c["class"] == "Support"), None)
 
-        if user_support:
-            user_fighter_characters = [c for c in self.team if c["class"] != "Support"]
-    
-            for effect in user_support["effects"]:
-                if effect["stat"] == "SPD" or effect["stat"] == "ATK":
-                    for char in user_fighter_characters:
-                        char[effect["stat"]] = round(char[effect["stat"]] * (1 + (effect["amount"] / 100)))
-                elif effect["stat"] == "HP":
-                    for char in user_fighter_characters:
-                        char[effect["stat"]] = round(char[effect["stat"]] * (1 + (effect["amount"] / 100)))
-                        char["current_hp"] = char[effect["stat"]]
+            if user_support:
+                user_fighter_characters = [c for c in self.team if c["class"] != "Support"]
+        
+                for effect in user_support["effects"]:
+                    if effect["stat"] == "SPD" or effect["stat"] == "ATK":
+                        for char in user_fighter_characters:
+                            char[effect["stat"]] = round(char[effect["stat"]] * (1 + (effect["amount"] / 100)))
+                    elif effect["stat"] == "HP":
+                        for char in user_fighter_characters:
+                            char[effect["stat"]] = round(char[effect["stat"]] * (1 + (effect["amount"] / 100)))
+                            char["current_hp"] = char[effect["stat"]]
+        except Exception as e:
+            create_error_embed(error=e, ctx=self.ctx, msg="This occured while applying stat boosts during a raid.")
 
     # Creates the buttons for the users to press
     def create_character_buttons(self, team):
         try:
             self.view.clear_items()
-            # view is changed after the button is created, using the unupdated version of the view
+
+            # Creates the fighter buttons for the user to choose from
             for char in team:
                 if char["class"] != "Support" and char["current_hp"] > 0:
                     button = RaidFighterButton(label=char["name"], character=char, raid=self)
@@ -71,15 +75,13 @@ class RaidInstance():
                     self.view.add_item(button)
                     button.raid = self
 
-
+            # Checks to see if it's the user's turn and gives them the option to use an item
             if self.turn == 'user':
                 button = RaidItemButton(label="Items", raid=self)
                 button.callback = button.on_button_click
                 self.view.add_item(button)
                 button.raid = self
                 print("create_character_button", self.team)
-
-
 
             return self.view
         except Exception as e:
@@ -91,6 +93,7 @@ class RaidInstance():
             possible_enemies_list = []
             enemies_list = []
 
+            # Determines the stats and amount of enemies based on the current raid level
             enemy_setup_dictionary = {
                 5: {"rarity": "Common",
                     "number_of_enemies": 5,
@@ -130,11 +133,13 @@ class RaidInstance():
             if threshold > 20:
                 threshold = 20
             
+            # Gets a list of all the characters who correspond to the rarity
             possible_enemies = database_handler.all_characters.find({"rarity": enemy_setup_dictionary[threshold]["rarity"], "class": { "$ne": "Support" }})
 
             for character in possible_enemies:
                 possible_enemies_list.append(character)
             
+            # Slightly randomizes the stats of the enemies
             for i in range(enemy_setup_dictionary[threshold]["number_of_enemies"]):
                 random_num = random.randint(0, (len(possible_enemies_list) - 1))
                 enemy = copy.deepcopy(possible_enemies_list[random_num])
@@ -144,7 +149,7 @@ class RaidInstance():
                 elif enemy.get("reflect_chance", None) is not None:
                     enemy["reflect_chance"] = random.randint(round(enemy["reflect_chance"]*2*0.8), round(enemy["reflect_chance"]*2*1.2))
                 elif enemy.get("stun_chance", None) is not None:
-                    enemy["stun_chance"] = random.randint(round(enemy["stun_chance"]*0.1*0.8), round(enemy["stun_chance"]*0.1*1.2))
+                    enemy["stun_chance"] = random.randint(round(enemy["stun_chance"]*2*0.8), round(enemy["stun_chance"]*2*1.2))
 
                 enemy["HP"] = random.randint(round(enemy["HP"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["HP"]*0.8), round(enemy["HP"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["HP"]*1.2))
                 enemy["ATK"] = random.randint(round(enemy["ATK"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["ATK"]*0.8), round(enemy["ATK"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["ATK"]*1.2))
@@ -156,6 +161,7 @@ class RaidInstance():
             return enemies_list
         except Exception as e:
             create_error_embed(error=e, ctx=self.ctx, msg="This occured when creating enemies at the start of the round for a raid")
+
 
     # Creates an embed displaying the current fight information
     def create_embed(self):
@@ -184,12 +190,33 @@ class RaidInstance():
         except Exception as e:
             create_error_embed(error=e, ctx=self.ctx, msg="This occured when creating an embed for the raid display")
         
-    # Returns the team formatted in a way to be displayed on the embed
+    # Displays the health bar of the character
+    def display_health_bar(self, current_hp, max_hp):
+        try:
+            health_bars = [
+                "[HP ▸ ▐──────────▌]",
+                "[HP ▸ ▐█─────────▌]",
+                "[HP ▸ ▐██────────▌]",
+                "[HP ▸ ▐███───────▌]",
+                "[HP ▸ ▐████──────▌]",
+                "[HP ▸ ▐█████─────▌]",
+                "[HP ▸ ▐██████────▌]",
+                "[HP ▸ ▐███████───▌]",
+                "[HP ▸ ▐████████──▌]",
+                "[HP ▸ ▐█████████─▌]",
+                "[HP ▸ ▐██████████▌]",
+            ]
+            index = math.floor((current_hp / max_hp) * 10)
+            return(health_bars[index])
+        except Exception as e:
+            create_error_embed(error=e, ctx=self.ctx, msg="This occured when getting the health bars during the raid.")
+
+    # Formats the team in into a string
     def format_team(self, team):
         try:
             return "\n".join(
                 [
-                    f"**⚔️ {char['name']}**\nHP: `{char['current_hp']} / {char['HP']}`\nATK: `{char['ATK']}`\nSPD: `{char['SPD']}`\n"
+                    f"**{char['emoji']} {char['name']}**\n`{self.display_health_bar(char['current_hp'], char['HP'])}\n▸ {char['current_hp']} / {char["HP"]}`\n`ATK ▸ {char['ATK']}`\n`SPD ▸ {char['SPD']}`\n"
                     for char in team
                     if char["class"] != "Support"
                 ]
@@ -284,12 +311,15 @@ class RaidInstance():
             if threshold > 20:
                 threshold = 20
 
+            # Rolls a random number for each item in the rewards dictionary to see if
+            # the user gets the item
             for item, percentage in rewards_dictionary[threshold].items():
                 random_num = random.randint(1, 100)
                 if percentage >= random_num:
                     excess_round_attempts = math.fabs(self.round - len(self.enemies))
                     range_of_rewards = 4
 
+                    # Determines the number of rewards based on how fast the round is completed
                     if excess_round_attempts > 5:
                         range_of_rewards = 1
                     elif excess_round_attempts <= 5:
@@ -310,22 +340,27 @@ class RaidInstance():
             dead_characters = 0
             fighter_characters = [char for char in self.team if char["class"] != "Support"]
 
+            # Counts the number of dead characters
             for char in fighter_characters:
                 if char["current_hp"] <= 0:
                     char["current_hp"] = 0
                     dead_characters += 1
 
+
             if dead_characters == len(fighter_characters):
+                # Creates the final embed for the fight
                 embed = self.create_embed()
 
                 await interaction.response.edit_message(embed = embed, view = None)
 
+                # Updates the raid level and removes the user from being in the raid state
                 if self.level > database_handler.users.find_one({"_id": interaction.user.id}).get("raid_level"):
                     database_handler.users.update_one({"_id": self.ctx.author.id}, {"$set": {"raid_level": self.level}})
                 
                 database_handler.users.update_one({"_id": self.ctx.author.id}, {"$set": {"in_raid": False}})
 
 
+                # Creates an embed displaying end of raid stats
                 embed = discord.Embed(title="------------------- The raid is over! ------------------")
 
                 embed.add_field(name="Stats",
@@ -334,7 +369,8 @@ class RaidInstance():
                 embed.add_field(name="-------------------------------------------------------------------",
                     value="",
                     inline=False)
-                            
+
+                #     
                 if self.level > 20:
                     xp_starting_payout = 2500
                 elif self.level > 15:

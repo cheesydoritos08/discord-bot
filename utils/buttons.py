@@ -7,15 +7,16 @@ import handlers.database_handler as database_handler
 
 # Buttons for the inventory command
 class InventoryButtons(discord.ui.View):
-    def __init__(self, *, timeout = 180, items, ctx, numbered = False):
+    def __init__(self, *, timeout = 180, items, ctx, display_for_item_command = False):
         super().__init__(timeout=timeout)
         self.index = 0
         self.items = items
         self.num_on_items_per_page = 5
         self.ctx = ctx
-        self.numbered = numbered
+        self.display_for_item_command = display_for_item_command
     
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        # Makes sure the person interacting the sender of the command
         if interaction.user != self.ctx.author:
             await interaction.response.send_message('Only the author of the command can perform this action.', ephemeral=True,)
             return False
@@ -24,24 +25,30 @@ class InventoryButtons(discord.ui.View):
     async def create_embed(self, item = None):
         items_display_string = ""
        
+       # If no item is specifically searched for, displays all the items in self.item
         if item is None:
             embed = discord.Embed(title=f"{self.ctx.author}'s Inventory",
                       description="∘₊✧─── ──── ──── ───✧₊∘",
                       colour=0xcb7667)
 
             for item in list(self.items.keys())[int(self.index *  self.num_on_items_per_page) : int(((self.index *  self.num_on_items_per_page) +  self.num_on_items_per_page))]:
+                # Adds a position to the items if they are supposed to be displayed
+                # in a fighting command
                 position = 1
                 if self.items.get(item, {}).get("amount") > 0:
                     item_name = item.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")
 
-                    if self.numbered:
+                    if self.display_for_item_command:
                         item_name = f"{position}. {item_name}"
                         position += 1
                     
+                    # Adds the item and the emoji to the display string
                     items_display_string += f"**{self.items[item]['emoji']} {item_name}**: {self.items[item]['amount']}\n"
 
             if items_display_string == "":
-                if not self.numbered:
+                if not self.display_for_item_command:
+                    # Tells the user that there's nothing in the inventory if the items
+                    # aren't being displayed for a fighting command
                     await self.ctx.send("You have nothing in your inventory.")
                 return False
 
@@ -55,6 +62,7 @@ class InventoryButtons(discord.ui.View):
 
 
         else:
+            # Creates an embed showing just the item sent to the embed
             embed = discord.Embed(title=f"{self.ctx.author}'s Inventory",
                       description="∘₊✧─── ──── ──── ───✧₊∘",
                       colour=0xcb7667)
@@ -103,6 +111,7 @@ class ShopButtons(discord.ui.View):
         return True
 
     def create_embed(self):
+        # Creates an embed displaying the items in the shop
         embed = discord.Embed(title="•─•°• Shop •°•─•")
 
         for item in self.items[int(self.index * self.num_of_items_per_page):int(((self.index * self.num_of_items_per_page) + self.num_of_items_per_page))]:
@@ -136,31 +145,25 @@ class CharacterButton(discord.ui.View):
 
         async def interaction_check(self, interaction: discord.Interaction) -> bool:
             if interaction.user != self.ctx.author:
-                await interaction.response.send_message(
-                    'Only the author of the command can perform this action.',
-                    ephemeral=True,
-                )
+                await interaction.response.send_message('Only the author of the command can perform this action.',ephemeral=True)
                 return False
             return True
 
         # Returns the decorative items needed to indicate rarity
         def set_rarity_indicators(self, character):
+
             colors = {
-                'Common': (
-                    discord.Color.green(),
-                    'https://files.catbox.moe/fen419.png',
-                ),
+                'Common': (discord.Color.green(),'https://files.catbox.moe/fen419.png',),
                 'Rare': (discord.Color.blue(), 'https://files.catbox.moe/5s6egv.png'),
                 'Epic': (discord.Color.purple(), 'https://files.catbox.moe/xt0w36.png'),
-                'Legendary': (
-                    discord.Color.gold(),
-                    'https://files.catbox.moe/8hy2hm.png',
-                ),
+                'Legendary': (discord.Color.gold(),'https://files.catbox.moe/8hy2hm.png',),
             }
-            return colors.get(character['rarity'], (discord.Color.default(), None))
+
+            return colors.get(character['rarity'])
 
         # Creates the embed for the pages
         def create_embed(self, character):
+            # Sets the colors for the page
             bar_color, rarity_icon = self.set_rarity_indicators(character)
             if character['class'] == 'Support':
                 desc = f'> **Rarity:** {character["rarity"]}\n> **Class:** {character["class"]}\n> **Threshold:** {character["threshold"]}\n> **Effect:** {character["description"]}'
@@ -201,8 +204,10 @@ class CharacterButton(discord.ui.View):
         @discord.ui.button(label='More Info', style=discord.ButtonStyle.gray)
         async def display_more_info(self, interaction: discord.Interaction, button: discord.ui.Button):
             try:
+                # Gets the current character on the page
                 character = database_handler.all_characters.find_one({"name": self.characters[self.index]['name']})
         
+                # Creates an embed for the threshold requires for the character
                 embed = discord.Embed(title="-ˋˏ ༻ Threshold Requirements ༺ ˎˊ-")
 
                 for threshold in character.get('threshold_requirements').keys():
@@ -360,6 +365,7 @@ class TutorialButton(discord.ui.View):
 
         ]
 
+    # Adds the invite button based on the page
     def add_invite_button(self):
         if self.index == 6 or self.index == 15:
             self.add_item(self.button)
@@ -405,7 +411,8 @@ class FighterButton(discord.ui.Button):
         self.character = character
         self.game = game
 
-    async def on_button_click(self, interaction: discord.Interaction):        
+    async def on_button_click(self, interaction: discord.Interaction):   
+        # Sets the current team to nothing     
         current_team = None
         game_over = False
 
@@ -426,6 +433,7 @@ class FighterButton(discord.ui.Button):
                 team=current_team
             )
         
+        # Checks to see if any of the players won
         if await self.game.check_player_win(self.game.player_one_team):
             game_over = True
             self.game.send_timeout_message = False
@@ -433,6 +441,7 @@ class FighterButton(discord.ui.Button):
             game_over = True
             self.game.send_timeout_message = False
 
+        # Sends the new view if the game hasn't ended yet
         if not game_over:
                 # Sends a message to indicate who can go next
                 await interaction.response.send_message(
@@ -445,6 +454,7 @@ class FighterButton(discord.ui.Button):
 # Creates the button for the invite command
 class InviteButton(discord.ui.View):
     def __init__(self, *, timeout = 10):
+        # Creates the invite buttons and adds them to the view
         super().__init__(timeout=timeout)
         server_button = discord.ui.Button(label="Join the bot's official server!", style=discord.ButtonStyle.url, url="https://discord.gg/EaaF8aMCxG")
         invite_button = discord.ui.Button(label='Invite the bot!', style=discord.ButtonStyle.url, url="https://discord.com/oauth2/authorize?client_id=1371573491391922278&scope=bot+applications.commands&permissions=414464691264")
@@ -462,6 +472,7 @@ class RaidFighterButton(discord.ui.Button):
     async def on_button_click(self, interaction: discord.Interaction):        
         current_team = None
         
+        # Sends info over to the raid depending on whose turn it is
         if self.raid.turn == "user":
             current_team = self.raid.enemies
             self.raid.user_character = self.character
@@ -471,9 +482,7 @@ class RaidFighterButton(discord.ui.Button):
             self.raid.enemy_character = self.character
             self.raid.turn = "user"
             self.raid.determine_final_damage()
-        
-        print("raid_fighter_button", self.raid.team)
-        
+                
         # Creates an embed displaying the current fight
         embed = self.raid.create_embed()
         
@@ -482,19 +491,16 @@ class RaidFighterButton(discord.ui.Button):
         else:
             embed.set_footer(text="Choose which enemy to attack!")
 
-        view = self.raid.create_character_buttons(
-                team=current_team
-            )
+        # Displays the button for the player
+        view = self.raid.create_character_buttons(team=current_team)
 
+        # Checks to see if the level ended or if the raid ended
         self.raid.check_level_end()
         raid_over = await self.raid.check_raid_end(interaction)
 
         if not raid_over:
                 # Sends a message to indicate who can go next
-                await interaction.response.edit_message(
-                    embed=embed,
-                    view=view,
-                )
+                await interaction.response.edit_message(embed=embed, view=view)
                 self.raid.combat_log = ["Awaiting player actions..."]
         elif raid_over:
             self.raid.send_timeout_message = False
@@ -506,8 +512,6 @@ class RaidItemButton(discord.ui.Button):
         self.pressed = False
 
     async def prompt_user_for_item(self, interaction, inventory_embed, inventory_view, inventory_length, embed_message_id):
-        user_profile = database_handler.users.find_one({"_id": self.raid.ctx.author.id})
-
         for x in range(3):
             def check(msg):
                 return msg.author == self.raid.ctx.author and msg.channel == self.raid.ctx.channel

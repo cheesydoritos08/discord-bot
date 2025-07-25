@@ -15,9 +15,10 @@ class User_Collection(commands.Cog):
         self.bot = bot
         self.warned_cooldown_users = set()
 
+    # Adds the newly rolled character to the player's inventory
     def add_character_to_inventory(self, rarity, user_id):
         # Chooses a character based off of the rarity
-        rated_up_legendary_character = "Mujin Jin"
+        rated_up_legendary_character = "Gun Park"
         if rarity == "Legendary":
             rolled_character = database_handler.all_characters.find_one({"name": rated_up_legendary_character})
             rolled_character.pop('threshold_requirements')
@@ -91,14 +92,13 @@ class User_Collection(commands.Cog):
         user_profile = database_handler.users.find_one({'_id': user_id})
         pity = user_profile.get('pity')
 
-        def choose_rarity():
             # Determines the rarity of each tier depending on current pity
-            if pity > 99:
+        if pity > 99:
                 rarities = {'Legendary': 100}
                 database_handler.users.update_one(
                     filter={'_id': user_id}, update={'$set': {'pity': 0}}
                 )
-            elif pity > 69:
+        elif pity > 69:
                 rarities = {
                     'Legendary': 10,
                     'Epic': 15,
@@ -106,7 +106,7 @@ class User_Collection(commands.Cog):
                     'Common': 45,
                 }
                 database_handler.inc_value_to_users(user_id=user_id, key='pity', value=1)
-            else:
+        else:
                 rarities = {
                     'Legendary': 1,
                     'Epic': 9,
@@ -115,18 +115,133 @@ class User_Collection(commands.Cog):
                 }
                 database_handler.inc_value_to_users(user_id=user_id, key='pity', value=1)
 
-            randomNum = random.randint(1, sum(rarities.values()))
-            counter = 0
-            for rarity, weight in rarities.items():
-                counter += weight
-                if randomNum <= counter:
-                    return rarity
+        randomNum = random.randint(1, sum(rarities.values()))
+        counter = 0
+        for rarity, weight in rarities.items():
+            counter += weight
+            if randomNum <= counter:
+                chosen_rarity = rarity
 
-        rarity = choose_rarity()
 
         update_quests(user_id=user_id, quest_id="roll_limited_banner", amount=1)
 
-        return self.add_character_to_inventory(rarity=rarity, user_id=user_id)
+        return self.add_character_to_inventory(rarity=chosen_rarity, user_id=user_id)
+
+    # Evolves the fighting character based on their rarity and class
+    def evolve_fighter_character(self, user_id, character):
+        evolution_dictionary = {
+            "Striker": {
+                "ATK": 1.25,
+                "HP": 1.20,
+                "SPD": 1.15,
+                'crit_chance': 5,
+                'crit_damage': 0.3
+            },
+            "Grappler": {
+                "ATK": 1.20,
+                "HP": 1.25,
+                "SPD": 1.15,
+                'stun_chance': 5,
+            },
+            "Weaver": {
+                "ATK": 1.15,
+                "HP": 1.20,
+                "SPD": 1.25,
+                'reflect_chance': 5,
+                'reflect_percent': 10
+            }
+        }
+
+        user_profile = database_handler.users.find_one({"_id": user_id})
+        user_characters = user_profile.get('characters')
+        user_team = user_profile.get('team')
+
+
+        for i, user_character in enumerate(user_characters):
+            # Goes through the character list and increases the stats of the corresponding character
+            if user_character['name'] == character['name']:
+                character['ATK'] = round(character['ATK'] * evolution_dictionary[character['class']]['ATK'])
+                character['HP'] = round(character['HP'] * evolution_dictionary[character['class']]['HP'])
+                character['SPD'] = round(character['SPD'] * evolution_dictionary[character['class']]['SPD'])
+            
+                if character['class'] == "Striker":
+                    character['crit_chance'] = round(character['crit_chance'] + evolution_dictionary[character['class']]['crit_chance'], 1)
+                    character['crit_damage'] += evolution_dictionary[character['class']]['crit_damage']
+                
+                elif character['class'] == "Weaver":
+                    character['reflect_chance'] += evolution_dictionary[character['class']]['reflect_chance']
+                    character['reflect_percent'] += evolution_dictionary[character['class']]['reflect_percent']
+                
+                elif character['class'] == "Grappler":
+                    character['stun_chance'] += evolution_dictionary[character['class']]['stun_chance']
+                    
+                    if character['threshold'] == 2:
+                        character['stun_duration'] += 1
+            
+                character['threshold'] += 1
+                database_handler.users.update_one({"_id": user_id}, {"$set": {f"characters.{i}": character}})
+                break
+        
+        # Goes through the team character list and increases the stats of the corresponding character
+        for i, user_character in enumerate(user_team):
+            if user_character['name'] == character['name']:
+                character['current_hp'] = character['HP']
+                database_handler.users.update_one({"_id": user_id}, {"$set": {f"team.{i}": character}})
+    
+    # Evolves the support character based on rarity
+    def evolve_support_character(self, user_id, character):
+        evolution_dictionary = {
+            "Common": {
+                "buff": 3,
+                "daily": 50
+                      },
+            "Rare": {
+                "buff": 5,
+                "daily": 100
+                    },
+            "Epic": {
+                "buff": 10,
+                "daily": 150
+                    },
+            "Legendary": {
+                "buff": 15,
+                "daily": 200
+                    },
+        }
+
+        user_profile = database_handler.users.find_one({"_id": user_id})
+        user_characters = user_profile.get('characters')
+        user_team = user_profile.get('team')
+
+        for i, user_character in enumerate(user_characters):
+            # Goes through the character list and increases the effects/change the descriptions for the effects
+            if user_character['name'] == character['name']:
+                description_string = ""
+                for index, effect in enumerate(character.get('effects')):
+                    if index == len(character.get('effects')) - 1 and index != 0:
+                        description_string += " and "
+                        pass
+
+                    effect['amount'] += evolution_dictionary[character['rarity']][effect['type']]
+
+                    if effect['stat'] == "crit_chance" or effect['stat'] == "reflect_chance" or effect['stat'] == "stun_chance":
+                        description_string += f"increases the {effect['stat'].replace("_", " ")} of all eligible team members by {effect['amount']}%, "
+                    elif effect['type'] == "buff": 
+                        description_string += f"increases the {effect['stat'].upper()} of all team members by {effect['amount']}%, "
+                    elif effect['type'] == "daily":
+                        description_string += f"increases the amount received from the daily command by {effect['amount']}, "
+
+                description_string = description_string[0].upper() + description_string[1:-2] 
+                character['description'] = description_string
+                character['threshold'] += 1
+
+                database_handler.users.update_one({"_id": user_id}, {"$set": {f"characters.{i}": character}})
+                break
+        
+        # Goes through the character list and increases the effects/change the descriptions for the effects
+        for i, user_character in enumerate(user_team):
+            if user_character['name'] == character['name']:
+                database_handler.users.update_one({"_id": user_id}, {"$set": {f"team.{i}": character}})
 
     # The roll command
     @commands.command(help="This command allows you to roll on the standard or limited time banner. The format for this command is `?roll <banner name>`")
@@ -200,45 +315,39 @@ class User_Collection(commands.Cog):
             user_profile = database_handler.users.find_one({'_id': user.id})
             pity = user_profile.get('pity')
 
+        # Updates the database with profile stats
+        def update_user_profile_stats(rarity):
+            database_handler.inc_value_to_users(user_id=user.id, key=f'{rarity.lower()}_characters', value=1)
+            database_handler.inc_value_to_users(user_id=user.id, key='threshold_one_characters', value=1)
+
+            if rarity.lower() == "legendary":
+                database_handler.users.update_one({"_id": user.id}, {"$set": {"pity": 0}})
+                pity = 0
+
         # Determines the color of the side bar on the embed based on rarity
         if character['rarity'] == 'Common':
             bar_color = discord.Color.green()
             thumbnail_url = 'https://files.catbox.moe/fen419.png'
             if not is_duplicate:
-                database_handler.inc_value_to_users(
-                    user_id=user.id, key='common_characters', value=1
-                )
-                database_handler.inc_value_to_users(
-                    user_id=user.id, key='threshold_one_characters', value=1
-                )
+                update_user_profile_stats(rarity=character["rarity"])
+
         elif character['rarity'] == 'Rare':
             bar_color = discord.Color.blue()
             thumbnail_url = 'https://files.catbox.moe/5s6egv.png'
             if not is_duplicate:
-                database_handler.inc_value_to_users(user_id=user.id, key='rare_characters', value=1)
-                database_handler.inc_value_to_users(
-                    user_id=user.id, key='threshold_one_characters', value=1
-                )
+                update_user_profile_stats(rarity=character["rarity"])
+
         elif character['rarity'] == 'Epic':
             bar_color = discord.Color.purple()
             thumbnail_url = 'https://files.catbox.moe/xt0w36.png'
             if not is_duplicate:
-                database_handler.inc_value_to_users(user_id=user.id, key='epic_characters', value=1)
-                database_handler.inc_value_to_users(
-                    user_id=user.id, key='threshold_one_characters', value=1
-                )
+                update_user_profile_stats(rarity=character["rarity"])
+
         else:
             thumbnail_url = 'https://files.catbox.moe/8hy2hm.png'
             bar_color = discord.Color.gold()
             if not is_duplicate:
-                database_handler.inc_value_to_users(
-                    user_id=user.id, key='legendary_characters', value=1
-                )
-                database_handler.inc_value_to_users(
-                    user_id=user.id, key='threshold_one_characters', value=1
-                )
-                database_handler.users.update_one({"_id": user.id}, {"$set": {"pity": 0}})
-                pity = 0
+                update_user_profile_stats(rarity=character["rarity"])
 
         # Creates the embed and sends it
         if character['class'] == 'Support':
@@ -254,6 +363,7 @@ class User_Collection(commands.Cog):
                 color=bar_color,
             )
 
+        # Checks to see if the pity should be displayed
         if pity is not None:
             embed.set_footer(text=f'Pity: {pity}/100 | Rolled by {user}')
         else:
@@ -264,12 +374,14 @@ class User_Collection(commands.Cog):
         embed.set_author(name=banner_name, icon_url=banner_icon_url)
 
         await ctx.send(embed=embed)
+
+        # Sends an additonal method about gaining a shard if they are a duplicate
         if is_duplicate:
             update_quests(user_id=ctx.author.id, quest_id="obtain_one_character_shard", amount=1)
             await ctx.send(
                 f"{character['emoji']} {character['name']} is a duplicate. You have received 1 shard instead."
             )
-
+        
     # Returns the character list for the called function
     async def return_character_list(self, ctx, characters, filter): 
         # Determines the order in which rarities are displayed
@@ -361,132 +473,22 @@ class User_Collection(commands.Cog):
                       aliases=["inv"],
                       help = "This command displays all the items in your inventory. You can search for a specific item by typing `?inventory <item name>`.")
     @commands.cooldown(rate=1, per=2, type=commands.BucketType.user)
-    async def display_inventory(self, ctx, *, arg : InventoryConverter = None):
+    async def display_inventory(self, ctx, *, searched_item : InventoryConverter = None):
+        # Checks to see if the user already has a profile
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
             return
         
         inventory = database_handler.users.find_one({"_id": ctx.author.id}).get("inventory")
-
         view = InventoryButtons(ctx=ctx, items=inventory)
        
-        if arg is None:
+       # Checks to see if the user is looking for a specific item
+        if searched_item is None:
             embed = await view.create_embed()
         else:
-            embed = await view.create_embed(item = arg)
+            embed = await view.create_embed(item = searched_item)
  
             
         await ctx.send(view=view, embed=embed)  
-
-    # Evolves the fighting character based on their rarity and class
-    def evolve_fighter_character(self, user_id, character):
-        evolution_dictionary = {
-            "Striker": {
-                "ATK": 1.25,
-                "HP": 1.20,
-                "SPD": 1.15,
-                'crit_chance': 5,
-                'crit_damage': 0.3
-            },
-            "Grappler": {
-                "ATK": 1.20,
-                "HP": 1.25,
-                "SPD": 1.15,
-                'stun_chance': 5,
-            },
-            "Weaver": {
-                "ATK": 1.15,
-                "HP": 1.20,
-                "SPD": 1.25,
-                'reflect_chance': 5,
-                'reflect_percent': 10
-            }
-        }
-
-        user_profile = database_handler.users.find_one({"_id": user_id})
-        user_characters = user_profile.get('characters')
-        user_team = user_profile.get('team')
-
-        for i, user_character in enumerate(user_characters):
-            if user_character['name'] == character['name']:
-                character['ATK'] = round(character['ATK'] * evolution_dictionary[character['class']]['ATK'])
-                character['HP'] = round(character['HP'] * evolution_dictionary[character['class']]['HP'])
-                character['SPD'] = round(character['SPD'] * evolution_dictionary[character['class']]['SPD'])
-            
-                if character['class'] == "Striker":
-                    character['crit_chance'] = round(character['crit_chance'] + evolution_dictionary[character['class']]['crit_chance'], 1)
-                    character['crit_damage'] += evolution_dictionary[character['class']]['crit_damage']
-                
-                elif character['class'] == "Weaver":
-                    character['reflect_chance'] += evolution_dictionary[character['class']]['reflect_chance']
-                    character['reflect_percent'] += evolution_dictionary[character['class']]['reflect_percent']
-                
-                elif character['class'] == "Grappler":
-                    character['stun_chance'] += evolution_dictionary[character['class']]['stun_chance']
-                    
-                    if character['threshold'] == 2:
-                        character['stun_duration'] += 1
-            
-                character['threshold'] += 1
-                database_handler.users.update_one({"_id": user_id}, {"$set": {f"characters.{i}": character}})
-                break
-        
-        for i, user_character in enumerate(user_team):
-            if user_character['name'] == character['name']:
-                character['current_hp'] = character['HP']
-                database_handler.users.update_one({"_id": user_id}, {"$set": {f"team.{i}": character}})
-    
-    # Evolves the support character based on rarity
-    def evolve_support_character(self, user_id, character):
-        evolution_dictionary = {
-            "Common": {
-                "buff": 3,
-                "daily": 50
-                      },
-            "Rare": {
-                "buff": 5,
-                "daily": 100
-                    },
-            "Epic": {
-                "buff": 10,
-                "daily": 150
-                    },
-            "Legendary": {
-                "buff": 15,
-                "daily": 200
-                    },
-        }
-
-        user_profile = database_handler.users.find_one({"_id": user_id})
-        user_characters = user_profile.get('characters')
-        user_team = user_profile.get('team')
-
-        for i, user_character in enumerate(user_characters):
-            if user_character['name'] == character['name']:
-                description_string = ""
-                for index, effect in enumerate(character.get('effects')):
-                    if index == len(character.get('effects')) - 1 and index != 0:
-                        description_string += " and "
-                        pass
-
-                    effect['amount'] += evolution_dictionary[character['rarity']][effect['type']]
-
-                    if effect['stat'] == "crit_chance" or effect['stat'] == "reflect_chance" or effect['stat'] == "stun_chance":
-                        description_string += f"increases the {effect['stat'].replace("_", " ")} of all eligible team members by {effect['amount']}%, "
-                    elif effect['type'] == "buff": 
-                        description_string += f"increases the {effect['stat'].upper()} of all team members by {effect['amount']}%, "
-                    elif effect['type'] == "daily":
-                        description_string += f"increases the amount received from the daily command by {effect['amount']}, "
-
-                description_string = description_string[0].upper() + description_string[1:-2] 
-                character['description'] = description_string
-                character['threshold'] += 1
-
-                database_handler.users.update_one({"_id": user_id}, {"$set": {f"characters.{i}": character}})
-                break
-        
-        for i, user_character in enumerate(user_team):
-            if user_character['name'] == character['name']:
-                database_handler.users.update_one({"_id": user_id}, {"$set": {f"team.{i}": character}})
 
     # Allows the user to evolve their character to a new threshold
     @commands.command(name="evolve",
@@ -496,7 +498,7 @@ class User_Collection(commands.Cog):
         if character is None:
             return await ctx.send("Enter a character.")
         
-        # Gets the user character passed and see if the user owns it
+        # Checks to see if the user owns the character given
         user_character = database_handler.user_character_finder(user_id=ctx.author.id, character_name=character)
 
         if user_character is None:
@@ -528,6 +530,7 @@ class User_Collection(commands.Cog):
             3: 150
         }
 
+        # Sets variables
         requirements = 0
         met_requirements = 0
 
@@ -542,7 +545,8 @@ class User_Collection(commands.Cog):
 
         # Checks each requirement for evolution in the character
         for req, value in character_threshold_requirements.items():
-            if req == "characters":                
+            if req == "characters": 
+                # Checks to see if the user meets the individual threshold requirements               
                 for item in character_threshold_requirements.get('characters'):
                     requirements += 1
                     req_character = database_handler.user_character_finder(user_id=ctx.author.id, character_name=item['name'])
@@ -556,7 +560,8 @@ class User_Collection(commands.Cog):
                         met_requirements += 1
 
                 continue
-
+            
+            # Checks to see if the user has enough money
             if req == "won":
                 requirements += 1
                 if user_balance < value:
@@ -567,6 +572,7 @@ class User_Collection(commands.Cog):
 
                 continue
             
+            # Checks to see if the user has enough of an item for evolution
             item_found = False
 
             for item_name, item_info  in user_inventory.items():
@@ -580,12 +586,16 @@ class User_Collection(commands.Cog):
             
             requirements += 1
 
+        # Sends a list of requirements that still needs to be met if
+        # not all the requirements are met
         if met_requirements != requirements:
             embed.add_field(name="",
                             value=threshold_reqs_string)
             
             return await ctx.send(embed=embed)
 
+        # Deducts the items and money from the user if the requirements
+        # are met
         for req, value in character_threshold_requirements.items():
             if req == "won":
                 user_profile['economy']['won'] -= value
@@ -598,11 +608,13 @@ class User_Collection(commands.Cog):
                 if item_name == req:  
                     item_info['amount'] -= value
 
+        # Updates the profile stats of the user
         user_profile[f'threshold_{numtowords[user_character['threshold']]}_characters'] -= 1
         user_profile[f'threshold_{numtowords[user_character['threshold'] + 1]}_characters'] += 1
 
         database_handler.users.replace_one({"_id": ctx.author.id}, user_profile)
 
+        # Evolves the character
         if user_character['class'] != "Support":
             self.evolve_fighter_character(user_id=ctx.author.id, character=user_character)
             return await ctx.send(f"{user_character['name']} has been evolved")
@@ -618,7 +630,7 @@ class User_Collection(commands.Cog):
     @all_character_collection.error
     @user_character_collection.error
     @roll.error
-    async def cooldown_error(self, ctx, error):
+    async def error_handler(self, ctx, error):
         # Sends a cooldown message if command is reused when on cooldown
         if isinstance(error, commands.CommandOnCooldown):
             user_id = ctx.author.id

@@ -1,5 +1,4 @@
 from discord.ext import commands
-import discord
 import handlers.database_handler as database_handler
 from utils.utility_functions import cooldown_calculator, create_error_embed
 from utils.buttons import ViewGuildsButton
@@ -45,9 +44,9 @@ class Owner_Commands(commands.Cog):
 
     # Searches the effects of the given character and updates them for all users
     @commands.command(name="updeffect")
-    async def update_effects_in_support_characters(self, ctx, character, effect, key, value, convertToInt = ""):
+    async def update_effects_in_support_characters(self, ctx, character, effect, key, value, convertValueToInt = ""):
         if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-            if convertToInt.lower() == "t":
+            if convertValueToInt.lower() == "true":
                 value = int(value)
 
             index = None
@@ -79,12 +78,14 @@ class Owner_Commands(commands.Cog):
             await self.bot.reload_extension(f'cogs.{extension}')
             await ctx.send(f'Reloaded {extension} cog')
 
+    # Adds an item to the user inventory
     @commands.command(name="add")
     async def add_item(self, ctx, *, item):
         if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
             database_handler.add_item(user_id= ctx.author.id, item=item)
             await ctx.send(f"{item} has been added.")
 
+    # Returns an embed with all the guilds that my bot is in
     @commands.command(name="viewguild")
     async def view_guild_info(self, ctx, id : int = None):
         if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
@@ -92,12 +93,8 @@ class Owner_Commands(commands.Cog):
             if id:
                 guilds = []
                 guilds.append(self.bot.get_guild(id))
-
-                print(guilds)
             else:
                 guilds = self.bot.guilds
-
-            # guild = await self.bot.fetch_guild(id, with_counts=True)
 
             view = ViewGuildsButton(bot=self.bot, guilds=guilds, ctx=ctx)
 
@@ -113,7 +110,7 @@ class Owner_Commands(commands.Cog):
     @reload.error
     @add_item.error
     @level_up.error
-    async def cooldown_error(self, ctx, error):
+    async def error_handler(self, ctx, error):
         # Sends a cooldown message if command is reused when on cooldown
         if isinstance(error, commands.CommandOnCooldown):
             user_id = ctx.author.id

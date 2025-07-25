@@ -18,6 +18,7 @@ class TradeView(discord.ui.View):
         return await super().on_timeout()
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        # Determines who can click what buttons
         responding_user = None
         if interaction.data.get("custom_id") == "decline_button" or interaction.data.get("custom_id") == "accept_button":
              responding_user = self.receiver_user
@@ -31,14 +32,17 @@ class TradeView(discord.ui.View):
         return True
 
     def disable_buttons(self):
+         # Disables the button
          for button in self.children:
               button.disabled = True
     
     def remove_user_from_trade_state(self):
+        # Removes both users from the trade state
         database_handler.users.update_one({"_id": self.receiver_user.id}, {"$set": {"in_trade": False}})
         database_handler.users.update_one({"_id": self.offerer_user.id}, {"$set": {"in_trade": False}})
 
     def create_embed(self, title, color):
+         # Creates an embed displaying the trade
          embed = discord.Embed(title = title, color = color)  
          embed.set_author(name="Trade Offer")
          embed.set_thumbnail(url=self.offerer_user.display_avatar)
@@ -56,10 +60,12 @@ class TradeView(discord.ui.View):
     # Controls the accept button
     @discord.ui.button(label='Accept', style=discord.ButtonStyle.green, custom_id="accept_button")
     async def accept_offer(self, interaction: discord.Interaction, button: discord.ui.Button):
+         # Disables the buttons and gets the inventory of the users
          self.disable_buttons()
          offerer_inventory = database_handler.users.find_one({"_id": self.offerer_user.id}).get('inventory')
          receiver_inventory = database_handler.users.find_one({"_id": self.receiver_user.id}).get('inventory')
 
+        # Adds the items to the receiver and takes away the items from the offerer
          for offer, offer_number in self.trade_offered.items():
             if offer != "Won":
                 offer = offer.lower().replace(" ", "_")
@@ -76,9 +82,11 @@ class TradeView(discord.ui.View):
 
                 database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"inventory.{offer}.amount", value=-offer_number)
             elif offer == "Won":
+              # Gives the won to the other user
               database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"economy.won", value=-offer_number)
               database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"economy.won", value=offer_number)                
 
+        # Adds the items to the offerer and takes away the items from the receiver
          for offer, offer_number in self.trade_received.items():
             if offer != "Won":
                 offer = offer.lower().replace(" ", "_")
@@ -95,9 +103,11 @@ class TradeView(discord.ui.View):
 
                 database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"inventory.{offer}.amount", value=-offer_number)
             elif offer == "Won":
+              # Gives the won to the other user
               database_handler.inc_value_to_users(user_id=self.offerer_user.id, key=f"economy.won", value=offer_number)
               database_handler.inc_value_to_users(user_id=self.receiver_user.id, key=f"economy.won", value=-offer_number)  
          
+         # Updates the embed and removes the users from the trade state
          embed = self.create_embed(title = f"{self.receiver_user} has accepted the trade!", color = discord.Color.dark_green())
          
          if self.ctx.guild.id == 1382922154957344838:
@@ -129,7 +139,7 @@ class TradeView(discord.ui.View):
 
          return await interaction.response.edit_message(embed = embed, view = self )
          
-
+# Checks to see if the argument is a number
 def is_int(arg):
         try:
             int(arg)
@@ -137,8 +147,8 @@ def is_int(arg):
         except ValueError:
             return False
 
-
 def handle_offer(offer, ctx, user_id):
+        # Sets variables
         offer_dictionary = {}
         user_profile = database_handler.users.find_one({"_id": user_id})
         money_offered = True

@@ -17,13 +17,14 @@ class Utilites(commands.Cog):
     @commands.command(name="boost")
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def use_boost(self, ctx, *, item : InventoryConverter):
+        # Checks to see if the user exists and gets their inventory
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
             return
    
-        
         user_profile = database_handler.users.find_one({"_id": ctx.author.id})
         inventory = user_profile.get("inventory")
        
+       # Makes sure only won and xp boosters are being used
         if item != "won_booster" and item != "xp_booster":
             return await ctx.send("Not a valid boost item.")
     
@@ -46,6 +47,7 @@ class Utilites(commands.Cog):
             elif item == "xp_booster":
                 update_quests(user_id=ctx.author.id, quest_id="use_xp_booster", amount=1)
 
+            # Creates a timer for the boost
             timer = Timer(user_id=ctx.author.id, name=item, starttime=start_time, timer_length=60 * inventory[item]["time_period"])
             timer.create_timer()
         else:
@@ -57,19 +59,23 @@ class Utilites(commands.Cog):
                       help="This command lets you use XP chips to level up your characters. Each XP chip gives 1000 XP points. The format for this command is `?chip <character name> <amount>`. If your character goes over the level cap when you use your chips, you will **not** be refunded the leftover chips so be careful.")
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def use_chip(self, ctx, *, arg : UseChipConverter):
+        # Checks to see if the user exists
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
             return
   
+        # Sets variables based on the converter
         character, amount = arg
         user_profile = database_handler.users.find_one({"_id": ctx.author.id})
         inventory = user_profile["inventory"]
 
+        # Checks to see if the user has enough chips
         if not inventory.get("xp_chip") or inventory.get("xp_chip", {}).get("amount", 0) == 0 or inventory.get("xp_chip", {}).get("amount", 0) < amount:
             return await ctx.send("You don't even have enough chips. Sad.")
 
         if amount < 1:
             return await ctx.send("Doesn't work like that.")
 
+        # Increases the level of the character if owned
         for char in user_profile["characters"]:
             if char["name"].lower() == character.lower():
                 leveling_cap = 30
@@ -83,18 +89,23 @@ class Utilites(commands.Cog):
                 char_level = database_handler.users.find_one({"_id": ctx.author.id, "characters.name": character.title()}, {'characters.$': 1}).get('characters')[0]['LVL']
 
                 return await ctx.send(f"{character} has been leveled up. They are currently level {char_level}")
+        
+        return await ctx.send(f"You don't own {character} stupid.")
+
 
     # Displays the current timers and how much time is left on them
     @commands.command(name="timers",
                       help="This command displays all the timers you have currently. Use this to check how much time left you have on your boosters or to see when your daily quests reset!")
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def display_timers(self, ctx):
+        # Checks to see if the user exists and gets the profile
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
             return
 
         user_profile= database_handler.users.find_one({"_id": ctx.author.id})
         user_timers = user_profile["timers"]
 
+        # Creates an embed displaying the timer based on their current state
         embed = discord.Embed(title="₊˚ ✧ ━━━━━━━━━⊱ Timers ⊰━━━━━━━━━━ ✧ ₊˚",
                       colour=0xb78ed2)
         
@@ -121,6 +132,7 @@ class Utilites(commands.Cog):
     @commands.command(name="invite",
                       help="This command sends a link to invite the bot to your server and for you to join the bot's official server!")
     async def invite_bot(self, ctx):
+        # Creates an embed with buttons to invite the bot to the server
         view = InviteButton()
         embed = discord.Embed(title="Invites",
                               description="Join the bot's official server if you have any questions or if you want to report a bug! Users who report bugs will be granted a reward when they are fixed!")
@@ -129,9 +141,11 @@ class Utilites(commands.Cog):
     @commands.command(name="vote",
                       help="This command lets you vote for the bot on top.gg! Voting for the bot rewards you 2000 won and one shard of a random rarity, all the way up to Legendary!")
     async def vote_for_bot(self, ctx):
+        # Checks to see if the user exists
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
-                return await ctx.send("You don't have a profile. Use ?tut to get started.")
+                return 
             
+        # Sets the variables of the profile and the voting buttons
         user_profile = database_handler.users.find_one({"_id": ctx.author.id})
             
         view = discord.ui.View()
@@ -141,24 +155,23 @@ class Utilites(commands.Cog):
         view.add_item(button)
         view.add_item(button2)
 
+        # Creates an embed telling you to vote for the server and bot
         embed = discord.Embed(title="Vote for the Lookism Bot and the server!",
                                 description="By voting for the bot and the server on Top.gg, you get 2000 won and \na random fragment of your choice. The greater your vote\nstreak, the higher the chance of you getting a legendary\nfragment whenever you vote. Voting for the server doesn't\ngive you anything but is much appreciated!")
 
         embed.set_footer(text=f"Vote Streak: {user_profile.get("vote", {}).get("vote_streak")}")
         
         await ctx.send(view=view, embed=embed)
-        
-        # Checks to see if they have a vote timer ongoingg
-        # sends an embed linking website and telling user to vote
 
     @commands.command(name="viewprefixes",
                       aliases=["viewpfxs"],
                       help="With this command, you can view all the prefixes that can be used with this bot in your server!")
     async def view_prefixes(self, ctx):
-        server_prefixes = database_handler.guild_prefixes.find_one({"_id": ctx.guild.id}).get("prefixes")
+        # Retrieves a list of the guild prefixes 
+        guild_prefixes = database_handler.guild_prefixes.find_one({"_id": ctx.guild.id}).get("prefixes")
 
         embed = discord.Embed(title="Prefixes for this Server",
-                              description=f"{server_prefixes}",
+                              description=f"{guild_prefixes}",
                               color=discord.Color.dark_purple())
         
         await ctx.send(embed=embed)
@@ -188,7 +201,7 @@ class Utilites(commands.Cog):
     @display_timers.error
     @use_chip.error
     @use_boost.error
-    async def cooldown_error(self, ctx, error):
+    async def error_handler(self, ctx, error):
         # Sends a cooldown message if command is reused when on cooldown
         if isinstance(error, commands.CommandOnCooldown):
             user_id = ctx.author.id

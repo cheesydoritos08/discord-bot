@@ -74,15 +74,12 @@ def create_new_profile(user_id):
 
     users.insert_one(new_profile)
 
-        
-
-
 # Update value of specified key
 def inc_value_to_users(user_id, key, value):
     try:
         users.update_one({'_id': user_id}, {'$inc': {key: value}})
     except Exception as e:
-        create_error_embed(error=e)
+        create_error_embed(error=e, msg="This occured when the bot tried to increase the value of an item in the database.")
 
 
 # Adds an array to specified key
@@ -90,23 +87,21 @@ def add_array_to_users(user_id, key, array):
     try:
         users.update_one({'_id': user_id}, {'$addToSet': {key: array}})
     except Exception as e:
-        create_error_embed(error=e)
+        create_error_embed(error=e, msg="This occured when an array was supposed to be added to the user")
 
 
 # Checks to see if a user has a certain character
 def user_character_finder(user_id, character_name):
     try:
-        user = users.find_one(
-            {
-                '_id': user_id,
-            }
-        )
+        user = users.find_one({'_id': user_id})
+
+        # Checks to see if the user has the character passed in the parameters
         for character in user['characters']:
             if character['name'].lower() == character_name.lower():
                 return character
         return None
     except Exception as e:
-        create_error_embed(error=e)
+        create_error_embed(error=e, msg="This occured when the bot tried to search for a character in the user")
         return None
 
 
@@ -131,16 +126,19 @@ def update_stats(character, index, user_id):
     
     leveling_cap = threshold_level_reqs[character['threshold']]
 
+    # Checks to see if the character is already over the leveling cap and stops if true
     if character["LVL"] >= leveling_cap:
         character["XP"] = 0
         users.update_one({'_id': user_id}, {'$set': {f'characters.{index}.XP': character["XP"]}}) 
         return
 
+    # Sets variables for the levels and remaining XP
     levels, remaning_xp = divmod(character["XP"], 2000)
     team = users.find_one({"_id": user_id}).get("team")
     new_character_level = character['LVL'] + levels
     character['XP'] = remaning_xp
 
+    # Makes sures the character doesn't exceed the leveling cap
     if new_character_level > leveling_cap:
         levels = leveling_cap - character["LVL"]
         new_character_level = leveling_cap
@@ -221,6 +219,7 @@ def update_stats(character, index, user_id):
             }    
     }
   
+    # Increases the stats for each level
     for x in range(levels):
         if stat_increase[character['threshold']][character["rarity"]]["type"] == "flat":
             character["HP"] += stat_increase[character['threshold']][character["rarity"]]["hp"]
@@ -234,6 +233,7 @@ def update_stats(character, index, user_id):
         
     character['LVL'] = new_character_level
  
+    # Updates the character with the new stats in both the character collection and the team
     users.update_one({"_id": user_id}, {"$set": {f"characters.{index}": character}})
     
     for i, char in enumerate(team):
@@ -245,14 +245,12 @@ def update_stats(character, index, user_id):
 def increment_character_xp(user_id, character, xp, return_xp=False):
     user = users.find_one({'_id': user_id})
 
+    # Checks to see if the user has the character and updates the XP accordingly
     for i, user_character in enumerate(user['characters']):
         if user_character['name'].lower() == character.lower():
             user_character['XP'] += xp
 
-            users.update_one(
-                {'_id': user_id, f'characters.{i}.name': user_character['name']},
-                {'$set': {f'characters.{i}.XP': user_character['XP']}},
-            )
+            users.update_one({'_id': user_id, f'characters.{i}.name': user_character['name']},{'$set': {f'characters.{i}.XP': user_character['XP']}},)
 
             if user_character['XP'] >= 2000:
                 update_stats(character=user_character, index=i, user_id=user_id)
@@ -263,6 +261,7 @@ def increment_character_xp(user_id, character, xp, return_xp=False):
     return
 
 def add_item(user_id, item : InventoryConverter):
+    # Formats the item to be added to the inventory
     item = items.find_one({"name": item})
     item_name = item["name"].lower()
     item.pop("_id")
@@ -271,6 +270,7 @@ def add_item(user_id, item : InventoryConverter):
     users.update_one({"_id": user_id}, {"$set": {f"inventory.{item_name}": item}})
 
 async def check_existing_profile(ctx, user_id, another_user=False):
+    # Checks to see if the profile exists
     if users.find_one({'_id': user_id}) is None and not another_user:
         await ctx.send('You can\'t use a command without a profile, genius. Use the `?tut` command to get started with me!')
         return False

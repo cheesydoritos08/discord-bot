@@ -242,16 +242,18 @@ class GameInstance:
                 else:
                     self.state["p1" if target_key == "p2" else "p2"]["reflects"] = True
 
-    # Checks whether either play has won
+    # Checks whether either player has won
     async def check_player_win(self, team):
         dead_characters = 0
         fighter_characters = [char for char in team if char["class"] != "Support"]
 
+        # Counts the number of dead characters
         for char in fighter_characters:
             if char["current_hp"] <= 0:
                 char["current_hp"] = 0
                 dead_characters += 1
 
+        # If all characters die on a team, winner and loser is calculated and an embed detailing fight info is sent
         if dead_characters == len(fighter_characters):
             embed = self.create_embed()
             await self.ctx.send(embed = embed)
@@ -532,7 +534,7 @@ class FighterView(discord.ui.View):
         return True
     
     async def on_timeout(self):
-        other_user = self.game.player_one if self.game.turn != self.game.player_one else self.game.player_two
+        # Removes the players from the fighting state
         if self.game.send_timeout_message:
             await self.ctx.send("You're taking too long. Try again when you're actually ready to fight.")
         database_handler.users.update_one({"_id": self.game.player_one.id}, {"$set": {"in_challenge": False}})

@@ -72,11 +72,13 @@ async def get_prefix(bot, message):
 bot = commands.Bot(command_prefix=get_prefix, activity=discord.Activity(type=discord.ActivityType.watching, name="Type ?tut to start!"), intents=intents, help_command=None)
 bot.remove_command('help')
 
+# Creates the guild prefix for the guild whenever it joins a guild
 @bot.event
 async def on_guild_join(guild):
         database_handler.guild_prefixes.insert_one({"_id": guild.id, "prefixes": ["?"]})
         guild_prefixes_dictionary[guild.id] = ["?"]    
 
+# Removes the guild from the database for guild prefixes
 @bot.event
 async def on_guild_remove(guild):
         database_handler.guild_prefixes.find_one_and_delete({"_id": guild.id})
@@ -90,7 +92,6 @@ async def on_ready():
 @bot.event
 async def on_resumed():
     resume_timers()
-
 
 
 # Resumes all current running timers
@@ -110,7 +111,7 @@ def resume_timers():
                 database_handler.users.update_one({"_id": profile["_id"]}, {"$set": {f"timers.{timer}": 0 }})
 
 
-# Loads the cogs in the cog directory on startup
+# Loads the cogs in the cog directory on startup and sets up the topgg webhook
 async def on_startup_load():
     try:
         bot.topgg_webhook = topgg.WebhookManager(bot).dbl_webhook("/dblwebhook", AUTHORIZATION_CODE)
@@ -129,9 +130,11 @@ async def on_dbl_vote(data):
         try:
             user_id = int(data["user"])
 
+            # Checks to see if the user exists
             if database_handler.users.find_one({"_id": user_id}) is None:
                 return
             
+            # Sets variables 
             user_profile = database_handler.users.find_one({"_id": user_id})
             reward = 2000
             streak = user_profile.get('vote').get('vote_streak')
@@ -151,6 +154,7 @@ async def on_dbl_vote(data):
                 database_handler.inc_value_to_users(user_id=user_id, key='vote.vote_streak', value=1)
                 streak += 1
 
+            # Determine the shard acquired based on the streak
             if streak > 40:
                 rarities = {
                     'Legendary': 15,
@@ -196,13 +200,13 @@ async def on_dbl_vote(data):
                 if randomNum <= counter:
                     shard_rarity = rarity
                         
-            # Picks a character shard based off of the rarity
-            character = random.choice(database_handler.all_characters_search(key='rarity', query=shard_rarity))
-            database_handler.inc_value_to_users(user_id=user_id, key=f'inventory.shards.{character["name"]}', value=1)
+            # Picks a shard based off of the rarity
+            shard_name = f"{shard_rarity.lower()}_shard"
+            database_handler.inc_value_to_users(user_id=user_id, key=f'inventory.{shard_name}.amount', value=1)
             database_handler.inc_value_to_users(user_id=user_id, key='economy.won', value=reward)
 
-
-            await member.send(f"You have received 2000 won and a {character['name']} shard from voting!")
+            # Sends message and resets vote time
+            await member.send(f"You have received 2000 won and a {shard_rarity} shard from voting!")
             database_handler.users.update_one({"_id": user_id}, {"$set": {"vote.last_vote_time": claim_time_timestamp}})
             
             Timer(user_id=user_id, name="bot_vote", starttime=claim_time_timestamp, timer_length=60 * 60 * 12).create_timer()
@@ -214,10 +218,10 @@ async def on_dbl_vote(data):
 async def on_dbl_test(data):
     bot.dispatch('on_dbl_vote')
 
-
 # Loads the bot
 async def main():
     async with bot:
+        # Starts the loops for the bots
         log_error_embed.start(bot)
         clear_cached_prefixes.start()
         await on_startup_load()
@@ -228,6 +232,7 @@ async def main():
 
 
         except discord.errors.HTTPException as e:
+            # Checks to see if we get rate limited and automatically retries after
             if e.status == 429:
                 retry_after = e.response.headers.get("Retry-After", 60)
                 await asyncio.sleep(retry_after)

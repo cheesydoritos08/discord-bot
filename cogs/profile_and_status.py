@@ -20,15 +20,11 @@ class Profile_and_Status(commands.Cog):
     @commands.cooldown(rate=1, per=30, type=commands.BucketType.user)
     async def profile(self, ctx, *, member: discord.Member = None):
         # Checks to make sure the target has a profile and isn't a bot
-        if member is None and not await database_handler.check_existing_profile(
-            ctx=ctx, user_id=ctx.author.id
-        ):
+        if member is None and not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
             return
         elif member is None:
             user = ctx.author
-        elif not await database_handler.check_existing_profile(
-            ctx=ctx, user_id=member.id, another_user=True
-        ):
+        elif not await database_handler.check_existing_profile(ctx=ctx, user_id=member.id, another_user=True):
             return
         elif member and not member.bot:
             user = member
@@ -88,6 +84,8 @@ class Profile_and_Status(commands.Cog):
         
         user_quests = database_handler.users.find_one({"_id": ctx.author.id}).get("quests")
 
+        # If the user currently has no quests, randomly selects three from the quest
+        # database and adds it to the user
         if user_quests == []:
             all_quests = []
             for quest in database_handler.quests.find({}):
@@ -102,6 +100,7 @@ class Profile_and_Status(commands.Cog):
         
         user_quests = database_handler.users.find_one({"_id": ctx.author.id}).get("quests")
 
+        # Creates an embed displaying user quests
         embed = discord.Embed(title="┈ • ୨ Daily Quests ୧ • ┈",
                       colour=0xece48e)
 
@@ -119,7 +118,7 @@ class Profile_and_Status(commands.Cog):
                       aliases=["lb"],
                       help="This command displays the global leaderboard for the ELO ranking of all players. Win fights against high ELO players to increase your ELO and get on the leaderboard!")
     async def view_leaderboard(self, ctx, type = None):
-
+        # Gets the top ten players based on ELO
         top_ten_users = database_handler.users.aggregate([
             {"$sort": {"elo": -1}},
             {"$limit": 10}
@@ -127,7 +126,8 @@ class Profile_and_Status(commands.Cog):
         ])
 
         leaderboard_string = ""
-
+        # Adds a medal next to the name if the user is in the top 3 and numbers the rest
+        # normally
         for i, user in enumerate(top_ten_users):
                 if i == 0:
                     leaderboard_string += f"🥇 {await self.bot.fetch_user(user["_id"])} ---> {user["elo"]["score"]} ELO\n"
@@ -139,7 +139,7 @@ class Profile_and_Status(commands.Cog):
                     leaderboard_string += f"{i+1}. {await self.bot.fetch_user(user["_id"])} ---> {user["elo"]["score"]} ELO\n"
 
         
-
+        # Creates an embed to display the leaderboard
         embed = discord.Embed(title="₊˚ ✧ ━━⊱ Leaderboard ⊰━━ ✧ ₊˚",
                             colour=0xb78ed2)
 
@@ -153,7 +153,7 @@ class Profile_and_Status(commands.Cog):
     @view_leaderboard.error
     @generate_quests.error
     @profile.error
-    async def cooldown_error(self, ctx, error):
+    async def error_handler(self, ctx, error):
         # Sends a cooldown message if command is reused when on cooldown
         if isinstance(error, commands.CommandOnCooldown):
             user_id = ctx.author.id

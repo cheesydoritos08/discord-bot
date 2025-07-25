@@ -28,7 +28,6 @@ class Economy(commands.Cog):
         # Stores the user and user profile into a variable
         user = ctx.message.author
 
-
         # Checks to see if the user has a profile or not
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=user.id):
             return
@@ -64,6 +63,7 @@ class Economy(commands.Cog):
         
         user_profile = database_handler.users.find_one({'_id': user.id})
 
+        # Checks whether they user has already claimed their daily reward or not
         if user_profile.get('timers').get('daily_claim', 0) != 0:
             return await ctx.send("You already claimed your daily reward, stupid.")
 
@@ -145,7 +145,7 @@ class Economy(commands.Cog):
             # Stores the rarity and whether a shard was obtained in two variables
             rarity, shard_obtained = choose_rarity()
 
-            # Picks a shard based off of the rarity
+            # Adds the shard into the inventory
             shard = rarity.lower() + "_shard"
             user_id = ctx.author.id
 
@@ -274,64 +274,55 @@ class Economy(commands.Cog):
     # Allows a player to guess what side the coin will land on
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
     @commands.command(aliases=['cf'],
-                      help="This command lets you make a bet and flip a coin. If you guess the correct side, your bet will be doubled and given back to you. If you guess the wrong side, your bet will be deducted from your balance.")
-    async def coinflip(self, ctx):
+                      help="This command lets you make a bet and flip a coin. If you guess the correct side, your bet will be doubled and given back to you. If you guess the wrong side, your bet will be deducted from your balance. The syntax for this command is: ?coinflip <bet amount>")
+    async def coinflip(self, ctx, bet):
         # Checks to see if the user has a profile or not
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
             return
+        
+        # Checks to see if the bet is actually a number greater than 0
+        try:
+            bet = int(bet)
+            if bet <= 0:
+                return await ctx.send("Doesn't work like that.")
+            elif bet > database_handler.users.find_one({'_id': ctx.author.id}).get('economy').get('won'):
+                return await ctx.send('How about you try getting enough money first before you gamble.')
+        except ValueError:
+            return await ctx.send("Not a number. Try again.")
 
+        # Defines the choices that the bot can choose
         result = random.choice(['heads', 'tails'])
-        await ctx.send('Enter a bet amount.')
+        await ctx.send("`Heads` or `tails`")
 
         def check(msg):
             return msg.author == ctx.author and msg.channel == ctx.channel
 
         try:
-            msg = await self.bot.wait_for('message', timeout=5, check=check)
 
-            try:
-                bet = int(msg.content)
-                if bet > database_handler.users.find_one({'_id': ctx.author.id}).get('economy').get(
-                    'won'
-                ):
-                    return await ctx.send('How about you try getting enough money first before you gamble.')
-            except ValueError:
-                await ctx.send('Not a number, genius.')
+            side_chosen_msg = await self.bot.wait_for('message', timeout=5, check=check)
 
-            if bet < 1:
-                return await ctx.send("Doesn't work like that.")
-            
-            await ctx.send('`Heads` or `tails`?')
-
-            msg = await self.bot.wait_for('message', timeout=7, check=check)
-            if msg.content.lower() == result:
-                await ctx.send(
-                    f'It was {result}. You got lucky. Here\'s your bet back, doubled.'
-                )
+            # Checks to see whether the message sent is equal to the results from the bot and
+            # awards/deducts money according
+            if side_chosen_msg.content.lower() == result:
+                await ctx.send(f'It was {result}. You got lucky. Here\'s your bet back, doubled.')
+                
                 if bet >= 1000:
                     update_quests(user_id=ctx.author.id, quest_id="win_bet_coinflip", amount=1)
                     
-                
-                database_handler.inc_value_to_users(
-                    user_id=msg.author.id, key='economy.won', value=(bet * check_boosts(user_id=ctx.author.id, type="won_booster"))
-                )
+                database_handler.inc_value_to_users(user_id=side_chosen_msg.author.id, key='economy.won', value=(bet))
 
-                update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_won", amount=(bet * check_boosts(user_id=ctx.author.id, type="won_booster")))
+                update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_won", amount=(bet))
 
-            elif msg.content.lower() == 'heads' or msg.content.lower() == 'tails':
-                await ctx.send(
-                    f'It was {result}. Unlucky. Thanks for the money though.'
-                )
-                database_handler.inc_value_to_users(
-                    user_id=msg.author.id, key='economy.won', value=-bet
-                )
+            elif side_chosen_msg.content.lower() == 'heads' or side_chosen_msg.content.lower() == 'tails':
+                await ctx.send(f'It was {result}. Unlucky. Thanks for the money though.')
+                database_handler.inc_value_to_users(user_id=side_chosen_msg.author.id, key='economy.won', value=-bet)
             else:
                 await ctx.send("Wrong word.")
 
         except asyncio.TimeoutError:
             await ctx.send('I don\'t have all day and you\'re wasting my time. Talk me when you\'re serious.')
         except Exception as e:
-            create_error_embed(error=e, ctx=ctx)
+            create_error_embed(error=e, ctx=ctx, msg="This occured from the coinflip command.")
         
     # Displays the shop to the user
     @commands.cooldown(rate=1, per=60, type=commands.BucketType.user)
@@ -340,11 +331,13 @@ class Economy(commands.Cog):
     async def display_shop(self, ctx):
         all_items = database_handler.items.find({})
         buyable_items = []
+        # Creates a list of all the buyable items
         for item in all_items:
             if item.get("buy_price") is not None:
                 buyable_items.append(item)
 
-        shop_buttons = ShopButtons(items = buyable_items, ctx = ctx)
+        # Creates the embed and buttons for the shop
+        shop_buttons = ShopButtons(items = buyable_items, ctx = ctx).create_embed()
         await ctx.send(embed=shop_buttons.create_embed(), view=shop_buttons)
 
     # Allows a user to buy an item from the shop
@@ -352,6 +345,7 @@ class Economy(commands.Cog):
     @commands.command(name="buy",
                       help = "This command lets you buy any item in the shop. The format for this command is `?buy <item name> <amount>`")
     async def buy_item(self, ctx, *, arg : BuySellConverter):
+        # Stores the converted argument into two variables
         try:
             item_being_bought, amount = arg
         except Exception as e:
@@ -363,15 +357,19 @@ class Economy(commands.Cog):
             return await ctx.send("Doesn't work like that.")
 
         for item in buyable_items:
+            # Checks to see if the item that's being bought is a buyable item 
             if  item_being_bought == item["name"]:
+                # Sets variables
                 user_profile = database_handler.users.find_one({"_id": ctx.author.id})
                 user_won = user_profile.get("economy").get("won")
                 user_inventory = user_profile.get("inventory")
                 price = item["buy_price"] * amount
 
+                # Checks to see if the user has enough money
                 if user_won < price:
                     return await ctx.send("Don't try to buy something if you're broke.")
                 
+                # Checks to see if the user already has the item in their inventory
                 for user_item in user_inventory:
                     if user_item == item["name"]:
                         database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount)
@@ -379,12 +377,14 @@ class Economy(commands.Cog):
                         update_quests(user_id=ctx.author.id, quest_id="buy_five_items", amount=amount)
                         return await ctx.send(f"You bought {amount} {item['emoji']} {item["name"].replace("_", " ").title().replace("Xp", "XP")}(s).")
 
+                # Adds the item to the user's inventory if they don't already have it
                 database_handler.add_item(user_id=ctx.author.id, item=item_being_bought)
                 database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount)
                 database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=-price)
                 update_quests(user_id=ctx.author.id, quest_id="buy_five_items", amount=amount)
                 return await ctx.send(f"You bought {amount} {item['emoji']} {item['name'].replace("_", " ").title().replace("Xp", "XP")}(s).")
-            
+
+        # Runs if the item isn't found in the buyable item database   
         return await ctx.send("You really think this is an item?")
 
     # Allows users to sell an item    
@@ -392,6 +392,7 @@ class Economy(commands.Cog):
     @commands.command(name="sell",
                       help = "This command lets you sell any item to the shop, if sellable. The format for this command is `?sell <item name> <amount>`")
     async def sell_item(self, ctx, *, arg : BuySellConverter):
+        # Sets the variables based on the converted argument
         try:
             item_being_sold, amount = arg
         except Exception as e:
@@ -403,31 +404,35 @@ class Economy(commands.Cog):
             return await ctx.send("Doesn't work like that.")
 
         for item in sellable_items:
+            # Checks to see if the item being sold is an actual sellable item
             if  item_being_sold == item["name"]:
+                # Sets the variable name
                 user_profile = database_handler.users.find_one({"_id": ctx.author.id})
                 user_inventory = user_profile.get("inventory")
                 sell_amount = item["sell_price"] * amount
 
+                # Checks to see if the item is in the user's inventory
                 if user_inventory.get(item["name"]) is None:
-                    return await ctx.send("You don't even own this item...")
+                    return await ctx.send("You don't even have enough...")
                 elif user_inventory.get(item["name"]).get("amount") < amount:
-                    return await ctx.send("You don't even own this item...")
+                    return await ctx.send("You don't even have enough...")
                 
-                for user_item in user_inventory:
-                    if user_item == item["name"]:
-                        database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=-amount)
-                        database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=sell_amount)
-                        update_quests(user_id=ctx.author.id, quest_id="sell_five_items", amount=amount)
-                        update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_won", amount=sell_amount)
-                        return await ctx.send(f"You sold {amount} {item["emoji"]} {item["name"].replace("_", " ").title().replace("Xp", "XP")}(s).")
+                # Removes the number of items from the inventory and handles any potential quests
+                database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=-amount)
+                database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=sell_amount)
+                update_quests(user_id=ctx.author.id, quest_id="sell_five_items", amount=amount)
+                update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_won", amount=sell_amount)
+                return await ctx.send(f"You sold {amount} {item["emoji"]} {item["name"].replace("_", " ").title().replace("Xp", "XP")}(s).")
         
         return await ctx.send("What gave you the bright idea to try and pass this off as a valid item?")
                     
     # Allows users to trade with one another
     @commands.command(help = "This command lets you trade items and money with another player. The format for this command is `?trade <user> [your offer] [their offer]`. The offer should be formatted like this: [<money amount>, <item name^amount>]' So if you wanted to trade 2 epic shards and a raid token for 1000 won and a standard ticket, the command would look like this: ?trade <user> [epic shard^2, raid token^1] [1000, standard ticket^1]")
     async def trade(self, ctx, *, arg: TradeArgumentConverter):
+        # Sets the variables based off of the converted argument
         target_user, offers, receives = arg
 
+        # Makes sure the target is valid and neither users are in a trade already
         if target_user is None:
             return await ctx.send("Not a valid user.")
 
@@ -437,10 +442,11 @@ class Economy(commands.Cog):
         if database_handler.users.find_one({"_id": target_user.id}).get("in_trade") or database_handler.users.find_one({"_id": ctx.author.id}).get("in_trade"):
             return await ctx.send("One of you is already in a trade. Pay attention.")
 
+        # Turns the arguments into lists containing the item and amount being trade
         trade_offered = offers[1:-1].split(", ")
         trade_received= receives[1:-1].split(", ")
 
-
+        # Gets rid of any whitespace in the list
         for i, offer in enumerate(trade_offered):
             if trade_offered[i] == "":
                 trade_offered.pop(i)
@@ -449,6 +455,7 @@ class Economy(commands.Cog):
             if trade_received[i] == "":
                 trade_received.pop(i)
 
+        # Returns a dictionary containing the offers of each side and any errors passed through
         trade_offered_dictionary, error_offer = trade_handler.handle_offer(trade_offered, ctx, ctx.author.id)
         trade_received_dictionary,  error_received = trade_handler.handle_offer(trade_received, ctx, target_user.id)
 
@@ -457,6 +464,7 @@ class Economy(commands.Cog):
         elif trade_received_dictionary == "Error occurred":
             return await ctx.send(error_received)
         
+        # Creates an embed display the trade
         embed = discord.Embed(title=f"{ctx.author} has sent {target_user} a trade!", color= discord.Color.dark_purple())  
         embed.set_author(name="Trade Offer")
         embed.set_thumbnail(url=ctx.author.display_avatar)
@@ -469,9 +477,11 @@ class Economy(commands.Cog):
         
         embed.set_footer(text="Be wary of unfair trades and scams!")
 
+        # Sets the users to be in a trade
         database_handler.users.update_one({"_id": target_user.id}, {"$set": {"in_trade": True}})
         database_handler.users.update_one({"_id": ctx.author.id}, {"$set": {"in_trade": True}})
 
+        # Sends the embed and the buttons for the trade
         return await ctx.send(embed=embed, view=trade_handler.TradeView(offerer_user=ctx.author, ctx = ctx, receiver_user=target_user, trade_offered=trade_offered_dictionary, trade_received=trade_received_dictionary))
 
     @trade.error
@@ -482,7 +492,7 @@ class Economy(commands.Cog):
     @display_shop.error
     @daily.error
     @balance.error
-    async def cooldown_error(self, ctx, error):
+    async def error_handler(self, ctx, error):
         # Sends a cooldown message if command is reused when on cooldown
         if isinstance(error, commands.CommandOnCooldown):
             user_id = ctx.author.id
