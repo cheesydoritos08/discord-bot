@@ -135,7 +135,6 @@ async def log_error_embed(bot):
 
 
 def create_error_embed(error, ctx=None, msg="None given."):
-    # Template for error message
     error_message = {
         "initial_embed": {
             "title": "An error occured",

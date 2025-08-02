@@ -3,6 +3,8 @@ import asyncio
 from utils.utility_functions import create_error_embed, cooldown_calculator
 from discord.ext import commands
 import random
+import os
+import sys
 
 class Fun(commands.Cog):
     def __init__(self, bot):
@@ -99,7 +101,11 @@ class Fun(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            await create_error_embed(ctx=ctx, error=error)
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+            file_name = os.path.split(exc_traceback.tb_frame.f_code.co_filename)[1]
+
+            await create_error_embed(ctx=ctx, error=error, msg=f"This occured on line {line_num} in {file_name}")
 
 async def setup(bot):
     await bot.add_cog(Fun(bot))

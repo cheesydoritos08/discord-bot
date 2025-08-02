@@ -519,7 +519,7 @@ class GameInstance:
 class FighterView(discord.ui.View):
     def __init__(self, ctx, game):
         super().__init__()
-        self.timeout = 20.0
+        self.timeout = 120.0
         self.ctx = ctx
         self.game = game
 

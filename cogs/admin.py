@@ -3,6 +3,8 @@ import handlers.database_handler as database_handler
 from utils.utility_functions import cooldown_calculator, create_error_embed
 from utils.buttons import ViewGuildsButton
 import asyncio
+import os
+import sys
 
 class Owner_Commands(commands.Cog):
     def __init__(self, bot):
@@ -16,6 +18,28 @@ class Owner_Commands(commands.Cog):
             character_xp_level = database_handler.increment_character_xp(user_id=ctx.author.id, xp=xp, character=character_name, return_xp=True)
                 
             await ctx.send(f"{character_name.title()} currently has {character_xp_level}/2000.")
+
+    # Test command to add character to my team
+    @commands.command(name = "addchar")
+    async def add_character(self, ctx, *, character_name):
+        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            user_id = ctx.author.id
+
+            user_character = database_handler.user_character_finder(user_id=user_id, character_name=character_name.strip().title())
+            
+            if user_character is not None:
+                return await ctx.send(f"You already own {character_name.title()}")
+
+            character = database_handler.all_characters.find_one({"name": character_name.title()})
+
+            database_handler.add_array_to_users(
+                user_id=user_id, key='characters', array=character
+            )
+            
+            await ctx.send(f"{character_name.title()} has been added.")
+
+
+
 
     # Loads the specified extension
     @commands.command()
@@ -129,7 +153,11 @@ class Owner_Commands(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            await create_error_embed(ctx=ctx, error=error)
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+            file_name = os.path.split(exc_traceback.tb_frame.f_code.co_filename)[1]
+
+            await create_error_embed(ctx=ctx, error=error, msg=f"This occured on line {line_num} in {file_name}")
 
 
 async def setup(bot):

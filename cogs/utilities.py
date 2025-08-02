@@ -2,6 +2,8 @@ import time
 import asyncio
 import handlers.database_handler as database_handler
 import discord
+import os
+import sys
 from discord.ext import commands
 from utils.converters import InventoryConverter, UseChipConverter
 from utils.buttons import InviteButton
@@ -221,7 +223,11 @@ class Utilites(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            create_error_embed(ctx=ctx, error=error)
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+            file_name = os.path.split(exc_traceback.tb_frame.f_code.co_filename)[1]
+
+            await create_error_embed(ctx=ctx, error=error, msg=f"This occured on line {line_num} in {file_name}")
             
 
 async def setup(bot):

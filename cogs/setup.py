@@ -1,6 +1,8 @@
 from discord.ext import commands
 from utils.utility_functions import create_error_embed, cooldown_calculator
 import asyncio
+import os
+import sys
 from handlers import database_handler
 
 class Setup(commands.Cog):
@@ -142,7 +144,11 @@ class Setup(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            create_error_embed(ctx=ctx, error=error)
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+            file_name = os.path.split(exc_traceback.tb_frame.f_code.co_filename)[1]
+
+            await create_error_embed(ctx=ctx, error=error, msg=f"This occured on line {line_num} in {file_name}")
             
 
 async def setup(bot):

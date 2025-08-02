@@ -1,6 +1,8 @@
 import discord
 import random
 import asyncio
+import sys
+import os
 import handlers.database_handler as database_handler
 from utils.buttons import ShopButtons
 from utils.converters import BuySellConverter, TradeArgumentConverter
@@ -329,16 +331,19 @@ class Economy(commands.Cog):
     @commands.command(name="shop",
                       help="This command displays all the items you can currently buy or sell in the shop!")
     async def display_shop(self, ctx):
-        all_items = database_handler.items.find({})
-        buyable_items = []
-        # Creates a list of all the buyable items
-        for item in all_items:
-            if item.get("buy_price") is not None:
-                buyable_items.append(item)
+        try:
+            all_items = database_handler.items.find({})
+            buyable_items = []
+            # Creates a list of all the buyable items
+            for item in all_items:
+                if item.get("buy_price") is not None:
+                    buyable_items.append(item)
 
-        # Creates the embed and buttons for the shop
-        shop_buttons = ShopButtons(items = buyable_items, ctx = ctx).create_embed()
-        await ctx.send(embed=shop_buttons.create_embed(), view=shop_buttons)
+            # Creates the embed and buttons for the shop
+            shop_buttons = ShopButtons(items = buyable_items, ctx = ctx)
+            await ctx.send(embed=shop_buttons.create_embed(), view=shop_buttons)
+        except Exception as e:
+            create_error_embed(error=e, ctx=ctx)
 
     # Allows a user to buy an item from the shop
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)   
@@ -511,7 +516,11 @@ class Economy(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            await create_error_embed(ctx=ctx, error=error)
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+            file_name = os.path.split(exc_traceback.tb_frame.f_code.co_filename)[1]
+
+            await create_error_embed(ctx=ctx, error=error, msg=f"This occured on line {line_num} in {file_name}")
 
 async def setup(bot):
     await bot.add_cog(Economy(bot))

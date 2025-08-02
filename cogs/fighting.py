@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 import asyncio
+import os
+import sys
 from utils.utility_functions import cooldown_calculator, create_error_embed
 import handlers.database_handler as database_handler
 import handlers.fight_handler as fight_handler
@@ -42,8 +44,8 @@ class Fighting(commands.Cog):
         if not player_one_team or not player_two_team:
             return await ctx.send("One of you doesn't have a team set up.")
 
-        database_handler.users.update_one({'_id': ctx.author.id}, {'$set': {'in_challenge': True}})
-        database_handler.users.update_one({'_id': other_player.id}, {'$set': {'in_challenge': True}})
+        #database_handler.users.update_one({'_id': ctx.author.id}, {'$set': {'in_challenge': True}})
+        #database_handler.users.update_one({'_id': other_player.id}, {'$set': {'in_challenge': True}})
 
         await ctx.send(f'{other_player.mention}, type `accept` or `decline` to respond to the challenge.')
 
@@ -122,7 +124,7 @@ class Fighting(commands.Cog):
             raid = raid_handler.RaidInstance(level=level, team = user_team, ctx = ctx, bot = self.bot)
             embed = raid.create_embed()
             view = raid.create_character_buttons(team=user_team)
-           # database_handler.users.update_one({'_id': ctx.author.id}, {'$set': {'in_raid': True}})
+            database_handler.users.update_one({'_id': ctx.author.id}, {'$set': {'in_raid': True}})
             await ctx.send(embed=embed, view = view)
         else:
             return await ctx.send("You need a team to run this command.")
@@ -293,7 +295,11 @@ class Fighting(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            await create_error_embed(ctx=ctx, error=error)
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+            file_name = os.path.split(exc_traceback.tb_frame.f_code.co_filename)[1]
+
+            await create_error_embed(ctx=ctx, error=error, msg=f"This occured on line {line_num} in {file_name}")
         
 async def setup(bot):
     await bot.add_cog(Fighting(bot))

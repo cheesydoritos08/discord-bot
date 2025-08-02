@@ -2,6 +2,8 @@ import discord
 import asyncio
 import random
 import time
+import os
+import sys
 import handlers.database_handler as database_handler
 from utils.utility_functions import cooldown_calculator, create_error_embed
 from utils.timer import Timer
@@ -172,7 +174,11 @@ class Profile_and_Status(commands.Cog):
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            await create_error_embed(ctx=ctx, error=error)
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+            file_name = os.path.split(exc_traceback.tb_frame.f_code.co_filename)[1]
+
+            await create_error_embed(ctx=ctx, error=error, msg=f"This occured on line {line_num} in {file_name}")
         
 async def setup(bot):
     await bot.add_cog(Profile_and_Status(bot))

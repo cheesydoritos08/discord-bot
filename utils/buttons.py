@@ -1,6 +1,7 @@
 import discord
 import math
 import random
+import sys
 import asyncio
 from utils.utility_functions import create_error_embed
 import handlers.database_handler as database_handler
@@ -23,67 +24,78 @@ class InventoryButtons(discord.ui.View):
         return True
 
     async def create_embed(self, item = None):
-        items_display_string = ""
-       
-       # If no item is specifically searched for, displays all the items in self.item
-        if item is None:
-            embed = discord.Embed(title=f"{self.ctx.author}'s Inventory",
-                      description="∘₊✧─── ──── ──── ───✧₊∘",
-                      colour=0xcb7667)
-
-            for item in list(self.items.keys())[int(self.index *  self.num_on_items_per_page) : int(((self.index *  self.num_on_items_per_page) +  self.num_on_items_per_page))]:
-                # Adds a position to the items if they are supposed to be displayed
-                # in a fighting command
+        try:
+            items_display_string = ""
+        
+        # If no item is specifically searched for, displays all the items in self.item
+            if item is None:
+                embed = discord.Embed(title=f"{self.ctx.author}'s Inventory",
+                        description="∘₊✧─── ──── ──── ───✧₊∘",
+                        colour=0xcb7667)
+                
                 position = 1
-                if self.items.get(item, {}).get("amount") > 0:
-                    item_name = item.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")
+                for item in list(self.items.keys())[int(self.index *  self.num_on_items_per_page) : int(((self.index + 1) * self.num_on_items_per_page))]:
+                    # Adds a position to the items if they are supposed to be displayed
+                    # in a fighting command
+                    if self.items.get(item, {}).get("amount") > 0:
+                        item_name = item.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")
 
-                    if self.display_for_item_command:
-                        item_name = f"{position}. {item_name}"
-                        position += 1
-                    
-                    # Adds the item and the emoji to the display string
-                    items_display_string += f"**{self.items[item]['emoji']} {item_name}**: {self.items[item]['amount']}\n"
+                        if self.display_for_item_command:
+                            item_name = f"{position}. {item_name}"
+                            position += 1
+                        
+                        # Adds the item and the emoji to the display string
+                        items_display_string += f"**{self.items[item]['emoji']} {item_name}**: {self.items[item]['amount']}\n"
 
-            if items_display_string == "":
-                if not self.display_for_item_command:
-                    # Tells the user that there's nothing in the inventory if the items
-                    # aren't being displayed for a fighting command
-                    await self.ctx.send("You have nothing in your inventory.")
-                return False
+                if items_display_string == "":
+                    if not self.display_for_item_command:
+                        # Tells the user that there's nothing in the inventory if the items
+                        # aren't being displayed for a fighting command
+                        await self.ctx.send("You have nothing in your inventory.")
+                    return False
+                
+                embed.add_field(name="",
+                    value=items_display_string,
+                    inline=False)
 
-            embed.add_field(name="",
-                value=items_display_string,
-                inline=False)
+                embed.set_thumbnail(url=self.ctx.author.display_avatar)
 
-            embed.set_thumbnail(url=self.ctx.author.display_avatar)
+                embed.set_footer(text="∘₊✧──── ───── ───── ────✧₊∘")
+                
+                # Adds insturctions if the embed is being called during a fight
+                if self.display_for_item_command:
+                    embed.set_footer(text="∘₊✧ Type the number corresponding to the item you wanted to use. ✧₊∘")
 
-            embed.set_footer(text="∘₊✧──── ───── ───── ────✧₊∘")
 
 
-        else:
-            # Creates an embed showing just the item sent to the embed
-            embed = discord.Embed(title=f"{self.ctx.author}'s Inventory",
-                      description="∘₊✧─── ──── ──── ───✧₊∘",
-                      colour=0xcb7667)
-            
-            if self.items.get(item) is None:
-                return await self.ctx.send("Search for a valid item.")
-            elif self.items[item]["amount"]:
-                item_name = item.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")
-                items_display_string += f"**{item_name}**: {self.items[item]['amount']}\n"
             else:
-                return await self.ctx.send("You do not have this item.")
+                # Creates an embed showing just the item sent to the embed
+                embed = discord.Embed(title=f"{self.ctx.author}'s Inventory",
+                        description="∘₊✧─── ──── ──── ───✧₊∘",
+                        colour=0xcb7667)
+                
+                if self.items.get(item) is None:
+                    return await self.ctx.send("Search for a valid item.")
+                elif self.items[item]["amount"]:
+                    item_name = item.replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")
+                    items_display_string += f"**{item_name}**: {self.items[item]['amount']}\n"
+                else:
+                    return await self.ctx.send("You do not have this item.")
 
-            embed.add_field(name="",
-                value=items_display_string,
-                inline=False)
+                embed.add_field(name="",
+                    value=items_display_string,
+                    inline=False)
 
-            embed.set_thumbnail(url=self.ctx.author.display_avatar)
+                embed.set_thumbnail(url=self.ctx.author.display_avatar)
 
-            embed.set_footer(text="∘₊✧──── ───── ───── ────✧₊∘")
-            
-        return embed
+                embed.set_footer(text="∘₊✧──── ───── ───── ────✧₊∘")
+                
+            return embed
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when creating the embed for the inventory buttons on line {line_num}")
 
     @discord.ui.button(label="Back", style=discord.ButtonStyle.red)
     async def back_button(self, interaction, button):
@@ -111,27 +123,48 @@ class ShopButtons(discord.ui.View):
         return True
 
     def create_embed(self):
-        # Creates an embed displaying the items in the shop
-        embed = discord.Embed(title="•─•°• Shop •°•─•")
+        try:
+            # Creates an embed displaying the items in the shop
+            embed = discord.Embed(title="•─•°• Shop •°•─•")
 
-        for item in self.items[int(self.index * self.num_of_items_per_page):int(((self.index * self.num_of_items_per_page) + self.num_of_items_per_page))]:
-            embed.add_field(name=f"°˖✧ {item["emoji"]} {item["name"].replace("_", " ").title().replace("Xp", "XP")} ✧˖°",
-                value=f"`Buy Price:` ₩{item["buy_price"]}\n`Sell Price:` ₩{item["sell_price"]}",
-                inline=True)
+            for item in self.items[int(self.index * self.num_of_items_per_page):int(((self.index * self.num_of_items_per_page) + self.num_of_items_per_page))]:
+                embed.add_field(name=f"°˖✧ {item["emoji"]} {item["name"].replace("_", " ").title().replace("Xp", "XP")} ✧˖°",
+                    value=f"`Buy Price:` ₩{item["buy_price"]}\n`Sell Price:` ₩{item.get('sell_price', "Not sellable")}",
+                    inline=True)
 
-        embed.set_footer(text="•─•°• To buy or sell an item, type ?buy/sell <item name> <amount> •°•─•")
+            embed.set_footer(text="•─•°• To buy or sell an item, type ?buy/sell <item name> <amount> •°•─•")
 
-        return embed
+            return embed
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when creating the embed for the shop on line {line_num}")
 
     @discord.ui.button(label="Back", style=discord.ButtonStyle.red)
     async def back_button(self, interaction, button):
-        self.index = (self.index - 1) % (math.ceil(len(self.items) / self.num_of_items_per_page))
-        await interaction.response.edit_message(embed=self.create_embed(), view=self)
+        try:
+            self.index = (self.index - 1) % (math.ceil(len(self.items) / self.num_of_items_per_page))
+            await interaction.response.edit_message(embed=self.create_embed(), view=self)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when pressing the back button for the shop buttons on line {line_num}")
+
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.red)
     async def next_button(self, interaction, button):
-        self.index = (self.index + 1) % (math.ceil(len(self.items) / self.num_of_items_per_page))
-        await interaction.response.edit_message(embed=self.create_embed(), view=self)
+        try:
+            self.index = (self.index + 1) % (math.ceil(len(self.items) / self.num_of_items_per_page))
+            await interaction.response.edit_message(embed=self.create_embed(), view=self)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when pressing the next button for the shop buttons on line {line_num}")
+
+
 
  # Buttons for the my characters command
 
@@ -163,43 +196,53 @@ class CharacterButton(discord.ui.View):
 
         # Creates the embed for the pages
         def create_embed(self, character):
-            # Sets the colors for the page
-            bar_color, rarity_icon = self.set_rarity_indicators(character)
-            if character['class'] == 'Support':
-                desc = f'> **Rarity:** {character["rarity"]}\n> **Class:** {character["class"]}\n> **Threshold:** {character["threshold"]}\n> **Effect:** {character["description"]}'
-            else:
-                special_effect = ""
-                special_effect_description = ""
-                if character.get('stun_chance'):
-                    special_effect = "Stuns"
-                    special_effect_description = f"Gives the character a {character['stun_chance']}% chance to stun the opposing team for {character['stun_duration']} turns"
-                elif character.get('crit_chance'):
-                    special_effect = "Critical Hits"
-                    special_effect_description = f"Gives the character a {character['crit_chance']}% chance to do {character['crit_damage']} times their normal damage"
-                elif character.get('reflect_chance'):
-                    special_effect = "Reflection"
-                    special_effect_description = f"Gives the character a {character['reflect_chance']}% to reflect {character['reflect_percent']}% chance of the damage dealt to them back to their attacker"
+            try:
+                # Sets the colors for the page
+                bar_color, rarity_icon = self.set_rarity_indicators(character)
+                if character['class'] == 'Support':
+                    desc = f'> **Rarity:** {character["rarity"]}\n> **Class:** {character["class"]}\n> **Threshold:** {character["threshold"]}\n> **Effect:** {character["description"]}'
+                else:
+                    special_effect = ""
+                    special_effect_description = ""
+                    if character.get('stun_chance'):
+                        special_effect = "Stuns"
+                        special_effect_description = f"Gives the character a {character['stun_chance']}% chance to stun the opposing team for {character['stun_duration']} turns"
+                    elif character.get('crit_chance'):
+                        special_effect = "Critical Hits"
+                        special_effect_description = f"Gives the character a {character['crit_chance']}% chance to do {character['crit_damage']} times their normal damage"
+                    elif character.get('reflect_chance'):
+                        special_effect = "Reflection"
+                        special_effect_description = f"Gives the character a {character['reflect_chance']}% to reflect {character['reflect_percent']}% chance of the damage dealt to them back to their attacker"
 
 
-                desc = f'> **Rarity:** {character["rarity"]}\n> **Class:** {character["class"]}\n> **ATK:** {character["ATK"]}\n> **HP:** {character["HP"]}\n> **SPD:** {character["SPD"]}\n> **LVL:** {character["LVL"]}\n> **Threshold:** {character["threshold"]}\n> **Special Effect**: {special_effect}\n> **Special Effect Description**: {special_effect_description}\n> **XP:** {character["XP"]}/2000'
+                    desc = f'> **Rarity:** {character["rarity"]}\n> **Class:** {character["class"]}\n> **ATK:** {character["ATK"]}\n> **HP:** {character["HP"]}\n> **SPD:** {character["SPD"]}\n> **LVL:** {character["LVL"]}\n> **Threshold:** {character["threshold"]}\n> **Special Effect**: {special_effect}\n> **Special Effect Description**: {special_effect_description}\n> **XP:** {character["XP"]}/2000'
 
-            embed = discord.Embed(title=character['name'], description=desc, color=bar_color)
-            embed.set_image(url=character['image_url'])
-            embed.set_footer(text=f'Page {self.index + 1}/{len(self.characters)}')
-            if rarity_icon:
-                embed.set_thumbnail(url=rarity_icon)
-            return embed
+                embed = discord.Embed(title=character['name'], description=desc, color=bar_color)
+                embed.set_image(url=character['image_url'])
+                embed.set_footer(text=f'Page {self.index + 1}/{len(self.characters)}')
+                if rarity_icon:
+                    embed.set_thumbnail(url=rarity_icon)
+                return embed
+            except Exception as e:
+                exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+                line_num = exc_traceback.tb_lineno
+
+                create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when creating the embed for the character buttons on line {line_num}")
 
         # Controls the back button
         @discord.ui.button(label='Back', style=discord.ButtonStyle.red)
-        async def previous_message(
-            self, interaction: discord.Interaction, button: discord.ui.Button
-        ):
-            # Cycles through the list of chracters and sets the new embed to the corresponding page
-            self.index = (self.index - 1) % len(self.characters)
-            embed = self.create_embed(self.characters[self.index])
-            await interaction.response.edit_message(embed=embed, view=self)
-        
+        async def previous_message(self, interaction: discord.Interaction, button: discord.ui.Button):
+            try:
+                # Cycles through the list of chracters and sets the new embed to the corresponding page
+                self.index = (self.index - 1) % len(self.characters)
+                embed = self.create_embed(self.characters[self.index])
+                await interaction.response.edit_message(embed=embed, view=self)
+            except Exception as e:
+                exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+                line_num = exc_traceback.tb_lineno
+
+                create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when pressing the back button for the character buttons on line {line_num}")
+            
         # Controls the extra info
         @discord.ui.button(label='More Info', style=discord.ButtonStyle.gray)
         async def display_more_info(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -243,15 +286,25 @@ class CharacterButton(discord.ui.View):
 
                 await interaction.response.send_message(embed=embed, ephemeral=True)
             except Exception as e:
-                create_error_embed(error=e, ctx = self.ctx)
+                exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+                line_num = exc_traceback.tb_lineno
+
+                create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when creating the embed for the character display more info button on line {line_num}")
 
 
         # Controls the next button
         @discord.ui.button(label='Next', style=discord.ButtonStyle.red)
         async def next_message(self, interaction: discord.Interaction, button: discord.ui.Button):
-            self.index = (self.index + 1) % len(self.characters)
-            embed = self.create_embed(self.characters[self.index])
-            await interaction.response.edit_message(embed=embed, view=self)
+            try:
+                self.index = (self.index + 1) % len(self.characters)
+                embed = self.create_embed(self.characters[self.index])
+                await interaction.response.edit_message(embed=embed, view=self)
+            except Exception as e:
+                exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+                line_num = exc_traceback.tb_lineno
+
+                create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when pressing the next button for the character buttons on line {line_num}")
+
 
 # Buttons for the view guilds command
 class ViewGuildsButton(discord.ui.View):
@@ -412,44 +465,51 @@ class FighterButton(discord.ui.Button):
         self.game = game
 
     async def on_button_click(self, interaction: discord.Interaction):   
-        # Sets the current team to nothing     
-        current_team = None
-        game_over = False
+        try:
+            # Sets the current team to nothing     
+            current_team = None
+            game_over = False
 
-        # Sends the info from the button press to the game to determine the logic
-        if interaction.user == self.game.player_one:
-            current_team = self.game.player_two_team
-            self.game.player_one_character = self.character
-            self.game.turn = self.game.player_two
-        else:
-            current_team = self.game.player_one_team
-            self.game.player_two_character = self.character
-            self.game.turn = self.game.player_one
-            self.game.determine_final_damage()
-        
-        # Creates an embed displaying the current fight
-        embed = self.game.create_embed()
-        view = self.game.create_character_buttons(
-                team=current_team
-            )
-        
-        # Checks to see if any of the players won
-        if await self.game.check_player_win(self.game.player_one_team):
-            game_over = True
-            self.game.send_timeout_message = False
-        if await self.game.check_player_win(self.game.player_two_team):
-            game_over = True
-            self.game.send_timeout_message = False
-
-        # Sends the new view if the game hasn't ended yet
-        if not game_over:
-                # Sends a message to indicate who can go next
-                await interaction.response.send_message(
-                    content=f"It is {self.game.turn.mention}'s turn to choose a character!",
-                    embed=embed,
-                    view=view,
+            # Sends the info from the button press to the game to determine the logic
+            if interaction.user == self.game.player_one:
+                current_team = self.game.player_two_team
+                self.game.player_one_character = self.character
+                self.game.turn = self.game.player_two
+            else:
+                current_team = self.game.player_one_team
+                self.game.player_two_character = self.character
+                self.game.turn = self.game.player_one
+                self.game.determine_final_damage()
+            
+            # Creates an embed displaying the current fight
+            embed = self.game.create_embed()
+            view = self.game.create_character_buttons(
+                    team=current_team
                 )
-                self.game.combat_log = ["Awaiting player actions..."]
+            
+            # Checks to see if any of the players won
+            if await self.game.check_player_win(self.game.player_one_team):
+                game_over = True
+                self.game.send_timeout_message = False
+            if await self.game.check_player_win(self.game.player_two_team):
+                game_over = True
+                self.game.send_timeout_message = False
+
+            # Sends the new view if the game hasn't ended yet
+            if not game_over:
+                    # Sends a message to indicate who can go next
+                    await interaction.response.send_message(
+                        content=f"It is {self.game.turn.mention}'s turn to choose a character!",
+                        embed=embed,
+                        view=view,
+                    )
+                    self.game.combat_log = ["Awaiting player actions..."]
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when clicking the character button in a fight between users on line {line_num}")
+
 
 # Creates the button for the invite command
 class InviteButton(discord.ui.View):
@@ -470,40 +530,51 @@ class RaidFighterButton(discord.ui.Button):
         self.raid = raid
 
     async def on_button_click(self, interaction: discord.Interaction):        
-        current_team = None
-        
-        # Sends info over to the raid depending on whose turn it is
-        if self.raid.turn == "user":
-            current_team = self.raid.enemies
-            self.raid.user_character = self.character
-            self.raid.turn = "enemy"
-        elif self.raid.turn == "enemy":
-            current_team = self.raid.team
-            self.raid.enemy_character = self.character
-            self.raid.turn = "user"
-            self.raid.determine_final_damage()
+        try:
+            current_team = None
+            
+            # Sends info over to the raid depending on whose turn it is
+            if self.raid.turn == "user":
+                current_team = self.raid.enemies
+                self.raid.user_character = self.character
+                self.raid.turn = "enemy"
+            elif self.raid.turn == "enemy":
+                current_team = self.raid.team
+                self.raid.enemy_character = self.character
+                self.raid.turn = "user"
+                self.raid.determine_final_damage()
+
+            # Removes the the "Awaiting player actions..." from the combat log when it's unneeded
+            if self.raid.turn == "user" and self.raid.combat_log[0] == "Awaiting player actions...":
+                self.raid.combat_log.pop(0)
+
+            # Creates an embed displaying the current fight
+            embed = self.raid.create_embed()
                 
-        # Creates an embed displaying the current fight
-        embed = self.raid.create_embed()
-        
-        if current_team == self.raid.team:
-            embed.set_footer(text="Choose your fighter!")
-        else:
-            embed.set_footer(text="Choose which enemy to attack!")
+            if current_team == self.raid.team:
+                embed.set_footer(text="Choose your fighter!")
+            else:
+                embed.set_footer(text="Choose which enemy to attack!")
 
-        # Displays the button for the player
-        view = self.raid.create_character_buttons(team=current_team)
+            # Displays the button for the player
+            view = self.raid.create_character_buttons(team=current_team)
 
-        # Checks to see if the level ended or if the raid ended
-        self.raid.check_level_end()
-        raid_over = await self.raid.check_raid_end(interaction)
+            # Checks to see if the level ended or if the raid ended
+            self.raid.check_level_end()
+            raid_over = await self.raid.check_raid_end(interaction)
 
-        if not raid_over:
-                # Sends a message to indicate who can go next
-                await interaction.response.edit_message(embed=embed, view=view)
-                self.raid.combat_log = ["Awaiting player actions..."]
-        elif raid_over:
-            self.raid.send_timeout_message = False
+            if not raid_over:
+                    # Sends a message to indicate who can go next
+                    await interaction.response.edit_message(embed=embed, view=view)
+                    self.raid.combat_log = ["Awaiting player actions..."]
+            elif raid_over:
+                self.raid.send_timeout_message = False
+       
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when clicking on the character buttons in a raid on line {line_num}")
 
 class RaidItemButton(discord.ui.Button):
     def __init__(self, label, raid):
@@ -529,11 +600,32 @@ class RaidItemButton(discord.ui.Button):
                     await interaction.followup.send("Please enter the number for the corresponding item you want to use.", ephemeral = True)
                     continue
                 else:
+                    # Gets the items stored in the inventory view
                     inventory_items = inventory_view.items
+                    # Gets the item chosen by the user
                     item = {k:v for k, v in inventory_items.items() if k == list(inventory_items.keys())[item_number - 1]}
-                    await self.use_item(item=item)
+                    # Gets the item name
+                    item_name = list(item.keys())[0]
+                    # Adds the item to the items in use in order to check duration and applies the boosts from the item
+                    self.raid.items_in_use.append(item)
+                    self.raid.apply_item_boosts(item=item)
+                    self.raid.combat_log.append(f"You used 1x {item_name.replace("_", " ").title()}. You can use {3 - (self.raid.num_of_items_used)} more items.")
+                    database_handler.inc_value_to_users(user_id=interaction.user.id, key=f"inventory.{item_name}.amount", value=-1)
+
+                    # Selects a random character for the enemy to target
+                    user_alive_characters = [char for char in self.raid.team if char['current_hp'] > 0]
+                    self.raid.turn = "enemy"
+                    self.raid.user_character = user_alive_characters[random.randint(0, (len(user_alive_characters) - 1))]
+                    view = self.raid.create_character_buttons(team=self.raid.enemies)
+
+                    # Sends a message to indicate who can go next
+                    await interaction.followup.edit_message(message_id= embed_message_id, view=view)
+
+                    self.pressed = False
+                    break
                     
             except asyncio.TimeoutError as e:
+                    # Moves on to the next turn
                     user_alive_characters = [char for char in self.raid.team if char['current_hp'] > 0]
                     self.raid.turn = "enemy"
                     self.raid.user_character = user_alive_characters[random.randint(0, (len(user_alive_characters) - 1))]
@@ -545,28 +637,27 @@ class RaidItemButton(discord.ui.Button):
                     self.pressed = False
                     break
             except TypeError as e:
+                    # Makes sure that the user enters a number within the range
                     if x == 2:
                         raise asyncio.TimeoutError
                     
-                    create_error_embed(error=e, ctx=self.raid.ctx, msg="This occured when the raid item button was pressed and a type error happened.")
                     await interaction.followup.send("Please enter the number for the corresponding item you want to use.", ephemeral=True, view = inventory_view, embed = inventory_embed)
                     continue
             except Exception as e:
-                    create_error_embed(error=e, ctx=self.raid.ctx, msg="This occured when the raid item button was pressed and a general exception was caught.")
-        
-    async def use_item(self, item):
-        print(item)
-        pass
+                    exc_type, exc_value, exc_traceback = sys.exc_info() 
+                    line_num = exc_traceback.tb_lineno
+
+                    create_error_embed(error=e, ctx=self.raid.ctx, msg=f"This occured when prompting the user to pick an item for the raid on line {line_num}")
 
     async def on_button_click(self, interaction: discord.Interaction): 
         try:
             await interaction.response.defer()
+            # Debounce to prevent clicking multiple times
             if self.pressed:
-                print(self.pressed, 2)
-
                 return
 
-            embed_message_id = interaction.message.id
+            int_message = interaction.message
+            embed_message_id = int_message.id
             self.pressed = True
 
             for child in self.raid.view.children:
@@ -574,15 +665,24 @@ class RaidItemButton(discord.ui.Button):
                     child.disabled = True
 
             user_profile = database_handler.users.find_one({"_id": self.raid.ctx.author.id})
+            item_inventory = {x['name']: x for x in database_handler.items.find({}) if "effects" in x}
             user_inventory = user_profile.get('inventory')
 
-            user_item_inventory = {k:v for (k, v) in user_inventory.items() if "effects" in v}
-            user_item_inventory = {k:v for (k, v) in user_item_inventory.items() if user_item_inventory.get(k).get("amount") > 0}
+            # Gets all the items in the user's inventory
+            user_item_inventory = {item_name: info for (item_name, info) in user_inventory.items() if "effects" in info}
+            user_item_inventory = {item_name: info for (item_name, info) in item_inventory.items() if user_item_inventory.get(item_name, {}).get("amount", -1) > 0}
+            
+            # Makes sure that the items in the list have the correct amounts from the user since the dict user_item_inventory
+            # pulls from the database which automatically sets all amounts to 0
+            for item_name, info in user_item_inventory.copy().items():
+                user_item_inventory[item_name]['amount'] =  user_inventory[item_name]['amount']
 
-            view = InventoryButtons(items=user_item_inventory, ctx=self.raid.ctx, numbered=True)
+            # Creates the embed for the items
+            view = InventoryButtons(items=user_item_inventory, ctx=self.raid.ctx, display_for_item_command=True)
             embed = await view.create_embed()
 
-            if not embed:
+            # Prevents the user from using more than three items
+            if not embed or self.raid.num_of_items_used >= 3:
                 for child in self.raid.view.children:
                     if child.label != "Items":
                         child.disabled = False
@@ -591,17 +691,21 @@ class RaidItemButton(discord.ui.Button):
 
                 return await interaction.followup.edit_message(message_id = embed_message_id, view=self.raid.view)
 
-
+            # Keeps prompting the user up to 3 times to enter a number
             asyncio.create_task(self.prompt_user_for_item(interaction=interaction, inventory_embed=embed, inventory_view=view, inventory_length=len(user_item_inventory.keys()), embed_message_id= embed_message_id))
 
             await interaction.followup.send(embed = embed, view = view, ephemeral= True)
-            await interaction.followup.edit_message(message_id = embed_message_id, view=self.raid.view)
-        except Exception as e:
-            create_error_embed(error=e, ctx=self.raid.ctx, msg="This occured from the raid item button")
+            await int_message.edit(view=self.raid.view)
 
-        
+        except Exception as e:
+                exc_type, exc_value, exc_traceback = sys.exc_info() 
+                line_num = exc_traceback.tb_lineno
+
+                create_error_embed(error=e, ctx=self.raid.ctx, msg=f"This occured in the raid item button on line {line_num}")
+
 
 
         # make it so that the bot prompts the user to choose an item 3 times before skipping their turn
+
 
                
