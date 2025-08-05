@@ -197,7 +197,6 @@ class CraftingButtons(discord.ui.View):
                                   description=f"**Description:**\n {self.items[self.index]['description']}\n\n{crafting_string}")
 
             embed.set_thumbnail(url=f"https://cdn.discordapp.com/emojis/{self.items[self.index]['emoji'][self.items[self.index]['emoji'].rfind(":") + 1:self.items[self.index]['emoji'].rfind(">")]}.webp?size=64&quality=lossless")
-            print(f"https://cdn.discordapp.com/emojis/{self.items[self.index]['emoji'][self.items[self.index]['emoji'].rfind(":") + 1:self.items[self.index]['emoji'].rfind(">")]}.webp?size=64&quality=lossless")
             embed.set_footer(text="•─•°• To craft an item, type ?craft <item name> <amount> •°•─•")
 
             return embed
