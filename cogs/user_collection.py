@@ -248,7 +248,7 @@ class User_Collection(commands.Cog):
 
     # The roll command
     @commands.command(help="This command allows you to roll on the standard or limited time banner. The format for this command is `?roll <banner name>`")
-    #@commands.cooldown(rate=1, per=3, type=commands.BucketType.user)
+    @commands.cooldown(rate=1, per=3, type=commands.BucketType.user)
     async def roll(self, ctx, *, banner=None):
         # Determines what happens depending on the banner chosen
         user = ctx.author
