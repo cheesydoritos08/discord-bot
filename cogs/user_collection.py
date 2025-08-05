@@ -66,9 +66,9 @@ class User_Collection(commands.Cog):
         # Rolls the rarity of the character
         def choose_rarity():
             rarities = {
-                'Epic': 5,
-                'Rare': 15,
-                'Common': 80,
+                'Epic': 1,
+                'Rare': 9,
+                'Common': 90,
             }
 
             randomNum = random.randint(1, sum(rarities.values()))
@@ -102,18 +102,18 @@ class User_Collection(commands.Cog):
                 )
         elif pity > 69:
                 rarities = {
-                    'Legendary': 10,
-                    'Epic': 15,
-                    'Rare': 30,
-                    'Common': 45,
+                    'Legendary': 5,
+                    'Epic': 10,
+                    'Rare': 20,
+                    'Common': 65,
                 }
                 database_handler.inc_value_to_users(user_id=user_id, key='pity', value=1)
         else:
                 rarities = {
                     'Legendary': 1,
-                    'Epic': 9,
-                    'Rare': 20,
-                    'Common': 70,
+                    'Epic': 4,
+                    'Rare': 15,
+                    'Common': 80,
                 }
                 database_handler.inc_value_to_users(user_id=user_id, key='pity', value=1)
 
@@ -121,8 +121,9 @@ class User_Collection(commands.Cog):
         counter = 0
         for rarity, weight in rarities.items():
             counter += weight
-            if randomNum <= counter:
+            if counter >= randomNum:
                 chosen_rarity = rarity
+                break
 
 
         update_quests(user_id=user_id, quest_id="roll_limited_banner", amount=1)
@@ -247,7 +248,7 @@ class User_Collection(commands.Cog):
 
     # The roll command
     @commands.command(help="This command allows you to roll on the standard or limited time banner. The format for this command is `?roll <banner name>`")
-    @commands.cooldown(rate=1, per=3, type=commands.BucketType.user)
+    #@commands.cooldown(rate=1, per=3, type=commands.BucketType.user)
     async def roll(self, ctx, *, banner=None):
         # Determines what happens depending on the banner chosen
         user = ctx.author
@@ -324,7 +325,6 @@ class User_Collection(commands.Cog):
 
             if rarity.lower() == "legendary":
                 database_handler.users.update_one({"_id": user.id}, {"$set": {"pity": 0}})
-                pity = 0
 
         # Determines the color of the side bar on the embed based on rarity
         if character['rarity'] == 'Common':
@@ -348,6 +348,7 @@ class User_Collection(commands.Cog):
         else:
             thumbnail_url = 'https://files.catbox.moe/8hy2hm.png'
             bar_color = discord.Color.gold()
+            database_handler.users.update_one({"_id": user.id}, {"$set": {"pity": 0}})
             if not is_duplicate:
                 update_user_profile_stats(rarity=character["rarity"])
 
