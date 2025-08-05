@@ -81,17 +81,20 @@ class RaidInstance():
                 # Checks what stat the item will be boosting and boosts the stats accordingly
                 if effect['buff'].lower() == "hp":
                     for char in self.team:
-                        char['current_hp'] = math.ceil(char['current_hp'] * (1 + (effect['buff_amount'] / 100)))
-                        
-                        if char['current_hp'] > char['HP']:
-                            char['current_hp'] = char['HP']
+                        if char['class'] != "Support":
+                            char['current_hp'] = math.ceil(char['current_hp'] * (1 + (effect['buff_amount'] / 100)))
+                            
+                            if char['current_hp'] > char['HP']:
+                                char['current_hp'] = char['HP']
 
                 elif effect['buff'].lower() == "dodge":
                     self.state['user']['can_dodge'] = True
 
                 else:
                     for char in self.team:
-                        char[effect['buff']] = math.floor(char[effect['buff']] * (1 + (effect['buff_amount'] / 100)))
+                        if char['class'] != "Support":
+                            char[effect['buff']] = math.ceil(char[effect['buff']] * (1 + (effect['buff_amount'] / 100)))
+
 
             self.num_of_items_used += 1
 
@@ -108,18 +111,20 @@ class RaidInstance():
                 # Gets the info inside of the item
                 item_name = f"{list(item.keys())[0]}"
                 item_data = item[item_name]
-                #print(item['effects'].pop(item['effects'].index(effect)))
 
                 if item_data.get('effects') is None:
                     self.items_in_use.remove(item)
                     continue
 
-                for effect in item_data.get('effects'):
+                for effect in item_data.get('effects').copy():  
+                 
                     # buffs the stat as long as it isn't dodge or hp
                     if effect['turn_duration'] <= 0 and (effect['buff'].lower() != "hp" and effect['buff'].lower() != "dodge"):
                         item[item_name]['effects'].pop(item[item_name]['effects'].index(effect))
+                        
                         for char in self.team:
-                            char[effect['buff']] = math.ceil(char[effect['buff']] * (((100 - effect['buff_amount']) / 100)))
+                            if char['class'] != "Support":
+                                char[effect['buff']] = math.floor(char[effect['buff']] * (((100 - effect['buff_amount']) / 100)))
 
                     # changes the state if it's dodge
                     elif effect['turn_duration'] <= 0 and effect['buff'].lower() == "dodge":
@@ -129,8 +134,10 @@ class RaidInstance():
                     # removes the hp buff because its a one time use
                     elif effect['turn_duration'] <= 0 and effect['buff'].lower() == "hp":
                         item[item_name]['effects'].pop(item[item_name]['effects'].index(effect))
-                    
+
                     effect['turn_duration'] -= 1
+
+                    
 
                                     
                 
@@ -332,6 +339,13 @@ class RaidInstance():
                         )
                         self.state[target_key]["stunned"] = True
                         self.state[target_key]["stun_timer"] = 2
+
+                        if self.state[target_key].get("can_dodge", False) == True:
+                            other_character = self.enemy_character if character != self.enemy_character else self.user_character 
+                            self.combat_log.append(f"{other_character['name']} has avoided being stunned")
+                            self.state[target_key]["stunned"] = False
+                            self.state[target_key]["stun_timer"] = 2
+
                         update_quests(user_id=self.ctx.author.id, quest_id="stun_one_character", amount=1)
 
                     elif effect["stat"] == "crit_chance":
@@ -353,6 +367,13 @@ class RaidInstance():
                         )
                         self.state[target_key]["stunned"] = True
                         self.state[target_key]["stun_timer"] = 2
+
+                        if self.state[target_key].get("can_dodge", False) == True:
+                            other_character = self.enemy_character if character != self.enemy_character else self.user_character 
+                            self.combat_log.append(f"{other_character['name']} has avoided being stunned")
+                            self.state[target_key]["stunned"] = False
+                            self.state[target_key]["stun_timer"] = 2
+
                         update_quests(user_id=self.ctx.author.id, quest_id="stun_one_character", amount=1)
 
                     elif character.get("crit_chance", None) is not None:
@@ -625,9 +646,7 @@ class RaidInstance():
         try:
             # Checks to see if the attacker is stunned
             if self.state[attacker_key]["stunned"]:
-                self.combat_log.append(
-                    f"{attacker['name']} is stunned for {self.state[attacker_key]['stun_timer']} turn(s) and can't attack."
-                )
+                self.combat_log.append(f"{attacker['name']} is stunned for {self.state[attacker_key]['stun_timer']} turn(s) and can't attack.")
                 return 0
             
 
@@ -645,6 +664,7 @@ class RaidInstance():
                 self.combat_log.append(
                     f"{attacker['name']} lands a **CRITICAL HIT** for {round(damage)}!"
                 )
+
                 if attacker_key == "user":
                     update_quests(user_id=self.ctx.author.id, quest_id="crit_one_character", amount=1)
 
@@ -655,9 +675,7 @@ class RaidInstance():
             
             # Checks to see if the defender can dodge the attack
             if attacker_key == "enemy" and self.state['user']['can_dodge']:
-                self.combat_log.append(
-                    f"{defender['name']} dodged the attacked!"
-                )
+                self.combat_log.append(f"{defender['name']} dodged the attacked!")
                 return 0
 
             defender["current_hp"] -= int(round(damage))
@@ -677,7 +695,7 @@ class RaidInstance():
     def handle_reflect(self, attacker, defender, attacker_key, defender_key, damage):
         try: 
             # Checks to see if the defender can dodge the attack
-            if attacker_key == "enemy" and self.state['user']['can_dodge']:
+            if self.state[attacker_key].get('can_dodge'):
                 return 
 
             if (
@@ -692,12 +710,14 @@ class RaidInstance():
                 self.combat_log.append(
                     f"{attacker['name']} reflects {reflect_damage} damage back to {defender['name']}!"
                 )
+
                 if attacker_key == "user":
                     update_quests(user_id=self.ctx.author.id, quest_id="reflect_one_character", amount=1)
 
                 defender["current_hp"] -= reflect_damage
                 if defender["current_hp"] <= 0:
                     self.combat_log.append(f"{defender['name']} has died!")
+
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
             line_num = exc_traceback.tb_lineno
@@ -708,6 +728,7 @@ class RaidInstance():
     def determine_final_damage(self):
         try:
             # Applies the support effects on to user characters
+            self.check_item_boost_duration()
             self.apply_effects()
 
             user_speed = self.user_character.get("SPD")
@@ -739,7 +760,6 @@ class RaidInstance():
                 self.handle_reflect(self.enemy_character,self.user_character,"enemy","user", user_damage,)
                 self.handle_reflect(self.user_character,self.enemy_character,"user","enemy", enemy_damage,)
 
-            self.check_item_boost_duration()
             self.reset_round()
 
 

@@ -5,8 +5,8 @@ import discord
 import os
 import sys
 from discord.ext import commands
-from utils.converters import InventoryConverter, UseChipConverter
-from utils.buttons import InviteButton
+from utils.converters import InventoryConverter, UseChipConverter, BuySellConverter
+from utils.buttons import InviteButton, CraftingButtons
 from utils.utility_functions import update_quests, cooldown_calculator, create_error_embed
 from utils.timer import Timer
 
@@ -181,18 +181,61 @@ class Utilites(commands.Cog):
     @commands.command(name="craft",
                       help="This command allows you to craft items with the materials that you have. The format for this command is ?craft <item name> <amount> To see all crafting recipes, just type ?craft. ")
     @commands.cooldown(rate=1, per=3, type=commands.BucketType.user)
-    async def craft_item(self, ctx, *, arg = None):
+    async def craft_item(self, ctx, *, arg : BuySellConverter = None):
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
             return
         
-        # If arg is none, then display all the crafting recipes
-        # If arg isn't none, separate the argument into the amount and item and check to see if they have enough materials to craft item
-        # If they have enough, subtract materials from inventory and add item to inventory
-        # If they don't have enough, don't add anything and tell them they are missing materials
+        if arg is None:
+            # Sends an embed containing all the crafting recipes
+            items = [item for item in database_handler.items.find({"crafting": {"$exists": True}})]
+            crafting_buttons = CraftingButtons(items=items, ctx=ctx)
+            embed = crafting_buttons.create_embed()
+            return await ctx.send(embed=embed, view=crafting_buttons)
 
+        else:
+            # Gets the item and the amount the user wants to craft
+            item, amount_wanted = arg
+            item = database_handler.items.find_one({'name': item}, {'crafting': 1, 'name': 1, '_id': 0})
 
-    
-        await ctx.send()
+            if item is None:
+                return await ctx.send("Not craftable. Check craftables by just typing `?craft`.")
+            
+            materials_needed = item.get('crafting')
+
+            user_inventory = database_handler.users.find_one({"_id": ctx.author.id}, {"_id": 0, "inventory": 1}).get('inventory')
+
+            # Checks to see if the user has the required material in order to craft the item(s)
+            for material_name, material_amount in materials_needed.items():
+                materials_needed[material_name] *= amount_wanted
+
+                item_found = False
+
+                for inventory_item, item_details in user_inventory.items():
+                    if inventory_item == material_name and item_details['amount'] < material_amount:
+                        return await ctx.send(f"You don't have enough {material_name.replace("_", " ")}(s) to craft this item. Poor.")
+                    
+                    elif inventory_item == material_name and item_details['amount'] >= material_amount:
+                        item_found = True
+                
+                if not item_found:
+                        return await ctx.send(f"You don't have enough {material_name.replace("_", " ")}(s) to craft this item. Poor.")
+                    
+            # Decrements the materials needed for the item
+            for material_name, material_amount in materials_needed.items():
+                database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{material_name}.amount", value=-material_amount)
+
+            # Checks to see if the user already has the item in their inventory
+            # and if so, adds the item they want crafted to their inventory
+            for inventory_item, item_details in user_inventory.items():
+                if inventory_item == item["name"]:
+                    database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount_wanted)
+                    return await ctx.send(f"You crafted {amount_wanted} {item_details['emoji']} {item["name"].replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")}(s).")
+
+            # Adds the item to the user's inventory if they don't already have it
+            # then adds the number of items they want
+            database_handler.add_item(user_id=ctx.author.id, item=item['name'])
+            database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount_wanted)
+            return await ctx.send(f"You crafted {amount_wanted} {item_details['emoji']} {item["name"].replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")}(s).")
 
     @craft_item.error
     @vote_for_bot.error

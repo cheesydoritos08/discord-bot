@@ -44,8 +44,8 @@ class Fighting(commands.Cog):
         if not player_one_team or not player_two_team:
             return await ctx.send("One of you doesn't have a team set up.")
 
-        #database_handler.users.update_one({'_id': ctx.author.id}, {'$set': {'in_challenge': True}})
-        #database_handler.users.update_one({'_id': other_player.id}, {'$set': {'in_challenge': True}})
+        database_handler.users.update_one({'_id': ctx.author.id}, {'$set': {'in_challenge': True}})
+        database_handler.users.update_one({'_id': other_player.id}, {'$set': {'in_challenge': True}})
 
         await ctx.send(f'{other_player.mention}, type `accept` or `decline` to respond to the challenge.')
 
@@ -58,11 +58,9 @@ class Fighting(commands.Cog):
             msg = await self.bot.wait_for('message', timeout=15.0, check=check)
             # Determines what happens when the other player accepts/declines
             if msg.content.lower() == 'accept':
-                game = fight_handler.GameInstance(ctx, ctx.author, other_player, player_one_team, player_two_team)
+                game = fight_handler.GameInstance(ctx, ctx.author, other_player, player_one_team, player_two_team, self.bot)
                 embed = game.create_embed()
-                view = game.create_character_buttons(
-                    player_one_team
-                )
+                view = game.create_character_buttons(player_one_team)
 
                 game.view = view
 
