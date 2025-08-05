@@ -394,24 +394,23 @@ class RaidInstance():
                     "raid_token": 30,
                     "standard_ticket": 30,
                     "limited_ticket": 10,
-                    "ev_stone": 10,
-                    "white_shirt": 5,
-                    "broken_sunglasses": 20,
-                    "boxing_gloves": 10,
-                    "biker_helmet": 25,
-                    "leather_jacket": 100
+                    "white_shirt": 1,
+                    "broken_sunglasses": 4,
+                    "boxing_gloves": 2,
+                    "biker_helmet": 5,
+                    "leather_jacket": 3
                     },
 
                 10: {                
                     "raid_token": 40,
                     "standard_ticket": 30,
                     "limited_ticket": 20,
-                    "ev_stone": 10,
-                    "white_shirt": 10,
-                    "broken_sunglasses": 25,
-                    "boxing_gloves": 15,
-                    "biker_helmet": 30,
-                    "leather_jacket": 20
+                    "ev_stone": 5,
+                    "white_shirt": 3,
+                    "broken_sunglasses": 6,
+                    "boxing_gloves": 4,
+                    "biker_helmet": 7,
+                    "leather_jacket": 5
                     },
 
                 15: {
@@ -421,12 +420,12 @@ class RaidInstance():
                     "xp_booster": 5,
                     "won_booster": 5,
                     "ev_stone": 10,
-                    "white_shirt": 15,
-                    "broken_sunglasses": 30,
-                    "boxing_gloves": 20,
-                    "biker_helmet": 35,
-                    "leather_jacket": 25
-                },
+                    "white_shirt": 5,
+                    "broken_sunglasses": 8,
+                    "boxing_gloves": 6,
+                    "biker_helmet": 9,
+                    "leather_jacket": 7
+                    },
 
                 20:  {
                     "raid_token": 60,
@@ -435,12 +434,12 @@ class RaidInstance():
                     "xp_booster": 10,
                     "won_booster": 10,
                     "ev_stone": 15,
-                    "white_shirt": 20,
-                    "broken_sunglasses": 35,
-                    "boxing_gloves": 25,
-                    "biker_helmet": 40,
-                    "leather_jacket": 30
-                },
+                    "white_shirt": 7,
+                    "broken_sunglasses": 10,
+                    "boxing_gloves": 8,
+                    "biker_helmet": 11,
+                    "leather_jacket": 9
+                    },
             }
 
             threshold = math.ceil(float(self.level) / 5) * 5
