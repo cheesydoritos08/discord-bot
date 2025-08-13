@@ -167,7 +167,7 @@ class GameInstance:
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
             line_num = exc_traceback.tb_lineno
 
-            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when checking the duration of the item effect for {player_key} on line {line_num}")
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when checking the duration of the item effect for {team} on line {line_num}")
 
     # YES Displays the health bar of the character
     def display_health_bar(self, current_hp, max_hp):
@@ -232,7 +232,8 @@ class GameInstance:
         try:
             attacking_character = self.player_one_character if team == "team_1" else self.player_two_character
 
-            if self.team_states[team][attacking_character['name']]['stunned']:
+
+            if self.team_states[team][attacking_character['name']]['stunned'] or attacking_character['current_hp'] <= 0:
                 return
             
             chance_of_triggering_effect = int(attacking_character.get("crit_chance") or attacking_character.get("dodge_chance") or attacking_character.get("stun_chance"))
@@ -372,7 +373,6 @@ class GameInstance:
 
             if player_one_speed >= player_two_speed:
                 self.apply_support_effects(attacking_team = "team_1")
-                self.apply_support_effects(attacking_team = "team_2")
 
                 if not self.team_states["team_1"][self.player_one_character['name']]["stunned"]:
                     self.combat_log.append(f"**{self.player_one_character['name']} attacked before {self.player_two_character['name']} could even blink!**")
@@ -380,12 +380,12 @@ class GameInstance:
                     self.combat_log.append(f"**{self.player_two_character['name']} takes advantage of {self.player_one_character['name']}'s stunned state and attacks!**")  
                 
                 self.handle_attack(attacker=self.player_one_character, attacking_team="team_1")
+                self.apply_support_effects(attacking_team = "team_2")
                 self.handle_attack(attacker=self.player_two_character, attacking_team="team_2")
 
 
             elif player_one_speed < player_two_speed:
                 self.apply_support_effects(attacking_team = "team_2")
-                self.apply_support_effects(attacking_team = "team_1")
 
                 if not self.team_states["team_2"][self.player_two_character['name']]["stunned"]:
                     self.combat_log.append(f"**{self.player_two_character['name']} attacked before {self.player_one_character['name']} could even blink!**")
@@ -393,6 +393,7 @@ class GameInstance:
                     self.combat_log.append(f"**{self.player_one_character['name']} takes advantage of {self.player_two_character['name']}'s stunned state and attacks!**" )  
                 
                 self.handle_attack(attacker=self.player_two_character, attacking_team="team_2")
+                self.apply_support_effects(attacking_team = "team_1")
                 self.handle_attack(attacker=self.player_one_character, attacking_team="team_1")
 
             self.reset_round()
