@@ -391,7 +391,7 @@ class User_Collection(commands.Cog):
 
         # Checks to see if the pity should be displayed
         if pity is not None:
-            embed.set_footer(text=f'Pity: {pity}/100 | Rolled by {user}')
+            embed.set_footer(text=f'Pity: {pity}/100 | Rolled by {user} | Current Legendary of the Week: James Lee ')
         else:
             embed.set_footer(text=f'Rolled by {user}')
 
