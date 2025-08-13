@@ -61,7 +61,6 @@ class Economy(commands.Cog):
         # Checks to see if the user has a profile or not
         if not await database_handler.check_existing_profile(ctx=ctx, user_id=user.id):
             return
-
         
         user_profile = database_handler.users.find_one({'_id': user.id})
 
@@ -201,7 +200,7 @@ class Economy(commands.Cog):
             return
 
         # Sets the win amount and creates the card list
-        win_amount = 100 * check_boosts(user_id=ctx.author.id,type="won_booster")
+        win_amount = 200 * check_boosts(user_id=ctx.author.id,type="won_booster")
         cards_list = [
             'Ace: 🂡',
             '2: 🂢',
@@ -490,6 +489,30 @@ class Economy(commands.Cog):
         # Sends the embed and the buttons for the trade
         return await ctx.send(embed=embed, view=trade_handler.TradeView(offerer_user=ctx.author, ctx = ctx, receiver_user=target_user, trade_offered=trade_offered_dictionary, trade_received=trade_received_dictionary))
 
+    @commands.command(help = "This command gives you double your ELO in won every 12 hours.")
+    async def eloclaim(self, ctx):
+        user_id = ctx.author.id
+        # Checks to see if the user has a profile or not
+        if not await database_handler.check_existing_profile(ctx=ctx, user_id=user_id):
+            return
+        
+        user_profile = database_handler.users.find_one({"_id": user_id})
+        
+        # Checks whether they user has already claimed their daily reward or not
+        if user_profile.get('timers').get('eloclaim', 0) != 0:
+            return await ctx.send("You already claimed your ELO reward, stupid.")
+        
+        # Gets the elo score and adds it to the user balance
+        elo_score = user_profile.get('elo').get('score') * 2
+
+        database_handler.inc_value_to_users(user_id=user_id, key="economy.won", value=elo_score)
+
+        Timer(user_id=user_id, name="eloclaim", starttime=round(time.time()), timer_length = 60 * 60 * 12).create_timer()
+
+        await ctx.send(f"You have claimed ₩{elo_score}. Please check again in 12 hours to claim again!")
+
+
+    @eloclaim.error
     @trade.error
     @sell_item.error
     @buy_item.error
