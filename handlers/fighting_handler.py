@@ -235,11 +235,11 @@ class GameInstance:
             if self.team_states[team][attacking_character['name']]['stunned']:
                 return
             
-            chance_of_triggering_effect = attacking_character.get("crit_chance") or attacking_character.get("dodge_chance") or attacking_character.get("stun_chance")
+            chance_of_triggering_effect = int(attacking_character.get("crit_chance") or attacking_character.get("dodge_chance") or attacking_character.get("stun_chance"))
 
             # Makes sure the support effect actually matches the character effect
             if support_effect is not None and attacking_character.get(support_effect['stat'], None) is not None:
-                chance_of_triggering_effect += support_effect['amount']
+                chance_of_triggering_effect += int(support_effect['amount'])
 
             random_num = random.randint(0, 100)
             
