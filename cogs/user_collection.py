@@ -20,7 +20,7 @@ class User_Collection(commands.Cog):
     # Adds the newly rolled character to the player's inventory
     def add_character_to_inventory(self, rarity, user_id):
         # Chooses a character based off of the rarity
-        rated_up_legendary_character = "Gun Park"
+        rated_up_legendary_character = "James Lee"
         if rarity == "Legendary":
             rolled_character = database_handler.all_characters.find_one({"name": rated_up_legendary_character})
             rolled_character.pop('threshold_requirements')
@@ -137,24 +137,45 @@ class User_Collection(commands.Cog):
                 "ATK": 1.25,
                 "HP": 1.20,
                 "SPD": 1.15,
-                'crit_chance': 5,
-                'crit_damage': 0.3
             },
             "Grappler": {
                 "ATK": 1.20,
                 "HP": 1.25,
                 "SPD": 1.15,
-                'stun_chance': 5,
             },
             "Weaver": {
                 "ATK": 1.15,
                 "HP": 1.20,
                 "SPD": 1.25,
-                'reflect_chance': 5,
-                'reflect_percent': 10
             }
         }
-
+        
+        evolution_abilities_dictionary = {
+            "Common": {
+                "stun_chance": 3,
+                "crit_chance": 3,
+                "crit_damage": 0.2,
+                "dodge_chance": 3,
+            },
+            "Rare": {
+                "stun_chance": 5,
+                "crit_chance": 5,
+                "crit_damage": 0.3,
+                "dodge_chance": 5
+            },
+            "Epic": {
+                "stun_chance": 7,
+                "crit_chance": 7,
+                "crit_damage": 0.4,
+                "dodge_chance": 7
+            },
+            "Legendary": {
+                "stun_chance": 10,
+                "crit_chance": 10,
+                "crit_damage": 0.5,
+                "dodge_chance": 10
+            },
+        }
         user_profile = database_handler.users.find_one({"_id": user_id})
         user_characters = user_profile.get('characters')
         user_team = user_profile.get('team')
@@ -168,15 +189,17 @@ class User_Collection(commands.Cog):
                 character['SPD'] = round(character['SPD'] * evolution_dictionary[character['class']]['SPD'])
             
                 if character['class'] == "Striker":
-                    character['crit_chance'] = round(character['crit_chance'] + evolution_dictionary[character['class']]['crit_chance'], 1)
-                    character['crit_damage'] += evolution_dictionary[character['class']]['crit_damage']
+                    character['crit_chance'] = round(character['crit_chance'] + evolution_abilities_dictionary[character['rarity']]['crit_chance'], 1)
+                    character['crit_damage'] += evolution_abilities_dictionary[character['rarity']]['crit_damage']
                 
                 elif character['class'] == "Weaver":
-                    character['reflect_chance'] += evolution_dictionary[character['class']]['reflect_chance']
-                    character['reflect_percent'] += evolution_dictionary[character['class']]['reflect_percent']
-                
+                    character['dodge_chance'] += evolution_abilities_dictionary[character['rarity']]['reflect_chance']
+                    
+                    if character['threshold'] == 2:
+                        character['dodge_duration'] += 1
+
                 elif character['class'] == "Grappler":
-                    character['stun_chance'] += evolution_dictionary[character['class']]['stun_chance']
+                    character['stun_chance'] += evolution_abilities_dictionary[character['rarity']]['stun_chance']
                     
                     if character['threshold'] == 2:
                         character['stun_duration'] += 1
@@ -203,11 +226,11 @@ class User_Collection(commands.Cog):
                 "daily": 100
                     },
             "Epic": {
-                "buff": 10,
+                "buff": 8,
                 "daily": 150
                     },
             "Legendary": {
-                "buff": 15,
+                "buff": 10,
                 "daily": 200
                     },
         }
@@ -625,8 +648,6 @@ class User_Collection(commands.Cog):
             self.evolve_support_character(user_id=ctx.author.id, character=user_character)
             return await ctx.send(f"{user_character['name']} has been evolved")
         
-
-
 
     @display_inventory.error
     @evolve_character.error

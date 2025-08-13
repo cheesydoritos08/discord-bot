@@ -231,7 +231,6 @@ class CraftingButtons(discord.ui.View):
             create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when pressing the next button for the crafting buttons on line {line_num}")
 
 
-
 # Buttons for the mychars commands
 class CharacterButton(discord.ui.View):
         def __init__(self, characters, ctx=None):
@@ -521,67 +520,84 @@ class TutorialButton(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=self)
 
 # Creates the buttons pressed by the user
-class FighterButton(discord.ui.Button):
+class GameFighterButton(discord.ui.Button):
     def __init__(self, label, character, game):
         super().__init__(label=label, style=discord.ButtonStyle.red)
         self.character = character
         self.game = game
 
-    async def on_button_click(self, interaction: discord.Interaction):   
+    async def on_button_click(self, interaction: discord.Interaction, simulated_click = False, embed_message_id = None):   
         try:
-            # Sets the current team to nothing     
+       # Sets the current team to nothing     
             current_team = None
             game_over = False
 
             # Sends the info from the button press to the game to determine the logic
-            if interaction.user == self.game.player_one:
+            if self.game.turn == "team_1":
                 current_team = self.game.player_two_team
                 self.game.player_one_character = self.character
-                self.game.turn = self.game.player_two
+                self.game.turn = "team_2"
             else:
                 current_team = self.game.player_one_team
                 self.game.player_two_character = self.character
-                self.game.turn = self.game.player_one
+                self.game.turn = "team_1"
                 self.game.determine_final_damage()
             
-            
-
-            # Removes the the "Awaiting player actions..." from the combat log when it's unneeded
-            if len(self.game.combat_log) > 1:
-                index = self.game.combat_log.index("Awaiting player actions...")
-                self.game.combat_log.pop(index)
 
             # Creates an embed displaying the current fight
             embed = self.game.create_embed()
-            view = self.game.create_character_buttons(
-                    team=current_team
-                )
+            view = self.game.create_character_buttons(team=current_team)
             
-            # Checks to see if any of the players won
-            if await self.game.check_player_win(self.game.player_one_team):
-                game_over = True
-                self.game.send_timeout_message = False
-            if await self.game.check_player_win(self.game.player_two_team):
-                game_over = True
-                self.game.send_timeout_message = False
+            if self.game.game_type == "challenge":
+                # Checks to see if any of the players won
+                if await self.game.check_player_win(self.game.player_one_team) or await self.game.check_player_win(self.game.player_two_team):
+                    game_over = True
+                    self.game.send_timeout_message = False
 
-            # Sends the new view if the game hasn't ended yet
-            if not game_over:
-                    # Sends a message to indicate who can go next
-                    await interaction.response.send_message(
-                        content=f"It is {self.game.turn.mention}'s turn to choose a character!",
-                        embed=embed,
-                        view=view,
-                    )
+                # Sends the new view if the game hasn't ended yet
+                if not game_over:
+                        next_player = self.game.player_one if self.game.turn == "team_1" else self.game.player_two
+                        
+                        # Sends a message to indicate who can go next
+                        if not simulated_click:
+                            await interaction.response.send_message(
+                                content=f"It is {next_player.mention}'s turn to choose a character!",
+                                embed=embed,
+                                view=view,
+                            )
+                        else:
+                            await interaction.followup.send(
+                                content=f"It is {next_player.mention}'s turn to choose a character!",
+                                embed=embed,
+                                view=view,
+                            )
+
+                        self.game.combat_log = ["Awaiting player actions..."]
+
+            
+            else:                    
+                if current_team == self.game.player_one_team:
+                    embed.set_footer(text="Choose your fighter!")
+                else:
+                    embed.set_footer(text="Choose which enemy to attack!")
+
+                # Checks to see if the level ended or if the raid ended
+                self.game.check_level_end()
+                game_over = await self.game.check_raid_end(interaction)
+
+                if not game_over:
+                        # Sends a message to indicate who can go next
+                    if not simulated_click:
+                        await interaction.response.edit_message(embed=embed, view=view)
+                    else:
+                        await interaction.followup.edit_message(message_id=embed_message_id, embed=embed, view=view)
+                
                     self.game.combat_log = ["Awaiting player actions..."]
-        except discord.InteractionResponded as e:
-            interaction = e.interaction
-            await interaction.followup.send(
-                        content=f"It is {self.game.turn.mention}'s turn to choose a character!",
-                        embed=embed,
-                        view=view,
-                    )
-            self.game.combat_log = ["Awaiting player actions..."]
+
+
+                elif game_over:
+                    self.game.send_timeout_message = False
+        
 
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
@@ -589,84 +605,20 @@ class FighterButton(discord.ui.Button):
 
             create_error_embed(error=e, ctx=self.game.ctx, msg=f"This occured when clicking the character button in a fight between users on line {line_num}")
 
-# Creates the button for the invite command
-class InviteButton(discord.ui.View):
-    def __init__(self, *, timeout = 10):
-        # Creates the invite buttons and adds them to the view
-        super().__init__(timeout=timeout)
-        server_button = discord.ui.Button(label="Join the bot's official server!", style=discord.ButtonStyle.url, url="https://discord.gg/EaaF8aMCxG")
-        invite_button = discord.ui.Button(label='Invite the bot!', style=discord.ButtonStyle.url, url="https://discord.com/oauth2/authorize?client_id=1371573491391922278&scope=bot+applications.commands&permissions=414464691264")
 
-        self.add_item(server_button)
-        self.add_item(invite_button)
-
-# Creates the buttons pressed by the user
-class RaidFighterButton(discord.ui.Button):
-    def __init__(self, label, character, raid):
+class GameItemButton(discord.ui.Button):
+    def __init__(self, label, game):
         super().__init__(label=label, style=discord.ButtonStyle.red)
-        self.character = character
-        self.raid = raid
-
-    async def on_button_click(self, interaction: discord.Interaction):        
-        try:
-            current_team = None
-            
-            # Sends info over to the raid depending on whose turn it is
-            if self.raid.turn == "user":
-                current_team = self.raid.enemies
-                self.raid.user_character = self.character
-                self.raid.turn = "enemy"
-            elif self.raid.turn == "enemy":
-                current_team = self.raid.team
-                self.raid.enemy_character = self.character
-                self.raid.turn = "user"
-                self.raid.determine_final_damage()
-
-            # Removes the the "Awaiting player actions..." from the combat log when it's unneeded
-            if self.raid.turn == "user" and self.raid.combat_log[0] == "Awaiting player actions...":
-                self.raid.combat_log.pop(0)
-
-            # Creates an embed displaying the current fight
-            embed = self.raid.create_embed()
-                
-            if current_team == self.raid.team:
-                embed.set_footer(text="Choose your fighter!")
-            else:
-                embed.set_footer(text="Choose which enemy to attack!")
-
-            # Displays the button for the player
-            view = self.raid.create_character_buttons(team=current_team)
-
-            # Checks to see if the level ended or if the raid ended
-            self.raid.check_level_end()
-            raid_over = await self.raid.check_raid_end(interaction)
-
-            if not raid_over:
-                    # Sends a message to indicate who can go next
-                    await interaction.response.edit_message(embed=embed, view=view)
-                    self.raid.combat_log = ["Awaiting player actions..."]
-            elif raid_over:
-                self.raid.send_timeout_message = False
-       
-        except Exception as e:
-            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
-            line_num = exc_traceback.tb_lineno
-
-            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when clicking on the character buttons in a raid on line {line_num}")
-
-class RaidItemButton(discord.ui.Button):
-    def __init__(self, label, raid):
-        super().__init__(label=label, style=discord.ButtonStyle.red)
-        self.raid = raid
+        self.game = game
         self.pressed = False
 
     async def prompt_user_for_item(self, interaction, inventory_embed, inventory_view, inventory_length, embed_message_id):
         for x in range(3):
             def check(msg):
-                return msg.author == self.raid.ctx.author and msg.channel == self.raid.ctx.channel
+                return msg.author == interaction.user and msg.channel == interaction.channel
 
             try:
-                msg = await self.raid.bot.wait_for('message', timeout=10, check=check)
+                msg = await self.game.bot.wait_for('message', timeout=10, check=check)
                 self.pressed = False
 
                 item_number = int(msg.content)
@@ -684,36 +636,43 @@ class RaidItemButton(discord.ui.Button):
                     item = {k:v for k, v in inventory_items.items() if k == list(inventory_items.keys())[item_number - 1]}
                     # Gets the item name
                     item_name = list(item.keys())[0]
+
                     # Adds the item to the items in use in order to check duration and applies the boosts from the item
-                    self.raid.items_in_use.append(item)
-                    self.raid.apply_item_boosts(item=item)
-                    self.raid.combat_log.append(f"You used 1x {item_name.replace("_", " ").title()}. You can use {3 - (self.raid.num_of_items_used)} more items.")
+                    if self.game.turn == "team_1":
+                        self.game.p1_items_in_use.append(item)
+                        self.game.combat_log.append(f"{interaction.user} used 1x {item_name.replace("_", " ").title()}. They can use {3 - (self.game.p1_num_of_items_used + 1)} more items.")
+                    elif self.game.game_type == "challenge" and self.game.turn == "team_2":
+                        self.game.p2_items_in_use.append(item)
+                        self.game.combat_log.append(f"{self.game.player_two} used 1x {item_name.replace("_", " ").title()}. They can use {3 - (self.game.p2_num_of_items_used + 1)} more items.")
+
+                    self.game.apply_item_boosts(item=item)
                     database_handler.inc_value_to_users(user_id=interaction.user.id, key=f"inventory.{item_name}.amount", value=-1)
 
-                    # Selects a random character for the enemy to target
-                    user_alive_characters = [char for char in self.raid.team if char.get('current_hp', 0) > 0]
-                    self.raid.turn = "enemy"
-                    self.raid.user_character = user_alive_characters[random.randint(0, (len(user_alive_characters) - 1))]
-                    view = self.raid.create_character_buttons(team=self.raid.enemies)
+                    # Selects a random character for the enemy to target                    
+                    for button in self.view.children:
+                        if button.label == "Items":
+                            self.view.remove_item(button)
+                            break
 
-                    # Sends a message to indicate who can go next
-                    await interaction.followup.edit_message(message_id= embed_message_id, view=view)
-
-                    self.pressed = False
+                    random_num = random.randint(0, (len(self.view.children) - 1))
+                    button = self.view.children[random_num]
+                    
+                    await button.on_button_click(interaction=interaction, simulated_click = True, embed_message_id = embed_message_id)
                     break
                     
             except asyncio.TimeoutError as e:
                     # Moves on to the next turn
-                    user_alive_characters = [char for char in self.raid.team if char.get('current_hp', 0) > 0]
-                    self.raid.turn = "enemy"
-                    self.raid.user_character = user_alive_characters[random.randint(0, (len(user_alive_characters) - 1))]
-                    view = self.raid.create_character_buttons(team=self.raid.enemies)
+                    for button in self.view.children:
+                        if button.label == "Items":
+                            self.view.children.remove(button)
+                            continue
 
-                    # Sends a message to indicate who can go next
-                    await interaction.followup.edit_message(message_id= embed_message_id, view=view)
-
-                    self.pressed = False
+                    random_num = random.randint(0, len(self.view.children) - 1)
+                    button = self.view.children[random_num]
+                    
+                    await button.on_button_click(interaction=interaction, simulated_click = True, embed_message_id = embed_message_id)
                     break
+
             except TypeError as e:
                     # Makes sure that the user enters a number within the range
                     if x == 2:
@@ -725,153 +684,7 @@ class RaidItemButton(discord.ui.Button):
                     exc_type, exc_value, exc_traceback = sys.exc_info() 
                     line_num = exc_traceback.tb_lineno
 
-                    create_error_embed(error=e, ctx=self.raid.ctx, msg=f"This occured when prompting the user to pick an item for the raid on line {line_num}")
-
-    async def on_button_click(self, interaction: discord.Interaction): 
-        try:
-            await interaction.response.defer()
-            # Debounce to prevent clicking multiple times
-            if self.pressed:
-                return
-
-            int_message = interaction.message
-            embed_message_id = int_message.id
-            self.pressed = True
-
-            for child in self.raid.view.children:
-                if child.label != "Items":
-                    child.disabled = True
-
-            user_profile = database_handler.users.find_one({"_id": self.raid.ctx.author.id})
-            item_inventory = {x['name']: x for x in database_handler.items.find({}) if "effects" in x}
-            user_inventory = user_profile.get('inventory')
-
-            # Gets all the items in the user's inventory
-            user_item_inventory = {item_name: info for (item_name, info) in user_inventory.items() if "effects" in info}
-            user_item_inventory = {item_name: info for (item_name, info) in item_inventory.items() if user_item_inventory.get(item_name, {}).get("amount", -1) > 0}
-            
-            # Makes sure that the items in the list have the correct amounts from the user since the dict user_item_inventory
-            # pulls from the database which automatically sets all amounts to 0
-            for item_name, info in user_item_inventory.copy().items():
-                user_item_inventory[item_name]['amount'] =  user_inventory[item_name]['amount']
-
-            # Creates the embed for the items
-            view = InventoryButtons(items=user_item_inventory, ctx=self.raid.ctx, display_for_item_command=True)
-            embed = await view.create_embed()
-
-            # Prevents the user from using more than three items
-            if not embed or self.raid.num_of_items_used >= 3:
-                for child in self.raid.view.children:
-                    if child.label != "Items":
-                        child.disabled = False
-                    else:
-                        child.disabled = True
-
-                return await interaction.followup.edit_message(message_id = embed_message_id, view=self.raid.view)
-
-            # Keeps prompting the user up to 3 times to enter a number
-            asyncio.create_task(self.prompt_user_for_item(interaction=interaction, inventory_embed=embed, inventory_view=view, inventory_length=len(user_item_inventory.keys()), embed_message_id= embed_message_id))
-
-            await interaction.followup.send(embed = embed, view = view, ephemeral= True)
-            await int_message.edit(view=self.raid.view)
-
-        except Exception as e:
-                exc_type, exc_value, exc_traceback = sys.exc_info() 
-                line_num = exc_traceback.tb_lineno
-
-                create_error_embed(error=e, ctx=self.raid.ctx, msg=f"This occured in the raid item button on line {line_num}")
-
-
-
-        # make it so that the bot prompts the user to choose an item 3 times before skipping their turn
-
-class ChallengeItemButton(discord.ui.Button):
-    def __init__(self, label, game):
-        super().__init__(label=label, style=discord.ButtonStyle.red)
-        self.game = game
-        self.pressed = False
-
-    async def prompt_user_for_item(self, interaction, inventory_embed, inventory_view, inventory_length, embed_message_id):
-        for x in range(3):
-            def check(msg):
-                return msg.author == interaction.user and msg.channel == self.game.ctx.channel
-
-            try:
-                msg = await self.game.bot.wait_for('message', timeout=10, check=check)
-                self.pressed = False
-                item_number = int(msg.content)
-                
-                if item_number < 1 or item_number > inventory_length:
-                    if x == 2:
-                        raise asyncio.TimeoutError
-                    
-                    await interaction.followup.send("Please enter the number for the corresponding item you want to use.", ephemeral = True)
-                    continue
-                else:
-                    # Gets the items stored in the inventory view
-                    inventory_items = inventory_view.items
-                    # Gets the item chosen by the user
-                    item = {item_name: item_info for item_name, item_info in inventory_items.items() if item_name == list(inventory_items.keys())[item_number - 1]}
-                    # Gets the item name
-                    item_name = list(item.keys())[0]
-                    # Adds the item to the items in use in order to check duration and applies the boosts from the item
-                    player_key = "p1" if self.game.turn == self.game.player_one else "p2"
-                    user_alive_characters = []
-                    
-                    if player_key == "p1":
-                        self.game.p1_items_in_use.append(item)
-                        self.game.apply_item_boosts(item=item, player_key=player_key)
-                        self.game.combat_log.append(f"{interaction.user} used 1x {item_name.replace("_", " ").title()}. {interaction.user} can use {3 - (self.game.p1_num_of_items_used)} more items.")
-                        database_handler.inc_value_to_users(user_id=interaction.user.id, key=f"inventory.{item_name}.amount", value=-1)
-                        user_alive_characters = [char for char in self.game.player_one_team if char.get('current_hp', 0) > 0]
-                        user_character = user_alive_characters[random.randint(0, (len(user_alive_characters) - 1))]['name']
-                        
-                        for button in self.view.children:
-                            if button.label == user_character:
-                                await button.on_button_click(interaction=interaction)
-
-                    elif player_key == "p2":
-                        self.game.p2_items_in_use.append(item)
-                        self.game.apply_item_boosts(item=item, player_key=player_key)
-                        self.game.combat_log.append(f"{interaction.user} used 1x {item_name.replace("_", " ").title()}. {interaction.user} can use {3 - (self.game.p2_num_of_items_used)} more items.")
-                        database_handler.inc_value_to_users(user_id=interaction.user.id, key=f"inventory.{item_name}.amount", value=-1)
-                        user_alive_characters = [char for char in self.game.player_two_team if char.get('current_hp', 0) > 0]
-                        user_character = user_alive_characters[random.randint(0, (len(user_alive_characters) - 1))]['name']
-                        
-                        for button in self.view.children:
-                            if button.label == user_character:
-                                await button.on_button_click(interaction=interaction)
-
-
-                    self.pressed = False
-                    break
-                    
-            except asyncio.TimeoutError as e:
-                    # Moves on to the next turn
-                    #make this use the on button thing
-                    user_alive_characters = [char for char in self.game.team if char['current_hp'] > 0]
-                    self.game.turn = self.game.player_one if self.game.turn == self.game.player_two else self.game.player_two
-                    self.game.user_character = user_alive_characters[random.randint(0, (len(user_alive_characters) - 1))]
-                    team = self.game.player_one_team if self.game.turn == self.game.player_one else self.game.player_two_team
-                    view = self.game.create_character_buttons(team=team)
-
-                    # Sends a message to indicate who can go next
-                    await interaction.followup.edit_message(message_id= embed_message_id, view=view, content=f"It is {self.game.turn.mention}'s turn!")
-
-                    self.pressed = False
-                    break
-            except TypeError as e:
-                    # Makes sure that the user enters a number within the range
-                    if x == 2:
-                       raise asyncio.TimeoutError
-                    
-                    await interaction.followup.send("Please enter the number for the corresponding item you want to use.", ephemeral=True, view = inventory_view, embed = inventory_embed)
-                    continue
-            except Exception as e:
-                    exc_type, exc_value, exc_traceback = sys.exc_info() 
-                    line_num = exc_traceback.tb_lineno
-
-                    create_error_embed(error=e, ctx=self.game.ctx, msg=f"This occured when prompting the user to pick an item for the challenge on line {line_num}")
+                    create_error_embed(error=e, ctx=self.game.ctx, msg=f"This occured when prompting the user to pick an item for the raid on line {line_num}")
 
     async def on_button_click(self, interaction: discord.Interaction): 
         try:
@@ -889,7 +702,7 @@ class ChallengeItemButton(discord.ui.Button):
                     child.disabled = True
 
             user_profile = database_handler.users.find_one({"_id": interaction.user.id})
-            item_inventory = {item['name']: item for item in database_handler.items.find({}) if "effects" in item}
+            item_inventory = {x['name']: x for x in database_handler.items.find({}) if "effects" in x}
             user_inventory = user_profile.get('inventory')
 
             # Gets all the items in the user's inventory
@@ -902,11 +715,16 @@ class ChallengeItemButton(discord.ui.Button):
                 user_item_inventory[item_name]['amount'] =  user_inventory[item_name]['amount']
 
             # Creates the embed for the items
-            view = InventoryButtons(items=user_item_inventory, ctx=self.game.ctx, display_for_item_command=True, user=interaction.user)
+            view = InventoryButtons(items=user_item_inventory, ctx=self.game.ctx, display_for_item_command=True)
             embed = await view.create_embed()
 
+            if self.game.game_type == "challenge":
+                num_of_items_used = self.game.p1_num_of_items_used if self.game.turn == "team_1" else self.game.p2_num_of_items_used
+            else:
+                num_of_items_used = self.game.p1_num_of_items_used
+
             # Prevents the user from using more than three items
-            if (self.game.turn == self.game.player_one and not embed) or (self.game.turn == self.game.player_one and self.game.p1_num_of_items_used >= 3):
+            if not embed or num_of_items_used >= 3:
                 for child in self.game.view.children:
                     if child.label != "Items":
                         child.disabled = False
@@ -914,15 +732,7 @@ class ChallengeItemButton(discord.ui.Button):
                         child.disabled = True
 
                 return await interaction.followup.edit_message(message_id = embed_message_id, view=self.game.view)
-            
-            elif ((self.game.turn == self.game.player_two and not embed) or (self.game.turn == self.game.player_two and self.game.p2_num_of_items_used >= 3)):
-                for child in self.game.view.children:
-                    if child.label != "Items":
-                        child.disabled = False
-                    else:
-                        child.disabled = True
 
-                return await interaction.followup.edit_message(message_id = embed_message_id, view=self.game.view)
             # Keeps prompting the user up to 3 times to enter a number
             asyncio.create_task(self.prompt_user_for_item(interaction=interaction, inventory_embed=embed, inventory_view=view, inventory_length=len(user_item_inventory.keys()), embed_message_id= embed_message_id))
 
@@ -933,10 +743,19 @@ class ChallengeItemButton(discord.ui.Button):
                 exc_type, exc_value, exc_traceback = sys.exc_info() 
                 line_num = exc_traceback.tb_lineno
 
-                create_error_embed(error=e, ctx=self.game.ctx, msg=f"This occured in the challenge item button on line {line_num}")
+                create_error_embed(error=e, ctx=self.game.ctx, msg=f"This occured in the raid item button on line {line_num}")
 
 
 
         # make it so that the bot prompts the user to choose an item 3 times before skipping their turn
 
-               
+# Creates the button for the invite command
+class InviteButton(discord.ui.View):
+    def __init__(self, *, timeout = 10):
+        # Creates the invite buttons and adds them to the view
+        super().__init__(timeout=timeout)
+        server_button = discord.ui.Button(label="Join the bot's official server!", style=discord.ButtonStyle.url, url="https://discord.gg/EaaF8aMCxG")
+        invite_button = discord.ui.Button(label='Invite the bot!', style=discord.ButtonStyle.url, url="https://discord.com/oauth2/authorize?client_id=1371573491391922278&scope=bot+applications.commands&permissions=414464691264")
+
+        self.add_item(server_button)
+        self.add_item(invite_button)

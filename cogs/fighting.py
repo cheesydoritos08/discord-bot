@@ -5,8 +5,7 @@ import os
 import sys
 from utils.utility_functions import cooldown_calculator, create_error_embed
 import handlers.database_handler as database_handler
-import handlers.fight_handler as fight_handler
-import handlers.raid_handler as raid_handler
+import handlers.fighting_handler as fighting_handler
 
 
 class Fighting(commands.Cog):
@@ -58,7 +57,8 @@ class Fighting(commands.Cog):
             msg = await self.bot.wait_for('message', timeout=15.0, check=check)
             # Determines what happens when the other player accepts/declines
             if msg.content.lower() == 'accept':
-                game = fight_handler.GameInstance(ctx, ctx.author, other_player, player_one_team, player_two_team, self.bot)
+                game = fighting_handler.ChallengeInstance(ctx=ctx, bot=self.bot, player_one=ctx.author, player_two=other_player, player_one_team=player_one_team, player_two_team=player_two_team)
+                
                 embed = game.create_embed()
                 view = game.create_character_buttons(player_one_team)
 
@@ -119,7 +119,7 @@ class Fighting(commands.Cog):
         if fighter_characters != []:
             database_handler.inc_value_to_users(user_id=ctx.author.id, key="inventory.raid_token.amount", value=-1)
 
-            raid = raid_handler.RaidInstance(level=level, team = user_team, ctx = ctx, bot = self.bot)
+            raid = fighting_handler.RaidInstance(level=level, team = user_team, ctx = ctx, bot = self.bot)
             embed = raid.create_embed()
             view = raid.create_character_buttons(team=user_team)
             database_handler.users.update_one({'_id': ctx.author.id}, {'$set': {'in_raid': True}})
@@ -140,7 +140,7 @@ class Fighting(commands.Cog):
         # Gets the current team and the character that is to be added to the team as well as creating some checker variables
         user_team = database_handler.users.find_one({'_id': ctx.author.id}).get('team')
         character = database_handler.user_character_finder(
-            user_id=ctx.author.id, character_name=character_name
+            user_id=ctx.author.id, character_name=character_name.title()
         )
         support_members = 0
         fighting_members = 0
@@ -162,7 +162,8 @@ class Fighting(commands.Cog):
                     fighting_members += 1
 
                 # Checks to see if a character is already in the team
-                if member == character:
+                if member['name'] == character['name']:
+
                     return await ctx.send('You can\'t add the same character twice genius.')
 
             # Determines whether to add a character to the team based off of certain criteria

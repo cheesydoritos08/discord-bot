@@ -256,6 +256,7 @@ class Economy(commands.Cog):
                     user_id=msg.author.id, key='economy.won', value=win_amount
                 )
                 update_quests(user_id=ctx.author.id, quest_id="win_highlow", amount=1)
+                
                 update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_won", amount=win_amount)
 
             elif (

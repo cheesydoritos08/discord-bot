@@ -13,152 +13,215 @@ class Owner_Commands(commands.Cog):
     # Test command to check leveling
     @commands.command(name = "lvlup")
     async def level_up(self, ctx, *, character_name):
-        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-            xp = 20 * 2000
-            character_xp_level = database_handler.increment_character_xp(user_id=ctx.author.id, xp=xp, character=character_name, return_xp=True)
-                
-            await ctx.send(f"{character_name.title()} currently has {character_xp_level}/2000.")
+        try:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+                xp = 20 * 2000
+                character_xp_level = database_handler.increment_character_xp(user_id=ctx.author.id, xp=xp, character=character_name, return_xp=True)
+                    
+                await ctx.send(f"{character_name.title()} currently has {character_xp_level}/2000.")
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when processing the effect for a character in a challenge on line {line_num}")
+
 
     # Test command to add character to my team
     @commands.command(name = "addchar")
     async def add_character(self, ctx, *, character_name):
-        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-            user_id = ctx.author.id
+        try:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+                user_id = ctx.author.id
 
-            user_character = database_handler.user_character_finder(user_id=user_id, character_name=character_name.strip().title())
-            
-            if user_character is not None:
-                return await ctx.send(f"You already own {character_name.title()}")
+                user_character = database_handler.user_character_finder(user_id=user_id, character_name=character_name.strip().title())
+                
+                if user_character is not None:
+                    return await ctx.send(f"You already own {character_name.title()}")
 
-            character = database_handler.all_characters.find_one({"name": character_name.title()})
+                character = database_handler.all_characters.find_one({"name": character_name.title()})
 
-            database_handler.add_array_to_users(
-                user_id=user_id, key='characters', array=character
-            )
-            
-            await ctx.send(f"{character_name.title()} has been added.")
+                database_handler.add_array_to_users(
+                    user_id=user_id, key='characters', array=character
+                )
+                
+                await ctx.send(f"{character_name.title()} has been added.")
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
 
-
-
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when processing the effect for a character in a challenge on line {line_num}")
 
     # Loads the specified extension
     @commands.command()
     async def load(self, ctx, extension):
-        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-            await self.bot.load_extension(f'cogs.{extension}')
-            await ctx.send(f'Loaded {extension} cog')
+        try:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+                await self.bot.load_extension(f'cogs.{extension}')
+                await ctx.send(f'Loaded {extension} cog')
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when processing the effect for a character in a challenge on line {line_num}")
+
 
     # Searches for a character and changes their stat for all users
     @commands.command(name="updchar")
     async def update_character(self, ctx, character, stat, value, convertToInt = ""):
-        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-            if convertToInt.lower() == "t":
-                value = int(value)
-        
-            database_handler.users.update_many({"characters.name": character.replace("_", " ").title()}, {"$set": {f"characters.$.{stat}": value}})
-            return await ctx.send(f"{character} has had {stat} changed to {value}")
+        try:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+                if convertToInt.lower() == "t":
+                    value = int(value)
+            
+                database_handler.users.update_many({"characters.name": character.replace("_", " ").title().replace("Ui", "UI")}, {"$set": {f"characters.$.{stat}": value}})
+                database_handler.users.update_many({"team.name": character.replace("_", " ").title().replace("Ui", "UI")}, {"$set": {f"team.$.{stat}": value}})
+
+                print(f"{character} has had {stat} changed to {value}")
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when processing the effect for a character in a challenge on line {line_num}")
+
         
     # Removes a stat from a character    
     @commands.command(name="unupdchar")
     async def un_update_character(self, ctx, character, stat):
-        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-        
-            database_handler.users.update_many({"characters.name": character.replace("_", " ").title()}, {"$unset": {f"characters.$.{stat}": ""}})
-            return await ctx.send(f"{character} has had {stat} changed to None")
+        try:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            
+                database_handler.users.update_many({"characters.name": character.replace("_", " ").title().replace("Ui", "UI")}, {"$unset": {f"characters.$.{stat}": ""}})
+                database_handler.users.update_many({"team.name": character.replace("_", " ").title().replace("Ui", "UI")}, {"$unset": {f"team.$.{stat}": ""}})
+
+                print(f"{character} has had {stat} changed to None")
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when processing the effect for a character in a challenge on line {line_num}")
 
     # Searches the effects of the given character and updates them for all users
     @commands.command(name="updeffect")
     async def update_effects_in_support_characters(self, ctx, character, effect, key, value, convertValueToInt = ""):
-        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-            if convertValueToInt.lower() == "true":
-                value = int(value)
+        try:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+                if convertValueToInt.lower() == "true":
+                    value = int(value)
 
-            index = None
+                index = None
 
-            user_char = database_handler.users.find_one({"characters.name": character.replace("_", " ").title()}, { "characters.$": 1})
+                user_char = database_handler.users.find_one({"characters.name": character.replace("_", " ").title()}, { "characters.$": 1})
 
-            for i, char_effect in enumerate(user_char['characters'][0]['effects']):
-                if effect == char_effect['stat']:
-                    index = i
-            
-            if index is None:
-                return await ctx.send("Something went wrong.")
+                for i, char_effect in enumerate(user_char['characters'][0]['effects']):
+                    if effect == char_effect['stat']:
+                        index = i
+                
+                if index is None:
+                    return await ctx.send("Something went wrong.")
 
-            database_handler.users.update_many({"characters.name": character.replace("_", " ").title()}, {"$set": {f"characters.$.effects.{index}.{key}": value}})
-            return await ctx.send(f"{character}'s {effect} has had {key} changed to {value}")
+                database_handler.users.update_many({"characters.name": character.replace("_", " ").title()}, {"$set": {f"characters.$.effects.{index}.{key}": value}})
+                database_handler.users.update_many({"team.name": character.replace("_", " ").title()}, {"$set": {f"team.$.effects.{index}.{key}": value}})
+
+                return await ctx.send(f"{character}'s {effect} has had {key} changed to {value}")
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when processing the effect for a character in a challenge on line {line_num}")
+
+    # Searches the effects of the given character and updates them for all users
+    @commands.command(name="unupdeffect")
+    async def un_update_effects_in_support_characters(self, ctx, character, effect, key):
+        try:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+                index = None
+
+                user_char = database_handler.users.find_one({"characters.name": character.replace("_", " ").title()}, { "characters.$": 1})
+
+                for i, char_effect in enumerate(user_char['characters'][0]['effects']):
+                    print(char_effect['stat'])
+                    if effect == char_effect['stat']:
+                        index = i
+                
+                if index is None:
+                    return await ctx.send("Something went wrong.")
+
+                database_handler.users.update_many({"characters.name": character.replace("_", " ").title()}, {"$unset": {f"characters.$.effects.{index}.{key}": ""}})
+                database_handler.users.update_many({"team.name": character.replace("_", " ").title()}, {"$unset": {f"team.$.effects.{index}.{key}": ""}})
+
+                return await ctx.send(f"{character}'s {effect} has had {key} changed to None")
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when processing the effect for a character in a challenge on line {line_num}")
+
 
 
     # Unloads the specified extension
     @commands.command()
     async def unload(self, ctx, extension):
-        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-            await self.bot.unload_extension(f'cogs.{extension}')
-            await ctx.send(f'Unloaded {extension} cog')
+        try:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+                await self.bot.unload_extension(f'cogs.{extension}')
+                await ctx.send(f'Unloaded {extension} cog')
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when processing the effect for a character in a challenge on line {line_num}")
+
 
     # Reloads the specified extension
     @commands.command()
     async def reload(self, ctx, extension):
-        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-            await self.bot.reload_extension(f'cogs.{extension}')
-            await ctx.send(f'Reloaded {extension} cog')
+        try:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+                await self.bot.reload_extension(f'cogs.{extension}')
+                await ctx.send(f'Reloaded {extension} cog')
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when processing the effect for a character in a challenge on line {line_num}")
+
 
     # Adds an item to the user inventory
     @commands.command(name="add")
     async def add_item(self, ctx, *, item):
-        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-            database_handler.add_item(user_id= ctx.author.id, item=item)
-            await ctx.send(f"{item} has been added.")
+        try:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+                database_handler.add_item(user_id= ctx.author.id, item=item)
+                await ctx.send(f"{item} has been added.")
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when processing the effect for a character in a challenge on line {line_num}")
+
 
     # Returns an embed with all the guilds that my bot is in
     @commands.command(name="viewguild")
     async def view_guild_info(self, ctx, id : int = None):
-        if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-            
-            if id:
-                guilds = []
-                guilds.append(self.bot.get_guild(id))
-            else:
-                guilds = self.bot.guilds
+        try:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+                
+                if id:
+                    guilds = []
+                    guilds.append(self.bot.get_guild(id))
+                else:
+                    guilds = self.bot.guilds
 
-            view = ViewGuildsButton(bot=self.bot, guilds=guilds, ctx=ctx)
+                view = ViewGuildsButton(bot=self.bot, guilds=guilds, ctx=ctx)
 
-            await ctx.send(embed=await view.create_embed(guilds[0]), view=view)
-    
-
-    @view_guild_info.error
-    @update_character.error
-    @un_update_character.error
-    @update_effects_in_support_characters.error
-    @unload.error
-    @load.error
-    @reload.error
-    @add_item.error
-    @level_up.error
-    async def error_handler(self, ctx, error):
-        # Sends a cooldown message if command is reused when on cooldown
-        if isinstance(error, commands.CommandOnCooldown):
-            user_id = ctx.author.id
-            cooldown_string = cooldown_calculator(round(error.retry_after))
-
-            if user_id not in self.warned_cooldown_users:
-                self.warned_cooldown_users.add(user_id)
-                await ctx.send(f'Can\'t you be patient and just wait for {cooldown_string}')
-            
-            # cleanup after cooldown
-            async def remove_after():
-                await asyncio.sleep(error.retry_after)
-                self.warned_cooldown_users.discard(user_id)
-
-            asyncio.create_task(remove_after())
-        elif isinstance(error, commands.CommandNotFound):
-            pass
-        else:
+                await ctx.send(embed=await view.create_embed(guilds[0]), view=view)
+        except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
             line_num = exc_traceback.tb_lineno
-            file_name = os.path.split(exc_traceback.tb_frame.f_code.co_filename)[1]
 
-            await create_error_embed(ctx=ctx, error=error, msg=f"This occured on line {line_num} in {file_name}")
+            create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when processing the effect for a character in a challenge on line {line_num}")
 
+        
 
 async def setup(bot):
     await bot.add_cog(Owner_Commands(bot))
