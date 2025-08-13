@@ -667,8 +667,6 @@ class RaidInstance(GameInstance):
         self.apply_stat_boosts()
         self.initalize_character_states(is_start_of_game=True)
 
-
-
     # Returns a list of the enemies that will be generated
     def get_enemies(self):
         try:
@@ -741,12 +739,74 @@ class RaidInstance(GameInstance):
                      "ATK": 4,
                      "SPD": 4
                  }},
+
+            45:  {"rarity": "Legendary",
+                 "number_of_enemies": 3,
+                 "stat_multiplier": {
+                     "HP": 5,
+                     "ATK": 5,
+                     "SPD": 5
+                 }},
+
+            50:  {"rarity": "Legendary",
+                 "number_of_enemies": 3,
+                 "stat_multiplier": {
+                     "HP": 6,
+                     "ATK": 6,
+                     "SPD": 6
+                 }},
+
+            55:  {"rarity": "Legendary",
+                 "number_of_enemies": 4,
+                 "stat_multiplier": {
+                     "HP": 7,
+                     "ATK": 7,
+                     "SPD": 7
+                 }},
+
+            60:  {"rarity": "Legendary",
+                 "number_of_enemies": 4,
+                 "stat_multiplier": {
+                     "HP": 8,
+                     "ATK": 8,
+                     "SPD": 8
+                 }},
+
+            65:  {"rarity": "Legendary",
+                 "number_of_enemies": 5,
+                 "stat_multiplier": {
+                     "HP": 9,
+                     "ATK": 9,
+                     "SPD": 9
+                 }},
+
+            70:  {"rarity": "Legendary",
+                 "number_of_enemies": 5,
+                 "stat_multiplier": {
+                     "HP": 10,
+                     "ATK": 10,
+                     "SPD": 10
+                 }},
+
         }
+            
 
             threshold = math.ceil(float(self.level) / 5) * 5
 
-            if threshold > 40:
-                threshold = 40
+            if threshold > 70:
+                multiplier = math.ceil((threshold - 70)/5)
+
+                enemy_setup_dictionary = {
+                70: {"rarity": "Legendary",
+                 "number_of_enemies": 5,
+                 "stat_multiplier": {
+                     "HP": 10 + multiplier,
+                     "ATK": 10 + multiplier,
+                     "SPD": 10 + multiplier,
+                 }}
+                }
+
+                threshold = 70
             
             # Gets a list of all the characters who correspond to the rarity
             possible_enemies = database_handler.all_characters.find({"rarity": enemy_setup_dictionary[threshold]["rarity"], "class": { "$ne": "Support" }})
@@ -816,61 +876,82 @@ class RaidInstance(GameInstance):
         try:
             rewards_dictionary = {
                 5: {
-                    "raid_token": 30,
-                    "standard_ticket": 30,
-                    "limited_ticket": 25,
+                    "raid_token": 10,
+                    "standard_ticket": 10,
+                    "limited_ticket": 5,
                     "white_shirt": 5,
-                    "broken_sunglasses": 35,
-                    "boxing_gloves": 15,
-                    "biker_helmet": 45,
-                    "leather_jacket": 25
+                    "broken_sunglasses": 5,
+                    "boxing_gloves": 5,
+                    "biker_helmet": 5,
+                    "leather_jacket": 5
                     },
 
-                10: {                
-                    "raid_token": 40,
-                    "standard_ticket": 30,
-                    "limited_ticket": 30,
-                    "ev_stone": 20,
-                    "white_shirt": 10,
-                    "broken_sunglasses": 40,
-                    "boxing_gloves": 20,
-                    "biker_helmet": 50,
-                    "leather_jacket": 30
+                10: {
+                    "raid_token": 15,
+                    "standard_ticket": 15,
+                    "limited_ticket": 8,
+                    "white_shirt": 8,
+                    "broken_sunglasses": 8,
+                    "boxing_gloves": 8,
+                    "biker_helmet": 8,
+                    "leather_jacket": 8
                     },
 
                 15: {
-                    "raid_token": 50,
-                    "standard_ticket": 40,
-                    "limited_ticket": 35,
-                    "xp_booster": 5,
-                    "won_booster": 5,
-                    "ev_stone": 10,
-                    "white_shirt": 15,
-                    "broken_sunglasses": 45,
-                    "boxing_gloves": 25,
-                    "biker_helmet": 55,
-                    "leather_jacket": 35
-                    },
-
-                20:  {
-                    "raid_token": 60,
-                    "standard_ticket": 50,
-                    "limited_ticket": 40,
+                    "raid_token": 20,
+                    "standard_ticket": 20,
+                    "limited_ticket": 11,
                     "xp_booster": 10,
                     "won_booster": 10,
-                    "ev_stone": 15,
-                    "white_shirt": 20,
-                    "broken_sunglasses": 60,
-                    "boxing_gloves": 30,
-                    "biker_helmet": 60,
-                    "leather_jacket": 40
+                    "ev_stone": 10,
+                    "white_shirt": 11,
+                    "broken_sunglasses": 11,
+                    "boxing_gloves": 11,
+                    "biker_helmet": 11,
+                    "leather_jacket": 11
                     },
             }
 
             threshold = math.ceil(float(self.level) / 5) * 5
+            if threshold > 70:
+                rewards_dictionary = {
+                 70: {
+                    "raid_token": 75,
+                    "standard_ticket": 75,
+                    "limited_ticket": 44,
+                    "xp_booster": 21,
+                    "won_booster": 21,
+                    "ev_stone": 21,
+                    "white_shirt": 44,
+                    "broken_sunglasses": 44,
+                    "boxing_gloves": 44,
+                    "biker_helmet": 44,
+                    "leather_jacket": 44
+                    },
+                }
+                
+                threshold = 70
+                
+            elif threshold > 15:
+                multiplier = math.ceil((self.level - threshold)/ 5)
 
-            if threshold > 20:
-                threshold = 20
+                rewards_dictionary = {
+                 15: {
+                    "raid_token": 20 + (multiplier * 5),
+                    "standard_ticket": 20 + (multiplier * 5),
+                    "limited_ticket": 11 + (multiplier * 3),
+                    "xp_booster": 10 + (multiplier),
+                    "won_booster": 10 + (multiplier),
+                    "ev_stone": 10 + (multiplier),
+                    "white_shirt": 11 + (multiplier * 3),
+                    "broken_sunglasses": 11 + (multiplier * 3),
+                    "boxing_gloves": 11 + (multiplier * 3),
+                    "biker_helmet": 11 + (multiplier * 3),
+                    "leather_jacket": 11 + (multiplier * 3)
+                    },
+                }
+
+                threshold = 15
 
             # Rolls a random number for each item in the rewards dictionary to see if
             # the user gets the item
@@ -883,12 +964,11 @@ class RaidInstance(GameInstance):
                     # Determines the number of rewards based on how fast the round is completed
                     if excess_round_attempts > 15:
                         range_of_rewards = 1
-                    elif excess_round_attempts > 10:
+                    elif excess_round_attempts > 7:
                         range_of_rewards = 2
-                    elif excess_round_attempts > 5:
-                        range_of_rewards = 3
                     else:
-                        range_of_rewards = 4
+                        range_of_rewards = 3
+
                     
                     if self.player_rewards.get(item) is None:
                         self.player_rewards[item] = 0
@@ -896,23 +976,23 @@ class RaidInstance(GameInstance):
                     self.player_rewards[item] += range_of_rewards
 
             if self.level > 20:
-                xp_starting_payout = 600
-                won_starting_payout = 500
+                xp_starting_payout = 100
+                won_starting_payout = 50
             elif self.level > 15:
-                xp_starting_payout = 500
-                won_starting_payout = 400
+                xp_starting_payout = 80
+                won_starting_payout = 40
             elif self.level > 10:
-                xp_starting_payout = 400
-                won_starting_payout = 300
+                xp_starting_payout = 60
+                won_starting_payout = 30
             elif self.level > 5:
-                xp_starting_payout = 300
-                won_starting_payout = 200
+                xp_starting_payout = 40
+                won_starting_payout = 20
             else:
-                xp_starting_payout = 200
-                won_starting_payout = 100
+                xp_starting_payout = 20
+                won_starting_payout = 10
 
-            self.xp_payout += random.randint(xp_starting_payout, xp_starting_payout + 100)
-            self.won_payout += random.randint(won_starting_payout, won_starting_payout + 100)
+            self.xp_payout += random.randint(xp_starting_payout, xp_starting_payout + 50)
+            self.won_payout += random.randint(won_starting_payout, won_starting_payout + 50)
 
 
         except Exception as e:
