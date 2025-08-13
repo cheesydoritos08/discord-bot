@@ -762,8 +762,8 @@ class RaidInstance(GameInstance):
                 
                 if enemy.get("crit_chance", None) is not None:
                     enemy["crit_chance"] = random.randint(round(enemy["crit_chance"]*2*0.8), round(enemy["crit_chance"]*2*1.2))
-                elif enemy.get("reflect_chance", None) is not None:
-                    enemy["reflect_chance"] = random.randint(round(enemy["reflect_chance"]*2*0.8), round(enemy["reflect_chance"]*2*1.2))
+                elif enemy.get("dodge_chance", None) is not None:
+                    enemy["dodge_chance"] = random.randint(round(enemy["dodge_chance"]*2*0.8), round(enemy["dodge_chance"]*2*1.2))
                 elif enemy.get("stun_chance", None) is not None:
                     enemy["stun_chance"] = random.randint(round(enemy["stun_chance"]*2*0.8), round(enemy["stun_chance"]*2*1.2))
 

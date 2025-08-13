@@ -273,9 +273,9 @@ class CharacterButton(discord.ui.View):
                     elif character.get('crit_chance'):
                         special_effect = "Critical Hits"
                         special_effect_description = f"Gives the character a {character['crit_chance']}% chance to do {character['crit_damage']} times their normal damage"
-                    elif character.get('reflect_chance'):
-                        special_effect = "Reflection"
-                        special_effect_description = f"Gives the character a {character['reflect_chance']}% to reflect {character['reflect_percent']}% chance of the damage dealt to them back to their attacker"
+                    elif character.get('dodge_chance'):
+                        special_effect = "Dodging"
+                        special_effect_description = f"Gives the character a {character['dodge_chance']}% to dodge all attacks for {character['dodge_duration']} turn(s)"
 
 
                     desc = f'> **Rarity:** {character["rarity"]}\n> **Class:** {character["class"]}\n> **ATK:** {character["ATK"]}\n> **HP:** {character["HP"]}\n> **SPD:** {character["SPD"]}\n> **LVL:** {character["LVL"]}\n> **Threshold:** {character["threshold"]}\n> **Special Effect**: {special_effect}\n> **Special Effect Description**: {special_effect_description}\n> **XP:** {character["XP"]}/2000'

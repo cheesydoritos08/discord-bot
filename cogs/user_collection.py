@@ -193,7 +193,7 @@ class User_Collection(commands.Cog):
                     character['crit_damage'] += evolution_abilities_dictionary[character['rarity']]['crit_damage']
                 
                 elif character['class'] == "Weaver":
-                    character['dodge_chance'] += evolution_abilities_dictionary[character['rarity']]['reflect_chance']
+                    character['dodge_chance'] += evolution_abilities_dictionary[character['rarity']]['dodge_chance']
                     
                     if character['threshold'] == 2:
                         character['dodge_duration'] += 1
@@ -250,7 +250,7 @@ class User_Collection(commands.Cog):
 
                     effect['amount'] += evolution_dictionary[character['rarity']][effect['type']]
 
-                    if effect['stat'] == "crit_chance" or effect['stat'] == "reflect_chance" or effect['stat'] == "stun_chance":
+                    if effect['stat'] == "crit_chance" or effect['stat'] == "dodge_chance" or effect['stat'] == "stun_chance":
                         description_string += f"increases the {effect['stat'].replace("_", " ")} of all eligible team members by {effect['amount']}%, "
                     elif effect['type'] == "buff": 
                         description_string += f"increases the {effect['stat'].upper()} of all team members by {effect['amount']}%, "
