@@ -258,7 +258,6 @@ class GameInstance:
                     
                     defending_team = "team_1" if team == "team_2" else "team_2"
 
-                    #print(self.team_states[defending_team][defending_character['name']])
                     if self.team_states[defending_team][defending_character['name']]['can_dodge']:
                         return
 
@@ -422,10 +421,11 @@ class GameInstance:
                         
                     if self.team_states[team][char['name']]["stun_timer"] <= 1:
                         self.team_states[team][char['name']]["stunned"] = False
+                        self.team_states[team][char['name']]["stun_timer"] = 0
                     else:
                         self.team_states[team][char['name']]["stun_timer"] -= 1
 
-                    if self.team_states[team][char['name']]["dodge_timer"] <= 1:
+                    if self.team_states[team][char['name']]["dodge_timer"] <= 0:
                         self.team_states[team][char['name']]["can_dodge"] = False
                     else:
                         self.team_states[team][char['name']]["dodge_timer"] -= 1
@@ -815,8 +815,8 @@ class RaidInstance(GameInstance):
                 elif enemy.get("dodge_chance", None) is not None:
                     enemy["dodge_chance"] = random.randint(round(enemy["dodge_chance"]*2*0.8), round(enemy["dodge_chance"]*2*1.2))
                 elif enemy.get("stun_chance", None) is not None:
-                    #enemy['stun_chance'] = 100
-                    enemy["stun_chance"] = random.randint(round(enemy["stun_chance"]*2*0.8), round(enemy["stun_chance"]*2*1.2))
+                    enemy['stun_chance'] = 100
+                    #enemy["stun_chance"] = random.randint(round(enemy["stun_chance"]*2*0.8), round(enemy["stun_chance"]*2*1.2))
 
                 enemy["HP"] = random.randint(round(enemy["HP"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["HP"]*0.8), round(enemy["HP"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["HP"]*1.2))
                 enemy["ATK"] = random.randint(round(enemy["ATK"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["ATK"]*0.8), round(enemy["ATK"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["ATK"]*1.2))
