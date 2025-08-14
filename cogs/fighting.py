@@ -40,7 +40,11 @@ class Fighting(commands.Cog):
         player_one_team = database_handler.users.find_one({'_id': ctx.author.id}).get('team', [])
         player_two_team = database_handler.users.find_one({'_id': other_player.id}).get('team', [])
 
-        if not player_one_team or not player_two_team:
+        team_one_fighter_characters = [char for char in player_one_team if char["class"] != "Support"]
+        team_two_fighter_characters = [char for char in player_two_team if char["class"] != "Support"]
+
+
+        if team_one_fighter_characters == [] or team_two_fighter_characters == []:
             return await ctx.send("One of you doesn't have a team set up.")
 
         database_handler.users.update_one({'_id': ctx.author.id}, {'$set': {'in_challenge': True}})

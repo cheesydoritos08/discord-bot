@@ -232,7 +232,6 @@ class GameInstance:
         try:
             attacking_character = self.player_one_character if team == "team_1" else self.player_two_character
 
-
             if self.team_states[team][attacking_character['name']]['stunned'] or attacking_character['current_hp'] <= 0:
                 return
             
@@ -259,14 +258,13 @@ class GameInstance:
                     
                     defending_team = "team_1" if team == "team_2" else "team_2"
 
+                    print(self.team_states[defending_team][defending_character['name']])
                     if self.team_states[defending_team][defending_character['name']]['can_dodge']:
                         return
 
                     self.team_states[defending_team][defending_character['name']]['stunned'] = True
-                    self.team_states[defending_team][defending_character['name']]['stun_timer'] = attacking_character.get('stun_duration')
+                    self.team_states[defending_team][defending_character['name']]['stun_timer'] = attacking_character.get('stun_duration')          
                 
-                
-
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
             line_num = exc_traceback.tb_lineno
@@ -380,8 +378,10 @@ class GameInstance:
                     self.combat_log.append(f"**{self.player_two_character['name']} takes advantage of {self.player_one_character['name']}'s stunned state and attacks!**")  
                 
                 self.handle_attack(attacker=self.player_one_character, attacking_team="team_1")
+                self.reset_character(team="team_1")
                 self.apply_support_effects(attacking_team = "team_2")
                 self.handle_attack(attacker=self.player_two_character, attacking_team="team_2")
+                self.reset_character(team="team_2")
 
 
             elif player_one_speed < player_two_speed:
@@ -393,10 +393,17 @@ class GameInstance:
                     self.combat_log.append(f"**{self.player_one_character['name']} takes advantage of {self.player_two_character['name']}'s stunned state and attacks!**" )  
                 
                 self.handle_attack(attacker=self.player_two_character, attacking_team="team_2")
+                self.reset_character(team="team_2")
                 self.apply_support_effects(attacking_team = "team_1")
                 self.handle_attack(attacker=self.player_one_character, attacking_team="team_1")
+                self.reset_character(team="team_1")
 
-            self.reset_round()
+
+            self.player_one_character = None
+            self.player_two_character = None
+
+            if self.game_type == "raid":
+                self.round += 1
 
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
@@ -405,42 +412,24 @@ class GameInstance:
             create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when determining the final damage for a challenge round on line {line_num}")
 
     # YES Resets the round to prepare for the next turn
-    def reset_round(self):
+    def reset_character(self, team):
         try:
-            self.player_one_character = None
-            self.player_two_character = None
+            player_team = self.player_one_team if team == "team_1" else self.player_two_team
 
-            for char in self.player_one_team:
+            for char in player_team:
                 if char['class'] != "Support":
-                    self.team_states["team_1"][char['name']]["can_crit"] = False
+                    self.team_states[team][char['name']]["can_crit"] = False
                         
-                    if self.team_states["team_1"][char['name']]["stun_timer"] <= 1:
-                        self.team_states["team_1"][char['name']]["stunned"] = False
+                    if self.team_states[team][char['name']]["stun_timer"] <= 1:
+                        self.team_states[team][char['name']]["stunned"] = False
                     else:
-                        self.team_states["team_1"][char['name']]["stun_timer"] -= 1
+                        self.team_states[team][char['name']]["stun_timer"] -= 1
 
-                    if self.team_states["team_1"][char['name']]["dodge_timer"] <= 1:
-                        self.team_states["team_1"][char['name']]["can_dodge"] = False
+                    if self.team_states[team][char['name']]["dodge_timer"] <= 1:
+                        self.team_states[team][char['name']]["can_dodge"] = False
                     else:
-                        self.team_states["team_1"][char['name']]["dodge_timer"] -= 1
+                        self.team_states[team][char['name']]["dodge_timer"] -= 1
     
-
-            for char in self.player_two_team:
-                if char['class'] != "Support":
-                    self.team_states["team_2"][char['name']]["can_crit"] = False
-                        
-                    if self.team_states["team_2"][char['name']]["stun_timer"] <= 1:
-                        self.team_states["team_2"][char['name']]["stunned"] = False
-                    else:
-                        self.team_states["team_2"][char['name']]["stun_timer"] -= 1
-
-                    if self.team_states["team_2"][char['name']]["dodge_timer"] <= 1:
-                        self.team_states["team_2"][char['name']]["can_dodge"] = False
-                    else:
-                         self.team_states["team_2"][char['name']]["dodge_timer"] -= 1
-
-            if self.game_type == "raid":
-                self.round += 1
             
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
@@ -826,7 +815,8 @@ class RaidInstance(GameInstance):
                 elif enemy.get("dodge_chance", None) is not None:
                     enemy["dodge_chance"] = random.randint(round(enemy["dodge_chance"]*2*0.8), round(enemy["dodge_chance"]*2*1.2))
                 elif enemy.get("stun_chance", None) is not None:
-                    enemy["stun_chance"] = random.randint(round(enemy["stun_chance"]*2*0.8), round(enemy["stun_chance"]*2*1.2))
+                    enemy['stun_chance'] = 100
+                    #enemy["stun_chance"] = random.randint(round(enemy["stun_chance"]*2*0.8), round(enemy["stun_chance"]*2*1.2))
 
                 enemy["HP"] = random.randint(round(enemy["HP"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["HP"]*0.8), round(enemy["HP"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["HP"]*1.2))
                 enemy["ATK"] = random.randint(round(enemy["ATK"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["ATK"]*0.8), round(enemy["ATK"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["ATK"]*1.2))
