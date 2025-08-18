@@ -15,7 +15,7 @@ class Owner_Commands(commands.Cog):
     async def level_up(self, ctx, *, character_name):
         try:
             if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
-                xp = 20 * 2000
+                xp = 50 * 2000
                 character_xp_level = database_handler.increment_character_xp(user_id=ctx.author.id, xp=xp, character=character_name, return_xp=True)
                     
                 await ctx.send(f"{character_name.title()} currently has {character_xp_level}/2000.")

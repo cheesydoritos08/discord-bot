@@ -131,50 +131,92 @@ class User_Collection(commands.Cog):
         return self.add_character_to_inventory(rarity=chosen_rarity, user_id=user_id)
 
     # Evolves the fighting character based on their rarity and class
-    def evolve_fighter_character(self, user_id, character):
+    def evolve_fighter_character(self, user_id, character):     
         evolution_dictionary = {
-            "Striker": {
-                "ATK": 1.25,
-                "HP": 1.20,
-                "SPD": 1.15,
-            },
-            "Grappler": {
-                "ATK": 1.20,
-                "HP": 1.25,
-                "SPD": 1.15,
-            },
-            "Weaver": {
-                "ATK": 1.15,
-                "HP": 1.20,
-                "SPD": 1.25,
-            }
-        }
-        
-        evolution_abilities_dictionary = {
             "Common": {
                 "stun_chance": 3,
                 "crit_chance": 3,
                 "crit_damage": 0.2,
                 "dodge_chance": 3,
+                "Striker": {
+                    "ATK": 1.15,
+                    "HP": 1.10,
+                    "SPD": 1.05,
+                },
+                "Grappler": {
+                    "ATK": 1.10,
+                    "HP": 1.15,
+                    "SPD": 1.05,
+                },
+                "Weaver": {
+                    "ATK": 1.05,
+                    "HP": 1.10,
+                    "SPD": 1.15,
+                }
             },
             "Rare": {
                 "stun_chance": 5,
                 "crit_chance": 5,
                 "crit_damage": 0.3,
-                "dodge_chance": 5
+                "dodge_chance": 5,
+                "Striker": {
+                    "ATK": 1.20,
+                    "HP": 1.15,
+                    "SPD": 1.10,
+                },
+                "Grappler": {
+                    "ATK": 1.15,
+                    "HP": 1.20,
+                    "SPD": 1.10,
+                },
+                "Weaver": {
+                    "ATK": 1.10,
+                    "HP": 1.15,
+                    "SPD": 1.20,
+                }
             },
             "Epic": {
                 "stun_chance": 7,
                 "crit_chance": 7,
                 "crit_damage": 0.4,
-                "dodge_chance": 7
+                "dodge_chance": 7,
+                "Striker": {
+                    "ATK": 1.25,
+                    "HP": 1.20,
+                    "SPD": 1.15,
+                },
+                "Grappler": {
+                    "ATK": 1.20,
+                    "HP": 1.25,
+                    "SPD": 1.15,
+                },
+                "Weaver": {
+                    "ATK": 1.15,
+                    "HP": 1.20,
+                    "SPD": 1.25,
+                }
             },
             "Legendary": {
                 "stun_chance": 10,
                 "crit_chance": 10,
                 "crit_damage": 0.5,
-                "dodge_chance": 10
-            },
+                "dodge_chance": 10,
+                "Striker": {
+                    "ATK": 1.30,
+                    "HP": 1.25,
+                    "SPD": 1.20,
+                },
+                "Grappler": {
+                    "ATK": 1.25,
+                    "HP": 1.30,
+                    "SPD": 1.20,
+                },
+                "Weaver": {
+                    "ATK": 1.20,
+                    "HP": 1.25,
+                    "SPD": 1.30,
+                }
+            },#FINISH EVO
         }
         user_profile = database_handler.users.find_one({"_id": user_id})
         user_characters = user_profile.get('characters')
@@ -184,22 +226,22 @@ class User_Collection(commands.Cog):
         for i, user_character in enumerate(user_characters):
             # Goes through the character list and increases the stats of the corresponding character
             if user_character['name'] == character['name']:
-                character['ATK'] = round(character['ATK'] * evolution_dictionary[character['class']]['ATK'])
-                character['HP'] = round(character['HP'] * evolution_dictionary[character['class']]['HP'])
-                character['SPD'] = round(character['SPD'] * evolution_dictionary[character['class']]['SPD'])
+                character['ATK'] = round(character['ATK'] * evolution_dictionary[character['rarity']][character['class']]['ATK'])
+                character['HP'] = round(character['HP'] * evolution_dictionary[character['rarity']][character['class']]['HP'])
+                character['SPD'] = round(character['SPD'] * evolution_dictionary[character['rarity']][character['class']]['SPD'])
             
                 if character['class'] == "Striker":
-                    character['crit_chance'] = round(character['crit_chance'] + evolution_abilities_dictionary[character['rarity']]['crit_chance'], 1)
-                    character['crit_damage'] += evolution_abilities_dictionary[character['rarity']]['crit_damage']
+                    character['crit_chance'] = round(character['crit_chance'] + evolution_dictionary[character['rarity']]['crit_chance'], 1)
+                    character['crit_damage'] += evolution_dictionary[character['rarity']]['crit_damage']
                 
                 elif character['class'] == "Weaver":
-                    character['dodge_chance'] += evolution_abilities_dictionary[character['rarity']]['dodge_chance']
+                    character['dodge_chance'] += evolution_dictionary[character['rarity']]['dodge_chance']
                     
                     if character['threshold'] == 2:
                         character['dodge_duration'] += 1
 
                 elif character['class'] == "Grappler":
-                    character['stun_chance'] += evolution_abilities_dictionary[character['rarity']]['stun_chance']
+                    character['stun_chance'] += evolution_dictionary[character['rarity']]['stun_chance']
                     
                     if character['threshold'] == 2:
                         character['stun_duration'] += 1
