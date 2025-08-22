@@ -80,6 +80,11 @@ class Fun(commands.Cog):
 
         return await ctx.send(embed = embed)
 
+    
+    
+    
+    
+    
     @random_quote_generator.error
     @who_would_win.error
     async def error_handler(self, ctx, error):
