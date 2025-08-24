@@ -57,6 +57,7 @@ def create_new_profile(user_id):
             'in_challenge': False,
             'in_trade': False,
             'in_raid': False,
+
             'all_quests_complete': False,
             'raid_level': 1,
             'buffs': {
@@ -73,7 +74,11 @@ def create_new_profile(user_id):
                 'bot_vote': 0,
                 'eloclaim': 0,
             },
-            'quests': []
+            'quests': [],
+            'crew':{
+                'in_crew': False,
+                'crew_name': ""
+            }
         }
 
         users.insert_one(new_profile)
