@@ -10,9 +10,9 @@ class Crew_Commands(commands.Cog):
         self.bot = bot
         self.warned_cooldown_users = set()
 
-    # BUFF RAID REWARDS
+    # TODO: BUFF RAID REWARDS
     @commands.command(name="crewcreate",
-                      help="This command allows you to create a crew with up to four members including yourself. The syntax for this command is ?crewcreate <crew name>.")
+                      help="This command allows you to create a crew with up to four members including yourself. Creating a crew costs 10,000 won. The syntax for this command is ?crewcreate <crew name>.")
     async def create_crew(self, ctx, *, name : str):
         try:
             # Checks to see if the user has a profile or not
@@ -49,6 +49,7 @@ class Crew_Commands(commands.Cog):
                 "crew_head": ctx.author.id,
                 "crew_name": name,
                 "crew_balance": 0,
+                "crew_level": 0,
                 "crew_member_one": {
                     "crew_member_id": ctx.author.id,
                     "last_income_claimtime": 0,
@@ -111,10 +112,7 @@ class Crew_Commands(commands.Cog):
             crews = database_handler.crews.find({})
 
             for crew in crews:            
-                if (crew.get('crew_member_one').get('crew_member_id') == ctx.author.id 
-                    or crew.get('crew_member_two').get('crew_member_id') == ctx.author.id 
-                    or crew.get('crew_member_three').get('crew_member_id') == ctx.author.id 
-                    or crew.get('crew_member_four').get('crew_member_id') == ctx.author.id):
+                if crew.get('crew_name') == inviter_user_profile.get('crew').get('crew_name'):
                     crew_being_joined = crew
                     break
                
@@ -176,10 +174,144 @@ class Crew_Commands(commands.Cog):
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
             line_num = exc_traceback.tb_lineno
 
-            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while creating a crew on line {line_num}")
-      
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to invite someone to a crew on line {line_num}")
+
+    @commands.command(name="crewleave",
+                      help="This command allows you to leave a crew. If you are the current head of the crew, leaving the crew will result in the deletion of the crew. Leaving a crew costs 20,000 won. The syntax for this command is ?crewleave")
+    async def leave_crew(self, ctx):
+        try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
+            user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+
+            # Checks to see if the user is in a crew already
+            if not user_profile.get('crew').get('in_crew'):
+                return await ctx.send("You can't leave a crew if you aren't even in one.")
+
+            # Checks to see if the user has enough money to leave the crew
+            cost = 20 * 1000 # ten thousand
+
+            user_balance = user_profile.get('economy').get('won')
+
+            if user_balance < cost:
+                return await ctx.send("You don't even have enough money to leave the crew. Pathetic.")
+            
+            # Deducts the won from the users balance
+            database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=-cost)
+
+            # Removes user from the crew
+            crews = database_handler.crews.find({})
+
+            def remove_from_crew(crew, crew_member_number):
+                crew_member_id = crew[crew_member_number]['crew_member_id']
+                
+                # Makes sure there's an actual member in the slot
+                if crew_member_id == 0:
+                    return
+                
+                crew_member_profile = database_handler.users.find_one({"_id": crew_member_id})
+                crew[crew_member_number]['crew_member_id'] = 0
+                crew_member_profile['crew']['in_crew'] = False
+                crew_member_profile['crew']['crew_name'] = ""
+                database_handler.users.find_one_and_replace({"_id": crew_member_id}, crew_member_profile)
+            
+            for crew in crews:
+                if crew.get('crew_member_one').get('crew_member_id') == ctx.author.id:
+                    former_crew = crew
+                    remove_from_crew(crew, 'crew_member_one')
+                    database_handler.crews.find_one_and_replace({"crew_name": crew['crew_name']}, crew) 
+                    break
+
+                elif crew.get('crew_member_two').get('crew_member_id') == ctx.author.id:
+                    former_crew = crew
+                    remove_from_crew(crew, 'crew_member_two')
+                    database_handler.crews.find_one_and_replace({"crew_name": crew['crew_name']}, crew)
+                    break
+
+                elif crew.get('crew_member_three').get('crew_member_id') == ctx.author.id:
+                    former_crew = crew
+                    remove_from_crew(crew, 'crew_member_three')
+                    database_handler.crews.find_one_and_replace({"crew_name": crew['crew_name']}, crew)
+                    break
+
+                elif crew.get('crew_member_four').get('crew_member_id') == ctx.author.id:
+                    former_crew = crew
+                    remove_from_crew(crew, 'crew_member_four')
+                    database_handler.crews.find_one_and_replace({"crew_name": crew['crew_name']}, crew)
+                    break
+            
+            # Checks to see if user was the head of the former crew and deletes the crew
+            if former_crew.get('crew_head') == ctx.author.id:
+                num_to_words_dict = {
+                        1: "one",
+                        2: "two",
+                        3: "three",
+                        4: "four"
+                }
+
+                for x in range(1, 5):
+                    remove_from_crew(former_crew, f"crew_member_{num_to_words_dict[x]}")
+                
+                database_handler.crews.find_one_and_delete({"crew_name": former_crew['crew_name']})
+                return await ctx.send(f"{former_crew['crew_name']} has been disbanded.")
+            
+            return await ctx.send(f"You have left {former_crew['crew_name']}")
+            
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to leave a crew on line {line_num}")
+
+    @commands.command(name="crewview",
+                      help="This command allows you to view your current crew. The syntax for this command is ?crewview")
+    async def view_crew(self, ctx):
+        try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
+            user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+
+            # Checks to see if the user is in a crew already
+            if not user_profile.get('crew').get('in_crew'):
+                return await ctx.send("You can't view your crew if you aren't in one.")
+            
+            crews = database_handler.crews.find({})
+
+            for crew in crews:            
+                if crew.get('crew_name') == user_profile.get('crew').get('crew_name'):
+                    user_crew = crew
+                    break
+            
+            
+            embed = discord.Embed(title=f"{user_crew['crew_name']} Crew")
+            embed.add_field(name="",
+                            value=f"**Crew Head**\n{self.bot.get_user(user_crew['crew_head'])}\n\n**Members:**\n1. {self.bot.get_user(user_crew.get("crew_member_two").get('crew_member_id')) if user_crew.get("crew_member_two").get('crew_member_id') != 0 else "None"}\n2. {self.bot.get_user(user_crew.get("crew_member_three").get('crew_member_id')) if user_crew.get("crew_member_three").get('crew_member_id') != 0 else "None"}\n3. {self.bot.get_user(user_crew.get("crew_member_four").get('crew_member_id')) if user_crew.get("crew_member_four").get('crew_member_id') != 0 else "None"}",
+                            inline=True)
+            embed.add_field(name="",
+                            value=f"**Crew Stats**\nLevel: {user_crew['crew_level']}\nBalance: ₩{user_crew['crew_balance']}",
+                            inline=True)
+            embed.add_field(name="Members on Patrol",
+                            value="member1 - Daniel Park (3 hours 4 minutes remaining)\nuDxdvd - Gun Park (4 hours 23 minutes remaining)",
+                            inline=False)
+
+            await ctx.send(embed=embed)
+
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to view a crew on line {line_num}")
+
+# let crew head set crew image
+
     @create_crew.error
     @invite_crew_member.error
+    @leave_crew.error
+    @view_crew.error
     async def error_handler(self, ctx, error):
             # Sends a cooldown message if command is reused when on cooldown
             if isinstance(error, commands.CommandOnCooldown):
@@ -196,6 +328,9 @@ class Crew_Commands(commands.Cog):
                     self.warned_cooldown_users.discard(user_id)
 
                 asyncio.create_task(remove_after())
+
+            elif isinstance(error, commands.MissingRequiredArgument):
+                return await ctx.send("You typed the command incorrectly. Double check how to run the command by typing `?help <command name>`")
 
 
 
