@@ -416,8 +416,11 @@ class Crew_Commands(commands.Cog):
                 # Checks to see if the user is the head of their crew
                 if user_crew['crew_head'] != ctx.author.id:
                     return await ctx.send("Only the crew head can upgrade the crew, not a low life like you.")
-
-                return await ctx.send(f"You have successfully upgraded the crew.")
+                
+                return await ctx.send("Upgrades crew")
+            
+            else:
+                return await ctx.send("Displays upgrades.")
 
         except TypeError as e:
             print(e)
