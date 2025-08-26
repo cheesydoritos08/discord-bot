@@ -242,7 +242,6 @@ class Utilites(commands.Cog):
     @view_prefixes.error
     @vote_for_bot.error
     @invite_bot.error
-    @invite_bot.error
     @display_timers.error
     @use_chip.error
     @use_boost.error
