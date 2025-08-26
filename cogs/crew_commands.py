@@ -1,6 +1,7 @@
 from discord.ext import commands
 import discord
 import asyncio
+import validators
 import handlers.database_handler as database_handler
 import sys
 from utils.utility_functions import create_error_embed, cooldown_calculator
@@ -50,6 +51,7 @@ class Crew_Commands(commands.Cog):
                 "crew_name": name,
                 "crew_balance": 0,
                 "crew_level": 0,
+                "crew_image_url": "",
                 "crew_member_one": {
                     "crew_member_id": ctx.author.id,
                     "last_income_claimtime": 0,
@@ -191,7 +193,7 @@ class Crew_Commands(commands.Cog):
                 return await ctx.send("You can't leave a crew if you aren't even in one.")
 
             # Checks to see if the user has enough money to leave the crew
-            cost = 20 * 1000 # ten thousand
+            cost = 20 * 1000 # twenty thousand
 
             user_balance = user_profile.get('economy').get('won')
 
@@ -286,7 +288,6 @@ class Crew_Commands(commands.Cog):
                     user_crew = crew
                     break
             
-            
             embed = discord.Embed(title=f"{user_crew['crew_name']} Crew")
             embed.add_field(name="",
                             value=f"**Crew Head**\n{self.bot.get_user(user_crew['crew_head'])}\n\n**Members:**\n1. {self.bot.get_user(user_crew.get("crew_member_two").get('crew_member_id')) if user_crew.get("crew_member_two").get('crew_member_id') != 0 else "None"}\n2. {self.bot.get_user(user_crew.get("crew_member_three").get('crew_member_id')) if user_crew.get("crew_member_three").get('crew_member_id') != 0 else "None"}\n3. {self.bot.get_user(user_crew.get("crew_member_four").get('crew_member_id')) if user_crew.get("crew_member_four").get('crew_member_id') != 0 else "None"}",
@@ -298,6 +299,9 @@ class Crew_Commands(commands.Cog):
                             value="member1 - Daniel Park (3 hours 4 minutes remaining)\nuDxdvd - Gun Park (4 hours 23 minutes remaining)",
                             inline=False)
 
+            if user_crew["crew_image_url"] != "":
+                embed.set_image(url=user_crew['crew_image_url'])
+
             await ctx.send(embed=embed)
 
         except Exception as e:
@@ -306,12 +310,130 @@ class Crew_Commands(commands.Cog):
 
             await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to view a crew on line {line_num}")
 
-# let crew head set crew image
+    @commands.command(name="crewsetimage",
+                      help="This command allows you to set the picture for your crew if you are the crew head. If you want to remove a picture, simply type None instead of a url. The syntax for this command is ?crewsetimage <url>")
+    async def set_crew_image(self, ctx, url : str):
+        try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
+            user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+
+            # Checks to see if the user is in a crew already
+            if not user_profile.get('crew').get('in_crew'):
+                return await ctx.send("You can't set the image for a crew if you aren't in one.")
+            
+            crews = database_handler.crews.find({})
+
+            for crew in crews:            
+                if crew.get('crew_name') == user_profile.get('crew').get('crew_name'):
+                    user_crew = crew
+                    break
+            
+            # Checks to see if the user is the head of their crew
+            if user_crew['crew_head'] != ctx.author.id:
+                return await ctx.send("Only the crew head can set the image for their crew, not a low life like you.")
+
+            if url.lower() == "none":
+                url = ""
+            else:
+                valid_image_url=validators.url(url)
+                if valid_image_url != True:
+                    return await ctx.send("Invalid url.")
+            
+            database_handler.crews.find_one_and_update({"crew_name": crew['crew_name']}, {"$set": {"crew_image_url": url}})
+
+            return await ctx.send("You have successfully updated the image url. Run the ?crewview command to make sure the url works.")
+
+
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to set the image for a crew on line {line_num}")
+
+    @commands.command(name="crewdeposit",
+                      help="This command allows you to deposit your money into the crew bank. Any money deposited **can not** be withdrawn. The money in the crew bank can be used for upgrades to the crew. The syntax for this command is ?crewdeposit <amount>")
+    async def deposit_money_in_crew_bank(self, ctx, amount : float):
+        try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
+            user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+
+            # Checks to see if the user is in a crew already
+            if not user_profile.get('crew').get('in_crew'):
+                return await ctx.send("You can't give money to a crew if you aren't in one.")
+            
+            crews = database_handler.crews.find({})
+
+            for crew in crews:            
+                if crew.get('crew_name') == user_profile.get('crew').get('crew_name'):
+                    user_crew = crew
+                    break
+            
+            # Checks to see if the user has the money to deposit to the crew
+            if amount > user_profile.get('economy').get('won'):
+                return await ctx.send("You can't give what you don't have. Get out of here and go make some money.")
+            
+            database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=-amount)
+            database_handler.crews.find_one_and_update({"crew_name": crew['crew_name']}, {"$inc": {"crew_balance": amount}})
+
+            return await ctx.send(f"You have successfully deposited ₩{amount} to the crew bank.")
+
+
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to set the image for a crew on line {line_num}")
+
+    @commands.command(name="crewupgrade",
+                      help="This command allows you to upgrade your crew to the next level. Only the head of the crew is allowed to do this. If you want to see all the upgrades and their requirements, just type ?crewupgrade. The syntax for this command is ?crewupgrade <level>")
+    async def upgrade_crew(self, ctx, level : int = None):
+        try:
+            print('i ran')
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
+            user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+
+            # Checks to see if the user is in a crew already
+            if not user_profile.get('crew').get('in_crew'):
+                return await ctx.send("You can't upgrade your crew if you aren't in one.")
+            
+            crews = database_handler.crews.find({})
+
+            for crew in crews:            
+                if crew.get('crew_name') == user_profile.get('crew').get('crew_name'):
+                    user_crew = crew
+                    break
+            
+            if level is not None:
+                # Checks to see if the user is the head of their crew
+                if user_crew['crew_head'] != ctx.author.id:
+                    return await ctx.send("Only the crew head can upgrade the crew, not a low life like you.")
+
+                return await ctx.send(f"You have successfully upgraded the crew.")
+
+        except TypeError as e:
+            print(e)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to set the image for a crew on line {line_num}")
 
     @create_crew.error
     @invite_crew_member.error
     @leave_crew.error
     @view_crew.error
+    @set_crew_image.error
+    @deposit_money_in_crew_bank.error
+    @upgrade_crew.error
     async def error_handler(self, ctx, error):
             # Sends a cooldown message if command is reused when on cooldown
             if isinstance(error, commands.CommandOnCooldown):
