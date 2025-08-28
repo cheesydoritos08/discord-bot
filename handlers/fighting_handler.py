@@ -1032,6 +1032,8 @@ class RaidInstance(GameInstance):
                 embed.add_field(name="",
                     value=f"You have received ₩{self.won_payout}!",
                     inline=False)
+                
+                database_handler.inc_value_to_users(user_id=self.ctx.author.id, key="economy.won", value=self.won_payout)
 
                 # Gives each character XP based on whether they completed a level or not
                 for char in fighter_characters:

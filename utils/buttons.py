@@ -230,7 +230,6 @@ class CraftingButtons(discord.ui.View):
 
             create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when pressing the next button for the crafting buttons on line {line_num}")
 
-
 # Buttons for the mychars commands
 class CharacterButton(discord.ui.View):
         def __init__(self, characters, ctx=None):
@@ -605,7 +604,6 @@ class GameFighterButton(discord.ui.Button):
 
             create_error_embed(error=e, ctx=self.game.ctx, msg=f"This occured when clicking the character button in a fight between users on line {line_num}")
 
-
 class GameItemButton(discord.ui.Button):
     def __init__(self, label, game):
         super().__init__(label=label, style=discord.ButtonStyle.red)
@@ -759,3 +757,64 @@ class InviteButton(discord.ui.View):
 
         self.add_item(server_button)
         self.add_item(invite_button)
+
+# Creates the buttons sent for the tutorial
+class CrewUpgradesButton(discord.ui.View):
+    def __init__(self, ctx, crew_upgrades_dictionary, timeout=60):
+        super().__init__(timeout=timeout)
+        self.ctx = ctx
+        self.index = 0
+        self.crew_upgrades_dictionary : dict = crew_upgrades_dictionary
+        self.num_of_items_per_page = 5
+
+    # Creates the embed for the upgrades
+    async def create_embed(self):
+        try:
+            embed = discord.Embed(title="Crew Upgrades")
+
+            for x in range((self.index * self.num_of_items_per_page), (self.index * self.num_of_items_per_page) + self.num_of_items_per_page):
+                embed.add_field(name=self.crew_upgrades_dictionary[x + 1]['name'],
+                                value=self.crew_upgrades_dictionary[x + 1]['value'],
+                                inline=False)
+            
+            return embed
+       
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno 
+
+            await create_error_embed(ctx=self.ctx, error=e, msg=f"This occured while trying to create the embed for the upgrade crew requirements button on line {line_num}")
+
+
+    # Controls the back button
+    @discord.ui.button(label='Back', style=discord.ButtonStyle.red)
+    async def previous_message(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            # Cycles through the list of message and sets the new embed to the corresponding page
+            self.index = (self.index - 1) % (math.ceil(len(self.crew_upgrades_dictionary.keys()) / self.num_of_items_per_page)) 
+
+            embed = await self.create_embed()
+            await interaction.response.edit_message(embed=embed, view=self)
+       
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=self.ctx, error=e, msg=f"This occured while trying to press the back button on the upgrade crew requirements button on line {line_num}")
+
+    # Controls the next button
+    @discord.ui.button(label='Next', style=discord.ButtonStyle.red)
+    async def next_message(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            # Cycles through the list of message and sets the new embed to the corresponding page
+            self.index = (self.index + 1) % (math.ceil(len(self.crew_upgrades_dictionary.keys()) / self.num_of_items_per_page)) 
+            
+
+            embed = await self.create_embed()
+            await interaction.response.edit_message(embed=embed, view=self)
+     
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=self.ctx, error=e, msg=f"This occured while trying to press the next button on the upgrade crew requirements button on line {line_num}")

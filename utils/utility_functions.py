@@ -158,7 +158,17 @@ def create_error_embed(error, ctx=None, msg="None given."):
     
     database_handler.errors.insert_one(error_message)
 
-
+num_to_words_dict = {
+    1: "one",
+    2: "two",
+    3: "three",
+    4: "four",
+    5: "five",
+    6: "six",
+    7: "seven",
+    8: "eight",
+    9: "nine"
+                }
 
 
             

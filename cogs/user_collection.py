@@ -4,7 +4,7 @@ import random
 import sys
 import os
 import asyncio
-from utils.utility_functions import cooldown_calculator, update_quests, create_error_embed
+from utils.utility_functions import cooldown_calculator, update_quests, create_error_embed, num_to_words_dict
 from utils.buttons import CharacterButton, InventoryButtons
 from utils.converters import InventoryConverter
 from discord.ext import commands
@@ -574,16 +574,10 @@ class User_Collection(commands.Cog):
         
         if user_character.get('threshold') >= 4:
             return await ctx.send("You can't surpass more than four thresholds.")
-        
-        numtowords = {
-            1: 'one',
-            2: 'two',
-            3: 'three',
-            4: 'four'  
-                    }
+
         
         # Gets the threshold requirements and defines user variables
-        character_threshold_requirements = database_handler.all_characters.find_one({'name': user_character['name']}, {"threshold_requirements": 1, "_id": 0 })['threshold_requirements'].get(f'threshold_{numtowords[user_character["threshold"] + 1]}')
+        character_threshold_requirements = database_handler.all_characters.find_one({'name': user_character['name']}, {"threshold_requirements": 1, "_id": 0 })['threshold_requirements'].get(f'threshold_{num_to_words_dict[user_character["threshold"] + 1]}')
         user_profile = database_handler.users.find_one({"_id": ctx.author.id})
         user_inventory = user_profile.get('inventory')
         user_balance = user_profile.get('economy').get('won')
@@ -677,8 +671,8 @@ class User_Collection(commands.Cog):
                     item_info['amount'] -= value
 
         # Updates the profile stats of the user
-        user_profile[f'threshold_{numtowords[user_character['threshold']]}_characters'] -= 1
-        user_profile[f'threshold_{numtowords[user_character['threshold'] + 1]}_characters'] += 1
+        user_profile[f'threshold_{num_to_words_dict[user_character['threshold']]}_characters'] -= 1
+        user_profile[f'threshold_{num_to_words_dict[user_character['threshold'] + 1]}_characters'] += 1
 
         database_handler.users.replace_one({"_id": ctx.author.id}, user_profile)
 

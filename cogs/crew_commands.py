@@ -1,10 +1,13 @@
 from discord.ext import commands
 import discord
+import time
 import asyncio
+import math
 import validators
 import handlers.database_handler as database_handler
 import sys
-from utils.utility_functions import create_error_embed, cooldown_calculator
+from utils.utility_functions import create_error_embed, cooldown_calculator, num_to_words_dict
+from utils.buttons import CrewUpgradesButton
 
 class Crew_Commands(commands.Cog):
     def __init__(self, bot):
@@ -51,6 +54,8 @@ class Crew_Commands(commands.Cog):
                 "crew_name": name,
                 "crew_balance": 0,
                 "crew_level": 0,
+                "crew_income_rate": 0,
+                "crew_scout_time_reduction": 0,
                 "crew_image_url": "",
                 "crew_member_one": {
                     "crew_member_id": ctx.author.id,
@@ -134,6 +139,7 @@ class Crew_Commands(commands.Cog):
             msg : discord.Message = await self.bot.wait_for('message', check=check, timeout = 10.0)
 
             if msg.content.lower() == "yes":
+                # TODO Make sure that if they join a crew with the level one upgrade that they can do the crew claim
                 # If yes, invitee is added to crew and crew stats are updated
                 if crew_being_joined.get('crew_member_one').get('crew_member_id') == 0:
                     crew_being_joined['crew_member_one']['crew_member_id'] = invitee.id
@@ -212,7 +218,7 @@ class Crew_Commands(commands.Cog):
                 # Makes sure there's an actual member in the slot
                 if crew_member_id == 0:
                     return
-                
+                # TODO Make sure to clear everything from the crew member
                 crew_member_profile = database_handler.users.find_one({"_id": crew_member_id})
                 crew[crew_member_number]['crew_member_id'] = 0
                 crew_member_profile['crew']['in_crew'] = False
@@ -246,13 +252,6 @@ class Crew_Commands(commands.Cog):
             
             # Checks to see if user was the head of the former crew and deletes the crew
             if former_crew.get('crew_head') == ctx.author.id:
-                num_to_words_dict = {
-                        1: "one",
-                        2: "two",
-                        3: "three",
-                        4: "four"
-                }
-
                 for x in range(1, 5):
                     remove_from_crew(former_crew, f"crew_member_{num_to_words_dict[x]}")
                 
@@ -394,7 +393,6 @@ class Crew_Commands(commands.Cog):
                       help="This command allows you to upgrade your crew to the next level. Only the head of the crew is allowed to do this. If you want to see all the upgrades and their requirements, just type ?crewupgrade. The syntax for this command is ?crewupgrade <level>")
     async def upgrade_crew(self, ctx, level : int = None):
         try:
-            print('i ran')
             # Checks to see if the user has a profile or not
             if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
                 return
@@ -417,18 +415,88 @@ class Crew_Commands(commands.Cog):
                 if user_crew['crew_head'] != ctx.author.id:
                     return await ctx.send("Only the crew head can upgrade the crew, not a low life like you.")
                 
+                # When first upgrade is purchased, make sure to set last claim time to present time for all active members
                 return await ctx.send("Upgrades crew")
             
             else:
-                return await ctx.send("Displays upgrades.")
+                crew_upgrades_dictionary = {}
+                
+                for x in range(0, 10, 2):
+                    crew_upgrades_dictionary[x + 1] = {
+                        "name": f"Upgrade {x + 1} {"✅" if user_crew['crew_level'] >= (x + 1) else "❌"}",
+                        "value": f"Description: Upgrades the amount of money earned per minute from your crew to {round((3.5 * x) + 7)} won\nCost: ₩{x + 1}00,000",
+                    }
 
-        except TypeError as e:
-            print(e)
+                    crew_upgrades_dictionary[x + 2] = {
+                        "name": f"Upgrade {x + 2} {"✅" if user_crew['crew_level'] >= (x + 2) else "❌"}",
+                        "value": f"Description: Shortens the time it takes for a character to return from a scouting mission by 30 minutes\nCost: ₩{x + 2}00,000",
+                    }
+
+                    if x + 2 == 10:
+                        crew_upgrades_dictionary[x + 2] = {
+                            "name": f"Upgrade {x + 2} {"✅" if user_crew['crew_level'] >= (x + 2 )else "❌"}",
+                            "value": f"Description: Shortens the time it takes for a character to return from a scouting mission by 30 minutes\nCost: ₩1,000,000",
+                        }
+                    
+                buttons = CrewUpgradesButton(crew_upgrades_dictionary = crew_upgrades_dictionary, ctx = ctx) 
+                embed = await buttons.create_embed()
+
+                return await ctx.send(embed=embed, view=buttons)
+
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
             line_num = exc_traceback.tb_lineno
 
-            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to set the image for a crew on line {line_num}")
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to upgrade a crew on line {line_num}")
+
+    @commands.command(name="crewclaim",
+                      help="This command allows you to claim money from your crew. This is unlocked after the first upgrade and can be claimed anytime. The syntax for this command is ?crewclaim")
+    async def claim_crew_money(self, ctx, level : int = None):
+        try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
+            user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+
+            # Checks to see if the user is in a crew already
+            if not user_profile.get('crew').get('in_crew'):
+                return await ctx.send("You can't upgrade claim money from a crew if you aren't in one.")
+            
+            crews = database_handler.crews.find({})
+
+            for crew in crews:            
+                if crew.get('crew_name') == user_profile.get('crew').get('crew_name'):
+                    user_crew = crew
+                    break
+            
+            # Finds what crew member the user is
+            for x in range(1, 5):
+                if user_crew[f'crew_member_{num_to_words_dict[x]}']['crew_member_id'] == ctx.author.id:
+                    crew_member_position = f'crew_member_{num_to_words_dict[x]}'
+            
+            last_claimtime = user_crew[crew_member_position]['last_income_claimtime']
+
+            if user_crew['crew_level'] < 1:
+                return await ctx.send("You need the first upgrade for your crew to start earning passive income.")
+
+            current_claimtime = time.time()
+            difference_between_time = current_claimtime - last_claimtime
+
+            # Gives the money to the user and resets timestamp
+            money_awarded = math.floor((difference_between_time / 60)) * user_crew['crew_income_rate']
+
+            database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=money_awarded)
+            database_handler.crews.update_one({"crew_name": user_crew['crew_name']}, {"$set": {f"{crew_member_position}.last_income_claimtime": current_claimtime}})
+            
+            return await ctx.send(f"You have claimed ₩{money_awarded}. Please come back later to earn more.")
+
+
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to upgrade a crew on line {line_num}")
 
     @create_crew.error
     @invite_crew_member.error
