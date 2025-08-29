@@ -1,12 +1,15 @@
 from discord.ext import commands
 import discord
+import re
 import time
 import asyncio
 import math
+import random
 import validators
 import handlers.database_handler as database_handler
 import sys
 from utils.utility_functions import create_error_embed, cooldown_calculator, num_to_words_dict
+from utils.timer import Timer
 from utils.buttons import CrewUpgradesButton
 
 class Crew_Commands(commands.Cog):
@@ -15,6 +18,9 @@ class Crew_Commands(commands.Cog):
         self.warned_cooldown_users = set()
 
     # TODO: BUFF RAID REWARDS
+    # TODO Make sure to test that people who join already leveled up crews can claim income
+    # TODO Make sure to check stun/dodge quests not working
+
     @commands.command(name="crewcreate",
                       help="This command allows you to create a crew with up to four members including yourself. Creating a crew costs 10,000 won. The syntax for this command is ?crewcreate <crew name>.")
     async def create_crew(self, ctx, *, name : str):
@@ -57,6 +63,7 @@ class Crew_Commands(commands.Cog):
                 "crew_income_rate": 0,
                 "crew_scout_time_reduction": 0,
                 "crew_image_url": "",
+                "crew_embed_color": "",
                 "crew_member_one": {
                     "crew_member_id": ctx.author.id,
                     "last_income_claimtime": 0,
@@ -139,25 +146,40 @@ class Crew_Commands(commands.Cog):
             msg : discord.Message = await self.bot.wait_for('message', check=check, timeout = 10.0)
 
             if msg.content.lower() == "yes":
-                # TODO Make sure that if they join a crew with the level one upgrade that they can do the crew claim
                 # If yes, invitee is added to crew and crew stats are updated
                 if crew_being_joined.get('crew_member_one').get('crew_member_id') == 0:
                     crew_being_joined['crew_member_one']['crew_member_id'] = invitee.id
+
+                    if crew_being_joined.get("crew_level") > 0:
+                        crew_being_joined['crew_member_one']['last_income_claimtime'] = round(time.time())
+
                     invitee_user_profile['crew']['in_crew'] = True
                     invitee_user_profile['crew']['crew_name'] = crew_being_joined['crew_name']
 
                 elif crew_being_joined.get('crew_member_two').get('crew_member_id') == 0:
                     crew_being_joined['crew_member_two']['crew_member_id'] = invitee.id
+                    
+                    if crew_being_joined.get("crew_level") > 0:
+                        crew_being_joined['crew_member_two']['last_income_claimtime'] = round(time.time())
+                        
                     invitee_user_profile['crew']['in_crew'] = True
                     invitee_user_profile['crew']['crew_name'] = crew_being_joined['crew_name']
 
                 elif crew_being_joined.get('crew_member_three').get('crew_member_id') == 0:
                     crew_being_joined['crew_member_three']['crew_member_id'] = invitee.id
+
+                    if crew_being_joined.get("crew_level") > 0:
+                        crew_being_joined['crew_member_three']['last_income_claimtime'] = round(time.time())
+                        
                     invitee_user_profile['crew']['in_crew'] = True
                     invitee_user_profile['crew']['crew_name'] = crew_being_joined['crew_name']
 
                 elif crew_being_joined.get('crew_member_four').get('crew_member_id') == 0:
                     crew_being_joined['crew_member_four']['crew_member_id'] = invitee.id
+
+                    if crew_being_joined.get("crew_level") > 0:
+                        crew_being_joined['crew_member_four']['last_income_claimtime'] = round(time.time())
+                        
                     invitee_user_profile['crew']['in_crew'] = True
                     invitee_user_profile['crew']['crew_name'] = crew_being_joined['crew_name']
 
@@ -218,9 +240,11 @@ class Crew_Commands(commands.Cog):
                 # Makes sure there's an actual member in the slot
                 if crew_member_id == 0:
                     return
-                # TODO Make sure to clear everything from the crew member
+
                 crew_member_profile = database_handler.users.find_one({"_id": crew_member_id})
                 crew[crew_member_number]['crew_member_id'] = 0
+                crew[crew_member_number]['last_income_claimtime'] = 0
+                crew[crew_member_number]['current_scouting_member'] = ""
                 crew_member_profile['crew']['in_crew'] = False
                 crew_member_profile['crew']['crew_name'] = ""
                 database_handler.users.find_one_and_replace({"_id": crew_member_id}, crew_member_profile)
@@ -287,16 +311,33 @@ class Crew_Commands(commands.Cog):
                     user_crew = crew
                     break
             
-            embed = discord.Embed(title=f"{user_crew['crew_name']} Crew")
+            if user_crew["crew_embed_color"] != "": 
+                embed = discord.Embed(title=f"{user_crew['crew_name']} Crew",
+                                      color=int(f"0x{str(user_crew["crew_embed_color"])[1:]}", 16))
+            else:
+                embed = discord.Embed(title=f"{user_crew['crew_name']} Crew")
+
             embed.add_field(name="",
-                            value=f"**Crew Head**\n{self.bot.get_user(user_crew['crew_head'])}\n\n**Members:**\n1. {self.bot.get_user(user_crew.get("crew_member_two").get('crew_member_id')) if user_crew.get("crew_member_two").get('crew_member_id') != 0 else "None"}\n2. {self.bot.get_user(user_crew.get("crew_member_three").get('crew_member_id')) if user_crew.get("crew_member_three").get('crew_member_id') != 0 else "None"}\n3. {self.bot.get_user(user_crew.get("crew_member_four").get('crew_member_id')) if user_crew.get("crew_member_four").get('crew_member_id') != 0 else "None"}",
+                            value=f"**Crew Head**\n{self.bot.get_user(user_crew['crew_head'])}",
                             inline=True)
             embed.add_field(name="",
-                            value=f"**Crew Stats**\nLevel: {user_crew['crew_level']}\nBalance: ₩{user_crew['crew_balance']}",
+                            value=f"",
                             inline=True)
-            embed.add_field(name="Members on Patrol",
-                            value="member1 - Daniel Park (3 hours 4 minutes remaining)\nuDxdvd - Gun Park (4 hours 23 minutes remaining)",
+            embed.add_field(name="",
+                            value=f"**Crew Stats**\n**Level:** {user_crew['crew_level']}\n**Balance:** ₩{user_crew['crew_balance']}",
+                            inline=True)
+            embed.add_field(name="",
+                            value=f"",
                             inline=False)
+            embed.add_field(name="",
+                            value=f"**Members**\n1. {self.bot.get_user(user_crew.get("crew_member_two").get('crew_member_id')) if user_crew.get("crew_member_two").get('crew_member_id') != 0 else "None"}\n2. {self.bot.get_user(user_crew.get("crew_member_three").get('crew_member_id')) if user_crew.get("crew_member_three").get('crew_member_id') != 0 else "None"}\n3. {self.bot.get_user(user_crew.get("crew_member_four").get('crew_member_id')) if user_crew.get("crew_member_four").get('crew_member_id') != 0 else "None"}",
+                            inline=True)
+            embed.add_field(name="",
+                            value=f"",
+                            inline=True)
+            embed.add_field(name="Crew Upgrade",
+                            value=f"**Passive Income Rate Per Minute:** {user_crew['crew_income_rate']}\n**Scout Time Reduction:** {user_crew['crew_scout_time_reduction']} minutes",
+                            inline=True)
 
             if user_crew["crew_image_url"] != "":
                 embed.set_image(url=user_crew['crew_image_url'])
@@ -351,6 +392,50 @@ class Crew_Commands(commands.Cog):
             line_num = exc_traceback.tb_lineno
 
             await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to set the image for a crew on line {line_num}")
+
+    @commands.command(name="crewsetcolor",
+                      help="This command allows you to set the embed color for your crew if you are the crew head by typing a hexcode. If you want to remove a color, simply type None instead of a hexcode. The syntax for this command is ?crewsetcolor <hexcode (with no hashtag)>")
+    async def set_crew_color(self, ctx, hexcode):
+        try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
+            user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+
+            # Checks to see if the user is in a crew already
+            if not user_profile.get('crew').get('in_crew'):
+                return await ctx.send("You can't set the image for a crew if you aren't in one.")
+            
+            crews = database_handler.crews.find({})
+
+            for crew in crews:            
+                if crew.get('crew_name') == user_profile.get('crew').get('crew_name'):
+                    user_crew = crew
+                    break
+            
+            # Checks to see if the user is the head of their crew
+            if user_crew['crew_head'] != ctx.author.id:
+                return await ctx.send("Only the crew head can set the color for their crew, not a low life like you.")
+
+            # Makes sure that the hexcode entered is actually a hexcode
+            def is_valid_hexa_code(string):
+                hexa_code = re.compile(r'^#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$')
+                return bool(re.match(hexa_code, string))
+
+            if is_valid_hexa_code(hexcode):
+                database_handler.crews.find_one_and_update({"crew_name": crew['crew_name']}, {"$set": {"crew_embed_color": hexcode}})
+                return await ctx.send("You have successfully updated the embed color. Run the ?crewview command to make sure the color works.")
+            
+            else:
+                return await ctx.send("This isn't a valid hexcode. Put in a hexcode with the hashtag.")
+            
+
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to set the embed color for a crew on line {line_num}")
 
     @commands.command(name="crewdeposit",
                       help="This command allows you to deposit your money into the crew bank. Any money deposited **can not** be withdrawn. The money in the crew bank can be used for upgrades to the crew. The syntax for this command is ?crewdeposit <amount>")
@@ -415,8 +500,37 @@ class Crew_Commands(commands.Cog):
                 if user_crew['crew_head'] != ctx.author.id:
                     return await ctx.send("Only the crew head can upgrade the crew, not a low life like you.")
                 
-                # When first upgrade is purchased, make sure to set last claim time to present time for all active members
-                return await ctx.send("Upgrades crew")
+                next_level = user_crew['crew_level'] + 1
+
+                if level > 10:
+                    return await ctx.send("The maximum upgrade level is 10.")
+                elif level != next_level:
+                    return await ctx.send(f"The next level you can upgrade to is {next_level}. Not more or less stupid.")
+
+                # Checks to see if the crew has enough money to upgrade
+                crew_balance = user_crew['crew_balance']
+                upgrade_price = level * 100000
+
+                if crew_balance < upgrade_price:
+                    return await ctx.send("Your crew is too weak to even buy this upgrade. Pathetic.")
+                
+                database_handler.crews.update_one({"crew_name": user_crew['crew_name']}, {"$inc": {"crew_balance": -upgrade_price}})
+
+                if level % 2 == 1:
+                    next_income_upgrade = 7
+                    database_handler.crews.update_one({"crew_name": user_crew['crew_name']}, {"$inc": {"crew_income_rate": next_income_upgrade}})
+
+                    for x in range(1, 5):
+                        if level == 1 and user_crew[f'crew_member_{num_to_words_dict[x]}']['crew_member_id'] != 0:
+                            database_handler.crews.update_one({"crew_name": user_crew['crew_name']}, {"$set": {f'crew_member_{num_to_words_dict[x]}.last_income_claimtime': round(time.time())}})
+
+                elif level % 2 == 0:
+                    next_time_upgrade = 30
+                    database_handler.crews.update_one({"crew_name": user_crew['crew_name']}, {"$inc": {"crew_scout_time_reduction": next_time_upgrade}})
+
+                user_crew['crew_level'] += 1
+                database_handler.crews.update_one({"crew_name": user_crew['crew_name']}, {"$inc": {"crew_level": 1}})
+                return await ctx.send(f"Your current crew level is {user_crew['crew_level']}.")      
             
             else:
                 crew_upgrades_dictionary = {}
@@ -470,15 +584,16 @@ class Crew_Commands(commands.Cog):
                     user_crew = crew
                     break
             
+            # Checks to see if the crew can earn income
+            if user_crew['crew_income_rate'] <= 0:
+                return await ctx.send("You need the first upgrade for your crew to start earning passive income.")
+           
             # Finds what crew member the user is
             for x in range(1, 5):
                 if user_crew[f'crew_member_{num_to_words_dict[x]}']['crew_member_id'] == ctx.author.id:
                     crew_member_position = f'crew_member_{num_to_words_dict[x]}'
             
             last_claimtime = user_crew[crew_member_position]['last_income_claimtime']
-
-            if user_crew['crew_level'] < 1:
-                return await ctx.send("You need the first upgrade for your crew to start earning passive income.")
 
             current_claimtime = time.time()
             difference_between_time = current_claimtime - last_claimtime
@@ -498,13 +613,185 @@ class Crew_Commands(commands.Cog):
 
             await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to upgrade a crew on line {line_num}")
 
+    @commands.command(name="crewscout",
+                      aliases=['scout'],
+                      help="This command allows you to send a character on a scouting mission. Scouting missions can bring back shards, items, and tickets. Sending higher rarity characters on missions will result in more valuable rewards. To claim your rewards once scouting is over, just type ?crewscout. The syntax for this command is ?crewscout <character name>")
+    async def send_character_on_scouting_mission(self, ctx, *, character_name : str = None):
+        try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
+            user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+
+            # Checks to see if the user is in a crew already
+            if not user_profile.get('crew').get('in_crew'):
+                return await ctx.send("You can't send a member on a scouting mission if you aren't in a crew.")
+
+            crews = database_handler.crews.find({})
+
+            for crew in crews:            
+                if crew.get('crew_name') == user_profile.get('crew').get('crew_name'):
+                    user_crew = crew
+                    break
+            
+            # Finds what crew member the user is
+            for x in range(1, 5):
+                if user_crew[f'crew_member_{num_to_words_dict[x]}']['crew_member_id'] == ctx.author.id:
+                    crew_member_position = f'crew_member_{num_to_words_dict[x]}'
+            
+            # Runs if the character is trying to claim the rewards from a scouting mission
+            if character_name is None:
+                if user_crew[crew_member_position]["current_scouting_member"] == "":
+                    return await ctx.send("You don't currently have any characters out scouting. Type ?crewscout <character name> to send a character out.")
+                
+                if user_profile['timers']["scouting_member_return"] != 0:
+                    return await ctx.send(f"{user_crew[crew_member_position]["current_scouting_member"]} is still out scouting. Wait for them to return before claiming their rewards.")
+                
+                user_character = database_handler.user_character_finder(user_id=ctx.author.id, character_name=user_crew[crew_member_position]["current_scouting_member"])
+                
+                rewards_dictionary = {
+                    "Common": {
+                        "common_shard": 100,
+                        "rare_shard": 30,
+                        "epic_shard": 5,
+                        "legendary_shard": 1,
+                        "standard_ticket": 30,
+                        "limited_ticket": 1,
+                        },
+
+                    "Rare": {
+                        "common_shard": 100,
+                        "rare_shard": 50,
+                        "epic_shard": 20,
+                        "legendary_shard": 5,
+                        "standard_ticket": 50,
+                        "limited_ticket": 5,
+                        "white_shirt": 20,
+                        "broken_sunglasses": 50,
+                        "boxing_gloves": 30,
+                        "biker_helmet": 60,
+                        "leather_jacket": 40
+                        },
+
+                    "Epic": {
+                        "common_shard": 100,
+                        "rare_shard": 80,
+                        "epic_shard": 40,
+                        "legendary_shard": 7,
+                        "standard_ticket": 70,
+                        "limited_ticket": 10,
+                        "white_shirt": 30,
+                        "broken_sunglasses": 60,
+                        "boxing_gloves": 40,
+                        "biker_helmet": 70,
+                        "leather_jacket": 50
+                        },
+
+                    "Legendary": {
+                        "common_shard": 100,
+                        "rare_shard": 100,
+                        "epic_shard": 60,
+                        "legendary_shard": 10,
+                        "standard_ticket": 100,
+                        "limited_ticket": 15,
+                        "white_shirt": 40,
+                        "broken_sunglasses": 70,
+                        "boxing_gloves": 50,
+                        "biker_helmet": 80,
+                        "leather_jacket": 60
+                        },
+                }
+
+                user_rewards = {}
+            
+                # Rolls a random number for each item in the rewards dictionary to see if
+                # the user gets the item
+                for item, percentage in rewards_dictionary[user_character['rarity']].items():
+                    random_num = random.randint(1, 100)
+                    
+                    if percentage >= random_num:
+                        if user_character['rarity'] == "Common":
+                            num_of_rewards = random.randint(1, 3)
+
+                        elif user_character['rarity'] == "Rare":
+                            num_of_rewards = random.randint(1, 5)
+
+                        elif user_character['rarity'] == "Epic":
+                            num_of_rewards = random.randint(1, 7)
+
+                        elif user_character['rarity'] == "Legendary":
+                            num_of_rewards = random.randint(1, 10)
+
+                        user_rewards[item] = num_of_rewards
+
+                user_inventory = user_profile.get('inventory')
+
+                for reward, amount in user_rewards.items():
+                    reward_given = False
+                    
+                    for item in user_inventory:
+                        try:
+                            if reward == item:
+                                database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{reward}.amount", value=amount)
+                                reward_given = True
+                        except Exception as e:
+                            create_error_embed(error=e, ctx=self.ctx, msg="This occurred while trying to add items won from a scout to a user's inventory.")
+                    
+                    if not reward_given:
+                        database_handler.add_item(user_id=ctx.author.id, item=reward)
+                        database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{reward}.amount", value=amount)
+
+                embed = discord.Embed(title="Scouting Missions Rewards",
+                                      color=discord.Color.from_rgb(17, 242, 227))
+
+                embed.add_field(name="",
+                    value=f"{user_crew[crew_member_position]["current_scouting_member"]} has brought back the following rewards: \n\n{"\n".join([f"`{reward.replace("_", " ").title()}`: {amount}" for reward, amount in user_rewards.items()])}",
+                    inline=False)
+                
+                database_handler.crews.update_one({"crew_name": user_crew['crew_name']}, {"$set": {f"{crew_member_position}.current_scouting_member": ""}})
+
+                return await ctx.send(embed=embed)
+            
+            # Runs if the user is sending out a character on a scouting mission
+            # Checks to see if they already have a member out on a scouting mission.
+            if user_crew[crew_member_position]["current_scouting_member"] != "":
+                return await ctx.send(f"You already have {user_crew[crew_member_position]["current_scouting_member"]} out scouting. Wait for them to return before sending out another character.")
+            
+            # Gets the character passed into the command
+            user_character = database_handler.user_character_finder(user_id=ctx.author.id, character_name=character_name.title())
+
+            if user_character is None:
+                return await ctx.send(f"You do not have {character_name.title()}.")
+            
+            database_handler.crews.update_one({"crew_name": user_crew['crew_name']}, {"$set": {f"{crew_member_position}.current_scouting_member": character_name.title()}})
+
+            # Gets the scout time for the crew
+            scout_time = 60 * 60 * 8 # --> 8 hours
+            
+            if user_crew['crew_scout_time_reduction'] != 0:
+                scout_time -= user_crew['crew_scout_time_reduction'] * 60 # Scout time reduction in minutes times the number of seconds per minute
+            
+            Timer(user_id=ctx.author.id, name="scouting_member_return", starttime=round(time.time()), timer_length=scout_time).create_timer()
+            
+            return await ctx.send(f"{character_name.title()} has been sent on a scouting mission. Come back in {cooldown_calculator(scout_time)} to claim what they found.")
+
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to send a character on a scouting mission/claim their rewards on line {line_num}")
+
     @create_crew.error
     @invite_crew_member.error
     @leave_crew.error
     @view_crew.error
     @set_crew_image.error
+    @set_crew_color.error
     @deposit_money_in_crew_bank.error
     @upgrade_crew.error
+    @claim_crew_money.error
+    @send_character_on_scouting_mission.error
     async def error_handler(self, ctx, error):
             # Sends a cooldown message if command is reused when on cooldown
             if isinstance(error, commands.CommandOnCooldown):

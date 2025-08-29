@@ -21,7 +21,7 @@ class Help(commands.Cog):
         # If there are no arguments, just list the commands:
         if not command:
             for cog in cogs_list:
-                if cog == "Owner_Commands" or cog == "Crew_Commands":
+                if cog == "Owner_Commands":
                     continue
 
                 help_embed.add_field(

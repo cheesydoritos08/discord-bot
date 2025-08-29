@@ -23,18 +23,14 @@ class Timer():
         if self.name == "won_booster":
             database_handler.users.update_one({"_id": self.user_id}, {"$set": {f"buffs.{self.name}.active": False}})
             database_handler.users.update_one({"_id": self.user_id}, {"$set": {f"buffs.{self.name}.multiplier": 0}})
-            database_handler.users.update_one({"_id": self.user_id}, {"$set": {f"timers.{self.name}": 0}})   
         elif self.name == "xp_booster":
             database_handler.users.update_one({"_id": self.user_id}, {"$set": {f"buffs.{self.name}.active": False}})
             database_handler.users.update_one({"_id": self.user_id}, {"$set": {f"buffs.{self.name}.multiplier": 0}})
-            database_handler.users.update_one({"_id": self.user_id}, {"$set": {f"timers.{self.name}": 0}})  
-        elif self.name == "daily_claim":
-            database_handler.users.update_one({"_id": self.user_id}, {"$set": {f"timers.{self.name}": 0}})  
         elif self.name == "daily_quests":
             database_handler.users.update_one({"_id": self.user_id}, {"$set": {"quests": []}})  
             database_handler.users.update_one({"_id": self.user_id}, {"$set": {"all_quests_complete": False}})  
-            database_handler.users.update_one({"_id": self.user_id}, {"$set": {f"timers.{self.name}": 0}}) 
-        elif self.name == "daily_claim":
-            database_handler.users.update_one({"_id": self.user_id}, {"$set": {f"timers.{self.name}": 0}})  
+
+        database_handler.users.update_one({"_id": self.user_id}, {"$set": {f"timers.{self.name}": 0}})   
+
 
 

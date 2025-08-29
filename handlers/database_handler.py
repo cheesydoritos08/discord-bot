@@ -73,6 +73,7 @@ def create_new_profile(user_id):
                 'daily_quests': 0,
                 'bot_vote': 0,
                 'eloclaim': 0,
+                "scouting_member_return": 0
             },
             'quests': [],
             'crew':{

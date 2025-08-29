@@ -1061,10 +1061,10 @@ class RaidInstance(GameInstance):
                     for item in user_inventory:
                         try:
                             if reward == item:
-                                database_handler.inc_value_to_users(user_id=interaction.user.id, key=f"inventory.{reward}.amount", value=amount)
+                                database_handler.inc_value_to_users(user_id=self.ctx.user.id, key=f"inventory.{reward}.amount", value=amount)
                                 reward_given = True
                         except Exception as e:
-                            create_error_embed(error=e, ctx=self.ctx)
+                            create_error_embed(error=e, ctx=self.ctx, msg="This occurred while trying to add items won from a raid to a user's inventory.")
                     
                     if not reward_given:
                         database_handler.add_item(user_id=self.ctx.author.id, item=reward)
