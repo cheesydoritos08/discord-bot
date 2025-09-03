@@ -828,6 +828,12 @@ class RaidInstance(GameInstance):
                 random_num = random.randint(0, (len(possible_enemies_list) - 1))
                 enemy = copy.deepcopy(possible_enemies_list[random_num])
                 possible_enemies_list.remove(enemy)
+
+                # Makes sure the enemy isn't a special character
+                if enemy.get("name") == "Jihu Seo":
+                    random_num = random.randint(0, (len(possible_enemies_list) - 1))
+                    enemy = copy.deepcopy(possible_enemies_list[random_num])
+                    possible_enemies_list.remove(enemy)
                 
                 if enemy.get("crit_chance", None) is not None:
                     enemy["crit_chance"] = random.randint(round(enemy["crit_chance"]*2*0.8), round(enemy["crit_chance"]*2*1.2))

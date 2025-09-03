@@ -20,7 +20,7 @@ class User_Collection(commands.Cog):
     # Adds the newly rolled character to the player's inventory
     def add_character_to_inventory(self, rarity, user_id):
         # Chooses a character based off of the rarity
-        rated_up_legendary_character = "Yeonwoo Kim"
+        rated_up_legendary_character = "Shingen Yamazaki"
         if rarity == "Legendary":
             rolled_character = database_handler.all_characters.find_one({"name": rated_up_legendary_character})
             rolled_character.pop('threshold_requirements')
