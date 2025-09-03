@@ -709,7 +709,7 @@ class GameItemButton(discord.ui.Button):
 
                     random_num = random.randint(0, (len(self.view.children) - 1))
                     button = self.view.children[random_num]
-                    
+
                     await button.on_button_click(interaction=interaction, simulated_click = True, embed_message_id = embed_message_id)
                     break
                     
@@ -718,10 +718,11 @@ class GameItemButton(discord.ui.Button):
                     for button in self.view.children:
                         if button.label == "Items":
                             self.view.children.remove(button)
-                            continue
+                            break
 
                     random_num = random.randint(0, len(self.view.children) - 1)
                     button = self.view.children[random_num]
+                    print(self.view.children)
                     
                     await button.on_button_click(interaction=interaction, simulated_click = True, embed_message_id = embed_message_id)
                     break
@@ -732,6 +733,12 @@ class GameItemButton(discord.ui.Button):
                         raise asyncio.TimeoutError
                     
                     await interaction.followup.send("Please enter the number for the corresponding item you want to use.", ephemeral=True, view = inventory_view, embed = inventory_embed)
+
+                    exc_type, exc_value, exc_traceback = sys.exc_info() 
+                    line_num = exc_traceback.tb_lineno
+
+                    create_error_embed(error=e, ctx=self.game.ctx, msg=f"This occured when prompting the user to pick an item for the raid on line {line_num}")
+
                     continue
             except Exception as e:
                     exc_type, exc_value, exc_traceback = sys.exc_info() 
