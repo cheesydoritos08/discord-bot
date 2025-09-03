@@ -20,6 +20,7 @@ class User_Collection(commands.Cog):
     # Adds the newly rolled character to the player's inventory
     def add_character_to_inventory(self, rarity, user_id):
         # Chooses a character based off of the rarity
+        # TODO Change the footer to match the new character
         rated_up_legendary_character = "Shingen Yamazaki"
         if rarity == "Legendary":
             rolled_character = database_handler.all_characters.find_one({"name": rated_up_legendary_character})
@@ -433,7 +434,7 @@ class User_Collection(commands.Cog):
 
         # Checks to see if the pity should be displayed
         if pity is not None:
-            embed.set_footer(text=f'Pity: {pity}/100 | Rolled by {user} | Current Legendary of the Week: Yeonwoo Kim')
+            embed.set_footer(text=f'Pity: {pity}/100 | Rolled by {user} | Current Legendary of the Week: Shingen Yamazaki')
         else:
             embed.set_footer(text=f'Rolled by {user}')
 
