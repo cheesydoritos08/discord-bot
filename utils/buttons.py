@@ -518,6 +518,61 @@ class TutorialButton(discord.ui.View):
         embed.set_image(url=self.image_urls[self.index])
         await interaction.response.edit_message(embed=embed, view=self)
 
+# Creates the buttons sent for announcements
+class AnnouncementButton(discord.ui.View):
+    def __init__(self, *, timeout=60):
+        super().__init__(timeout=timeout)
+        self.index = 0
+
+        # Stores all the messages the tutorial will cycle through
+        self.titles = [
+            'The crew update is finally here!',
+            'What\'s next for the bot?',
+        ]
+        self.descriptions = [
+            "__Date: Sept 3, 2025__\n\nYou can now create a crew and invite your friends with the `?crewcreate` command! Creating a crew costs ₩10,000 and you can invite up to three other people with the `?crewinvite` command.\n\nOnce you join a crew, you can now send characters out on scouting missions that will bring back items and shards with the `?crewscout` command! The higher the rarity of the character you send out, the more items you get. \n\nYou can also deposit money into your crew bank account with the `?crewdeposit` command. **Any money deposited can not be withdrawn.** By depositing money into the crew bank, you can save up money for crew upgrades! Each upgrade raises your crew level by 1 and unlocks a new reward! The first upgrade you get unlocks passive income which you can claim with the `?crewclaim` command. Also, by upgrading your crew, you raise the chances of getting rarer rewards from your scouting missions.\n\nFinally, the crew head can customize the crew color and the crew banner with the `?crewsetcolor` and the `?crewsetimage` command. If you ever want to leave a crew, simply type `?crewleave`. Leaving a crew costs ₩20,000 so be careful about what crew you join. If a crew head leaves the crew, the crew will be disbanded.\n\nThank you for your patience with the updates. As always, please make a ticket in the support server if you have any comments, questions or concerns. See you in the next update!",
+            "__Date: Sept 3, 2025__\n\nWith the crew update being done, I plan on adding one more major update before wiping the bot which is the boss raid update. Boss raids will be a collaborative raid where 3 people can work together to defeat a mega boss. \n\nAfter I implement that, I will finally wipe everyone's data and give out the corresponding tickets for the bot. I also want to have another invite contest plus a Halloween event so that's something you guys can look forward too as well.\n\nThank you as always for your support and I can't wait to see you in the next update <3",
+                  ]
+        self.image_urls = [
+            'https://i.pinimg.com/736x/59/da/00/59da003db79a9f0793cd6f619bf2e0aa.jpg',
+            'https://i.pinimg.com/736x/38/a2/58/38a25821e73383d05ef1babd28c1d5e5.jpg',
+        ]
+
+    def create_embed(self):
+            embed = discord.Embed(
+                title=self.titles[self.index],
+                description=self.descriptions[self.index],
+                color=0xF5ABEB,
+            )
+
+            embed.set_image(url=self.image_urls[self.index])
+
+            embed.set_footer(text="Join the support server to be the first to hear about new announcements with the ?invite command.")
+
+            return embed
+        
+
+
+    # Controls the back button
+    @discord.ui.button(label='Back', style=discord.ButtonStyle.red)
+    async def previous_message(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Cycles through the list of message and sets the new embed to the corresponding page
+        self.index = (self.index - 1) % len(self.titles)
+
+        embed = self.create_embed()
+
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    # Controls the next button
+    @discord.ui.button(label='Next', style=discord.ButtonStyle.red)
+    async def next_message(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Cycles through the list of message and sets the new embed to the corresponding page
+        self.index = (self.index + 1) % len(self.titles)
+
+        embed = self.create_embed()
+        
+        await interaction.response.edit_message(embed=embed, view=self)
+
 # Creates the buttons pressed by the user
 class GameFighterButton(discord.ui.Button):
     def __init__(self, label, character, game):

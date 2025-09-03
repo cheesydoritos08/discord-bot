@@ -66,7 +66,7 @@ def update_quests(user_id, quest_id, amount):
             
             if not standard_ticket_in_inventory:
                 database_handler.add_item(user_id=user_id, item="standard_ticket")
-                database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.standard_ticket.amount", value=1)
+                database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.standard_ticket.amount", value=2)
         
         # Counts all other quests that were already completed before hand
         if quest["total_completed"] >= quest["total_needed"]:
@@ -85,7 +85,6 @@ def update_quests(user_id, quest_id, amount):
         if not limited_ticket_in_inventory:
             database_handler.add_item(user_id=user_id, item="limited_ticket")
             database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.limited_ticket.amount", value=5)
-
 
 @tasks.loop(seconds=5.0, reconnect=True)
 async def log_error_embed(bot):
@@ -132,7 +131,6 @@ async def log_error_embed(bot):
     
     except Exception as e:
         print(f"Error in logging error embed: {e}")
-
 
 def create_error_embed(error, ctx=None, msg="None given."):
     error_message = {

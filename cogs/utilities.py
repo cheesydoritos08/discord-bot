@@ -6,7 +6,7 @@ import os
 import sys
 from discord.ext import commands
 from utils.converters import InventoryConverter, UseChipConverter, BuySellConverter
-from utils.buttons import InviteButton, CraftingButtons
+from utils.buttons import InviteButton, CraftingButtons, AnnouncementButton
 from utils.utility_functions import update_quests, cooldown_calculator, create_error_embed
 from utils.timer import Timer
 
@@ -100,142 +100,197 @@ class Utilites(commands.Cog):
                       help="This command displays all the timers you have currently. Use this to check how much time left you have on your boosters or to see when your daily quests reset!")
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def display_timers(self, ctx):
-        # Checks to see if the user exists and gets the profile
-        if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
-            return
+        try:
+            # Checks to see if the user exists and gets the profile
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
 
-        user_profile= database_handler.users.find_one({"_id": ctx.author.id})
-        user_timers = user_profile["timers"]
+            user_profile= database_handler.users.find_one({"_id": ctx.author.id})
+            user_timers = user_profile["timers"]
 
-        # Creates an embed displaying the timer based on their current state
-        embed = discord.Embed(title="₊˚ ✧ ━━━━━━━━━⊱ Timers ⊰━━━━━━━━━━ ✧ ₊˚",
-                      colour=0xb78ed2)
-        
-        for timer in user_timers:
-            if user_timers[timer] == 0 and (timer == "daily_quests" or timer == "daily_claim"):
-                embed.add_field(name=f"{timer.replace("_", " ").title().replace("Xp", "XP")}: Ready!",
-                value="",
-                inline=False)
-            elif user_timers[timer] == 0:
-                 embed.add_field(name=f"{timer.replace("_", " ").title().replace("Xp", "XP")}: Not Active",
-                value="",
-                inline=False)               
-            else:
-                time_remaining = user_timers[timer] - round(time.time())
-                embed.add_field(name=f"{timer.replace("_", " ").title().replace("Xp", "XP")}: {cooldown_calculator(time_to_calculate=time_remaining)}",
-                value="",
-                inline=False)                
+            # Creates an embed displaying the timer based on their current state
+            embed = discord.Embed(title="₊˚ ✧ ━━━━━━━━━⊱ Timers ⊰━━━━━━━━━━ ✧ ₊˚",
+                        colour=0xb78ed2)
+            
+            for timer in user_timers:
+                if user_timers[timer] == 0 and (timer == "daily_quests" or timer == "daily_claim"):
+                    embed.add_field(name=f"{timer.replace("_", " ").title().replace("Xp", "XP")}: Ready!",
+                    value="",
+                    inline=False)
+                elif user_timers[timer] == 0:
+                    embed.add_field(name=f"{timer.replace("_", " ").title().replace("Xp", "XP")}: Not Active",
+                    value="",
+                    inline=False)               
+                else:
+                    time_remaining = user_timers[timer] - round(time.time())
+                    embed.add_field(name=f"{timer.replace("_", " ").title().replace("Xp", "XP")}: {cooldown_calculator(time_to_calculate=time_remaining)}",
+                    value="",
+                    inline=False)                
 
 
-        embed.set_footer(text="₊˚ ✧ ━━━━━━━━━━━━━━━━━⊱𝄞⊰━━━━━━━━━━━━━━━━━ ✧ ₊˚")
+            embed.set_footer(text="₊˚ ✧ ━━━━━━━━━━━━━━━━━⊱𝄞⊰━━━━━━━━━━━━━━━━━ ✧ ₊˚")
 
-        await ctx.send(embed=embed)
+            await ctx.send(embed=embed)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to display timers on line {line_num}")
+
 
     @commands.command(name="invite",
                       help="This command sends a link to invite the bot to your server and for you to join the bot's official server!")
     async def invite_bot(self, ctx):
-        # Creates an embed with buttons to invite the bot to the server
-        view = InviteButton()
-        embed = discord.Embed(title="Invites",
-                              description="Join the bot's official server if you have any questions or if you want to report a bug! Users who report bugs will be granted a reward when they are fixed!")
-        await ctx.send(embed=embed, view=view)
-        
+        try:
+            # Creates an embed with buttons to invite the bot to the server
+            view = InviteButton()
+            embed = discord.Embed(title="Invites",
+                                description="Join the bot's official server if you have any questions or if you want to report a bug! Users who report bugs will be granted a reward when they are fixed!")
+            await ctx.send(embed=embed, view=view)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to run the invite command on line {line_num}")
+
+            
     @commands.command(name="vote",
                       help="This command lets you vote for the bot on top.gg! Voting for the bot rewards you 2000 won and one shard of a random rarity, all the way up to Legendary!")
     async def vote_for_bot(self, ctx):
-        # Checks to see if the user exists
-        if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
-                return 
+        try:
+            # Checks to see if the user exists
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                    return 
+                
+            # Sets the variables of the profile and the voting buttons
+            user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+                
+            view = discord.ui.View()
+            button = discord.ui.Button(style=discord.ButtonStyle.url, url="https://top.gg/bot/1371573491391922278", label="Vote for the bot!")
+            button2 = discord.ui.Button(style=discord.ButtonStyle.url, url="https://top.gg/discord/servers/723715072636399616", label="Vote for the server!")
+
+            view.add_item(button)
+            view.add_item(button2)
+
+            # Creates an embed telling you to vote for the server and bot
+            embed = discord.Embed(title="Vote for the Lookism Bot and the server!",
+                                    description="By voting for the bot and the server on Top.gg, you get 2000 won and \na random fragment of your choice. The greater your vote\nstreak, the higher the chance of you getting a legendary\nfragment whenever you vote. Voting for the server doesn't\ngive you anything but is much appreciated!")
+
+            embed.set_footer(text=f"Vote Streak: {user_profile.get("vote", {}).get("vote_streak")}")
             
-        # Sets the variables of the profile and the voting buttons
-        user_profile = database_handler.users.find_one({"_id": ctx.author.id})
-            
-        view = discord.ui.View()
-        button = discord.ui.Button(style=discord.ButtonStyle.url, url="https://top.gg/bot/1371573491391922278", label="Vote for the bot!")
-        button2 = discord.ui.Button(style=discord.ButtonStyle.url, url="https://top.gg/discord/servers/723715072636399616", label="Vote for the server!")
-
-        view.add_item(button)
-        view.add_item(button2)
-
-        # Creates an embed telling you to vote for the server and bot
-        embed = discord.Embed(title="Vote for the Lookism Bot and the server!",
-                                description="By voting for the bot and the server on Top.gg, you get 2000 won and \na random fragment of your choice. The greater your vote\nstreak, the higher the chance of you getting a legendary\nfragment whenever you vote. Voting for the server doesn't\ngive you anything but is much appreciated!")
-
-        embed.set_footer(text=f"Vote Streak: {user_profile.get("vote", {}).get("vote_streak")}")
+            await ctx.send(view=view, embed=embed)
         
-        await ctx.send(view=view, embed=embed)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to vote for the bot on line {line_num}")
+
 
     @commands.command(name="viewprefixes",
                       aliases=["viewpfxs"],
                       help="With this command, you can view all the prefixes that can be used with this bot in your server!")
     async def view_prefixes(self, ctx):
-        # Retrieves a list of the guild prefixes 
-        guild_prefixes = database_handler.guild_prefixes.find_one({"_id": ctx.guild.id}).get("prefixes")
+        try:
+            # Retrieves a list of the guild prefixes 
+            guild_prefixes = database_handler.guild_prefixes.find_one({"_id": ctx.guild.id}).get("prefixes")
 
-        embed = discord.Embed(title="Prefixes for this Server",
-                              description=f"{guild_prefixes}",
-                              color=discord.Color.dark_purple())
-        
-        await ctx.send(embed=embed)
+            embed = discord.Embed(title="Prefixes for this Server",
+                                description=f"{guild_prefixes}",
+                                color=discord.Color.dark_purple())
+            
+            await ctx.send(embed=embed)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to view prefixes on line {line_num}")
+
 
     @commands.command(name="craft",
                       help="This command allows you to craft items with the materials that you have. The format for this command is ?craft <item name> <amount> To see all crafting recipes, just type ?craft. ")
     @commands.cooldown(rate=1, per=3, type=commands.BucketType.user)
     async def craft_item(self, ctx, *, arg : BuySellConverter = None):
-        if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
-            return
-        
-        if arg is None:
-            # Sends an embed containing all the crafting recipes
-            items = [item for item in database_handler.items.find({"crafting": {"$exists": True}})]
-            crafting_buttons = CraftingButtons(items=items, ctx=ctx)
-            embed = crafting_buttons.create_embed()
-            return await ctx.send(embed=embed, view=crafting_buttons)
-
-        else:
-            # Gets the item and the amount the user wants to craft
-            item, amount_wanted = arg
-            item = database_handler.items.find_one({'name': item}, {'crafting': 1, 'name': 1, '_id': 0})
-
-            if item is None:
-                return await ctx.send("Not craftable. Check craftables by just typing `?craft`.")
+        try:
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
             
-            materials_needed = item.get('crafting')
+            if arg is None:
+                # Sends an embed containing all the crafting recipes
+                items = [item for item in database_handler.items.find({"crafting": {"$exists": True}})]
+                crafting_buttons = CraftingButtons(items=items, ctx=ctx)
+                embed = crafting_buttons.create_embed()
+                return await ctx.send(embed=embed, view=crafting_buttons)
 
-            user_inventory = database_handler.users.find_one({"_id": ctx.author.id}, {"_id": 0, "inventory": 1}).get('inventory')
+            else:
+                # Gets the item and the amount the user wants to craft
+                item, amount_wanted = arg
+                item = database_handler.items.find_one({'name': item}, {'crafting': 1, 'name': 1, '_id': 0})
 
-            # Checks to see if the user has the required material in order to craft the item(s)
-            for material_name, material_amount in materials_needed.items():
-                materials_needed[material_name] *= amount_wanted
-
-                item_found = False
-
-                for inventory_item, item_details in user_inventory.items():
-                    if inventory_item == material_name and item_details['amount'] < material_amount:
-                        return await ctx.send(f"You don't have enough {material_name.replace("_", " ")}(s) to craft this item. Poor.")
-                    
-                    elif inventory_item == material_name and item_details['amount'] >= material_amount:
-                        item_found = True
+                if item is None:
+                    return await ctx.send("Not craftable. Check craftables by just typing `?craft`.")
                 
-                if not item_found:
-                        return await ctx.send(f"You don't have enough {material_name.replace("_", " ")}(s) to craft this item. Poor.")
+                materials_needed = item.get('crafting')
+
+                user_inventory = database_handler.users.find_one({"_id": ctx.author.id}, {"_id": 0, "inventory": 1}).get('inventory')
+
+                # Checks to see if the user has the required material in order to craft the item(s)
+                for material_name, material_amount in materials_needed.items():
+                    materials_needed[material_name] *= amount_wanted
+
+                    item_found = False
+
+                    for inventory_item, item_details in user_inventory.items():
+                        if inventory_item == material_name and item_details['amount'] < material_amount:
+                            return await ctx.send(f"You don't have enough {material_name.replace("_", " ")}(s) to craft this item. Poor.")
+                        
+                        elif inventory_item == material_name and item_details['amount'] >= material_amount:
+                            item_found = True
                     
-            # Decrements the materials needed for the item
-            for material_name, material_amount in materials_needed.items():
-                database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{material_name}.amount", value=-material_amount)
+                    if not item_found:
+                            return await ctx.send(f"You don't have enough {material_name.replace("_", " ")}(s) to craft this item. Poor.")
+                        
+                # Decrements the materials needed for the item
+                for material_name, material_amount in materials_needed.items():
+                    database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{material_name}.amount", value=-material_amount)
 
-            # Checks to see if the user already has the item in their inventory
-            # and if so, adds the item they want crafted to their inventory
-            for inventory_item, item_details in user_inventory.items():
-                if inventory_item == item["name"]:
-                    database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount_wanted)
-                    return await ctx.send(f"You crafted {amount_wanted} {item_details['emoji']} {item["name"].replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")}(s).")
+                # Checks to see if the user already has the item in their inventory
+                # and if so, adds the item they want crafted to their inventory
+                for inventory_item, item_details in user_inventory.items():
+                    if inventory_item == item["name"]:
+                        database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount_wanted)
+                        return await ctx.send(f"You crafted {amount_wanted} {item_details['emoji']} {item["name"].replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")}(s).")
 
-            # Adds the item to the user's inventory if they don't already have it
-            # then adds the number of items they want
-            database_handler.add_item(user_id=ctx.author.id, item=item['name'])
-            database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount_wanted)
-            return await ctx.send(f"You crafted {amount_wanted} {item_details['emoji']} {item["name"].replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")}(s).")
+                # Adds the item to the user's inventory if they don't already have it
+                # then adds the number of items they want
+                database_handler.add_item(user_id=ctx.author.id, item=item['name'])
+                database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount_wanted)
+                return await ctx.send(f"You crafted {amount_wanted} {item_details['emoji']} {item["name"].replace("_", " ").title().replace("Xp", "XP").replace("Ev", "EV")}(s).")
+        
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to craft an item on line {line_num}")
+
+    @commands.command(name="announcements",
+                      aliases=["anns"],
+                      help="With this command, you can view any announcements from the creator! If you want to be the first to know about any events or prizes, join the support server with the !invite command.")
+    async def view_announcements(self, ctx):
+        try:
+            button = AnnouncementButton()
+            embed = button.create_embed()
+
+            # Sends the announcement embed
+            return await ctx.send(embed=embed, view=button)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to view announcements on line {line_num}")
+
+
+
 
     @craft_item.error
     @vote_for_bot.error

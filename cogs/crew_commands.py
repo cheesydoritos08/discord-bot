@@ -17,9 +17,7 @@ class Crew_Commands(commands.Cog):
         self.bot = bot
         self.warned_cooldown_users = set()
 
-    # TODO: BUFF RAID REWARDS
-    # TODO Make sure to test that people who join already leveled up crews can claim income
-    # TODO Make sure to check stun/dodge quests not working
+
 
     @commands.command(name="crewcreate",
                       help="This command allows you to create a crew with up to four members including yourself. Creating a crew costs 10,000 won. The syntax for this command is ?crewcreate <crew name>.")
@@ -394,7 +392,7 @@ class Crew_Commands(commands.Cog):
             await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to set the image for a crew on line {line_num}")
 
     @commands.command(name="crewsetcolor",
-                      help="This command allows you to set the embed color for your crew if you are the crew head by typing a hexcode. If you want to remove a color, simply type None instead of a hexcode. The syntax for this command is ?crewsetcolor <hexcode (with no hashtag)>")
+                      help="This command allows you to set the embed color for your crew if you are the crew head by typing a hexcode. If you want to remove a color, simply type None instead of a hexcode. The syntax for this command is ?crewsetcolor <hexcode>")
     async def set_crew_color(self, ctx, hexcode):
         try:
             # Checks to see if the user has a profile or not
@@ -425,6 +423,10 @@ class Crew_Commands(commands.Cog):
 
             if is_valid_hexa_code(hexcode):
                 database_handler.crews.find_one_and_update({"crew_name": crew['crew_name']}, {"$set": {"crew_embed_color": hexcode}})
+                return await ctx.send("You have successfully updated the embed color. Run the ?crewview command to make sure the color works.")
+            
+            elif hexcode.lower() == "none":
+                database_handler.crews.find_one_and_update({"crew_name": crew['crew_name']}, {"$set": {"crew_embed_color": ""}})
                 return await ctx.send("You have successfully updated the embed color. Run the ?crewview command to make sure the color works.")
             
             else:
@@ -615,7 +617,7 @@ class Crew_Commands(commands.Cog):
 
     @commands.command(name="crewscout",
                       aliases=['scout'],
-                      help="This command allows you to send a character on a scouting mission. Scouting missions can bring back shards, items, and tickets. Sending higher rarity characters on missions will result in more valuable rewards. To claim your rewards once scouting is over, just type ?crewscout. The syntax for this command is ?crewscout <character name>")
+                      help="This command allows you to send a character on a scouting mission. Scouting missions can bring back shards, items, and tickets. Sending higher rarity characters on missions will result in more rewards and having a higher crew level results in more valuable rewards. To claim your rewards once scouting is over, just type ?crewscout. The syntax for this command is ?crewscout <character name>")
     async def send_character_on_scouting_mission(self, ctx, *, character_name : str = None):
         try:
             # Checks to see if the user has a profile or not
@@ -651,48 +653,11 @@ class Crew_Commands(commands.Cog):
                 user_character = database_handler.user_character_finder(user_id=ctx.author.id, character_name=user_crew[crew_member_position]["current_scouting_member"])
                 
                 rewards_dictionary = {
-                    "Common": {
-                        "common_shard": 100,
-                        "rare_shard": 30,
-                        "epic_shard": 5,
-                        "legendary_shard": 1,
-                        "standard_ticket": 30,
-                        "limited_ticket": 1,
-                        },
-
-                    "Rare": {
-                        "common_shard": 100,
-                        "rare_shard": 50,
-                        "epic_shard": 20,
-                        "legendary_shard": 5,
-                        "standard_ticket": 50,
-                        "limited_ticket": 5,
-                        "white_shirt": 20,
-                        "broken_sunglasses": 50,
-                        "boxing_gloves": 30,
-                        "biker_helmet": 60,
-                        "leather_jacket": 40
-                        },
-
-                    "Epic": {
-                        "common_shard": 100,
-                        "rare_shard": 80,
-                        "epic_shard": 40,
-                        "legendary_shard": 7,
-                        "standard_ticket": 70,
-                        "limited_ticket": 10,
-                        "white_shirt": 30,
-                        "broken_sunglasses": 60,
-                        "boxing_gloves": 40,
-                        "biker_helmet": 70,
-                        "leather_jacket": 50
-                        },
-
-                    "Legendary": {
+                    10: {
                         "common_shard": 100,
                         "rare_shard": 100,
                         "epic_shard": 60,
-                        "legendary_shard": 10,
+                        "legendary_shard": 5,
                         "standard_ticket": 100,
                         "limited_ticket": 15,
                         "white_shirt": 40,
@@ -701,27 +666,69 @@ class Crew_Commands(commands.Cog):
                         "biker_helmet": 80,
                         "leather_jacket": 60
                         },
+                    7: {
+                        "common_shard": 100,
+                        "rare_shard": 80,
+                        "epic_shard": 40,
+                        "legendary_shard": 4,
+                        "standard_ticket": 70,
+                        "limited_ticket": 10,
+                        "white_shirt": 30,
+                        "broken_sunglasses": 60,
+                        "boxing_gloves": 40,
+                        "biker_helmet": 70,
+                        "leather_jacket": 50
+                        },
+                    4: {
+                        "common_shard": 100,
+                        "rare_shard": 50,
+                        "epic_shard": 20,
+                        "legendary_shard": 3,
+                        "standard_ticket": 50,
+                        "limited_ticket": 5,
+                        "white_shirt": 20,
+                        "broken_sunglasses": 50,
+                        "boxing_gloves": 30,
+                        "biker_helmet": 60,
+                        "leather_jacket": 40
+                        },
+                    1: {
+                        "common_shard": 100,
+                        "rare_shard": 30,
+                        "epic_shard": 5,
+                        "legendary_shard": 1,
+                        "standard_ticket": 30,
+                        "limited_ticket": 1,
+                        },
+
                 }
 
+                threshold = 0
+
+                for item in rewards_dictionary:
+                    if item <= user_crew['crew_level']:
+                        threshold = item
+                        break
+                
                 user_rewards = {}
             
                 # Rolls a random number for each item in the rewards dictionary to see if
                 # the user gets the item
-                for item, percentage in rewards_dictionary[user_character['rarity']].items():
+                for item, percentage in rewards_dictionary[threshold].items():
                     random_num = random.randint(1, 100)
                     
                     if percentage >= random_num:
                         if user_character['rarity'] == "Common":
-                            num_of_rewards = random.randint(1, 3)
+                            num_of_rewards = random.randint(1, 2)
 
                         elif user_character['rarity'] == "Rare":
-                            num_of_rewards = random.randint(1, 5)
+                            num_of_rewards = random.randint(1, 3)
 
                         elif user_character['rarity'] == "Epic":
-                            num_of_rewards = random.randint(1, 7)
+                            num_of_rewards = random.randint(1, 4)
 
                         elif user_character['rarity'] == "Legendary":
-                            num_of_rewards = random.randint(1, 10)
+                            num_of_rewards = random.randint(1, 5)
 
                         user_rewards[item] = num_of_rewards
 

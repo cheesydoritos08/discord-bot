@@ -62,7 +62,7 @@ class Profile_and_Status(commands.Cog):
         )
         embed.add_field(
             name='Battle Stats',
-            value=f'Wins: {user_profile.get("wins")} \nLosses: {user_profile.get("losses")}\nELO: {user_profile.get('elo').get('score')}\nELO Ranking: {user_profile.get('elo').get('ranking')}',
+            value=f'Wins: {user_profile.get("wins")} \nLosses: {user_profile.get("losses")}\nELO: {user_profile.get('elo').get('score')}\nELO Ranking: {user_profile.get('elo').get('ranking')}\nRaid Level: {user_profile.get('raid_level')}',
             inline=True,
         )
         embed.add_field(

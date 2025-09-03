@@ -60,7 +60,7 @@ class GameInstance:
                     "can_crit": False
                 }
             
-    # YES Applys stat boost for entire team if applicable 
+    # Applys stat boost for entire team if applicable 
     def apply_stat_boosts(self):
         try:
             player_one_support = next((c for c in self.player_one_team if c["class"] == "Support"), None)
@@ -96,7 +96,7 @@ class GameInstance:
 
             create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when applying stat boosts in a challenge on line {line_num}")
 
-    # YES Applys item stat boosts
+    # Applys item stat boosts
     def apply_item_boosts(self, item):
         try:
             team = self.player_one_team if self.turn == "team_1" else self.player_two_team
@@ -131,7 +131,7 @@ class GameInstance:
 
             create_error_embed(error=e, ctx=self.ctx, msg=f"This occured while trying to apply an item boost to the team in a challenge on line {line_num}.")
 
-    # YES Checks the duration of the current items:
+    # Checks the duration of the current items:
     def check_item_boost_duration(self, team, items_in_use_list : list):
         try:
             team = self.player_one_team if team == "team_1" else self.player_two_team
@@ -169,7 +169,7 @@ class GameInstance:
 
             create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when checking the duration of the item effect for {team} on line {line_num}")
 
-    # YES Displays the health bar of the character
+    # Displays the health bar of the character
     def display_health_bar(self, current_hp, max_hp):
         try:
             health_bars = [
@@ -193,7 +193,7 @@ class GameInstance:
 
             create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when creating the health bars for a challenge on line {line_num}")
 
-    # YES Formats the team in into a string
+    # Formats the team in into a string
     def format_team(self, team):
         return "\n".join(
             [
@@ -203,7 +203,7 @@ class GameInstance:
             ]
         )
 
-    # YES Creates the buttons for the users to press
+    # Creates the buttons for the users to press
     def create_character_buttons(self, team):
         try:
             self.view.clear_items()
@@ -227,11 +227,20 @@ class GameInstance:
 
             create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when creating character buttons for a challenge on {line_num}")
     
-    # YES Determines whether the effect is cast and on to who if necessary
+    # Determines whether the effect is cast and on to who if necessary
     def process_support_effect(self, team, support_effect = None):
         try:
             attacking_character = self.player_one_character if team == "team_1" else self.player_two_character
+            
+            attacking_user = None
 
+            if self.game_type == "challenge" and attacking_character == self.player_one_character:
+                attacking_user = self.player_one
+            elif self.game_type == "challenge" and attacking_character == self.player_two_character:
+                attacking_user = self.player_two
+            elif self.game_type == "raid" and attacking_character == self.player_one_character:
+                attacking_user = self.ctx.author
+            
             if self.team_states[team][attacking_character['name']]['stunned'] or attacking_character['current_hp'] <= 0:
                 return
             
@@ -247,10 +256,17 @@ class GameInstance:
                 if attacking_character.get('crit_chance', None) is not None:
                     self.team_states[team][attacking_character['name']]['can_crit'] = True
 
+                    if attacking_user is not None:
+                        update_quests(user_id=attacking_user.id, quest_id="crit_one_character", amount=1) 
+
+
                 elif attacking_character.get('dodge_chance', None) is not None:
                     self.team_states[team][attacking_character['name']]['can_dodge'] = True
                     self.team_states[team][attacking_character['name']]['dodge_timer'] = attacking_character.get('dodge_duration')
-                        
+
+                    if attacking_user is not None:
+                        update_quests(user_id=attacking_user.id, quest_id="dodge_one_character", amount=1) 
+
                 elif attacking_character.get('stun_chance', None) is not None:
                     defending_character = self.player_one_character if attacking_character == self.player_two_character else self.player_two_character
                     
@@ -262,7 +278,10 @@ class GameInstance:
                         return
 
                     self.team_states[defending_team][defending_character['name']]['stunned'] = True
-                    self.team_states[defending_team][defending_character['name']]['stun_timer'] = attacking_character.get('stun_duration')          
+                    self.team_states[defending_team][defending_character['name']]['stun_timer'] = attacking_character.get('stun_duration')  
+
+                    if attacking_user is not None:
+                        update_quests(user_id=attacking_user.id, quest_id="stun_one_character", amount=1)       
                 
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
@@ -270,7 +289,7 @@ class GameInstance:
 
             create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when processing the effect for a character in a challenge on line {line_num}")
 
-    # YES Applys the effects determined by the process_effect function
+    # Applys the effects determined by the process_effect function
     def apply_support_effects(self, attacking_team):
         try:
             # Gets player support characters
@@ -307,7 +326,7 @@ class GameInstance:
 
             create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when applying the effects in a challenge on line {line_num}")
 
-    # YES Handles the attack for each of the characters
+    # Handles the attack for each of the characters
     def handle_attack(self, attacker, attacking_team):
         try:
             defender = self.player_one_character if attacker == self.player_two_character else self.player_two_character
@@ -357,7 +376,7 @@ class GameInstance:
 
             create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when handling the attack for {attacking_team} on line {line_num}")
 
-    # YES Determines the amount of damage to be taken then resets the turn
+    # Determines the amount of damage to be taken then resets the turn
     def determine_final_damage(self):
         try:
             self.check_item_boost_duration(team="team_1", items_in_use_list=self.p1_items_in_use)
@@ -410,7 +429,7 @@ class GameInstance:
 
             create_error_embed(error=e, ctx=self.ctx, msg=f"This occured when determining the final damage for a challenge round on line {line_num}")
 
-    # YES Resets the round to prepare for the next turn
+    # Resets the round to prepare for the next turn
     def reset_character(self, team):
         try:
             player_team = self.player_one_team if team == "team_1" else self.player_two_team
@@ -784,7 +803,7 @@ class RaidInstance(GameInstance):
             threshold = math.ceil(float(self.level) / 5) * 5
 
             if threshold > 70:
-                multiplier = math.ceil((threshold - 70)/5)
+                multiplier = math.ceil((self.level - 70)/5)
 
                 enemy_setup_dictionary = {
                 70: {"rarity": "Legendary",
@@ -815,8 +834,7 @@ class RaidInstance(GameInstance):
                 elif enemy.get("dodge_chance", None) is not None:
                     enemy["dodge_chance"] = random.randint(round(enemy["dodge_chance"]*2*0.8), round(enemy["dodge_chance"]*2*1.2))
                 elif enemy.get("stun_chance", None) is not None:
-                    enemy['stun_chance'] = 100
-                    #enemy["stun_chance"] = random.randint(round(enemy["stun_chance"]*2*0.8), round(enemy["stun_chance"]*2*1.2))
+                    enemy["stun_chance"] = random.randint(round(enemy["stun_chance"]*2*0.8), round(enemy["stun_chance"]*2*1.2))
 
                 enemy["HP"] = random.randint(round(enemy["HP"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["HP"]*0.8), round(enemy["HP"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["HP"]*1.2))
                 enemy["ATK"] = random.randint(round(enemy["ATK"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["ATK"]*0.8), round(enemy["ATK"]*enemy_setup_dictionary[threshold]["stat_multiplier"]["ATK"]*1.2))
@@ -867,6 +885,8 @@ class RaidInstance(GameInstance):
         try:
             rewards_dictionary = {
                 5: {
+                    "xp_starting_payout": 20,
+                    "won_starting_payout": 50,
                     "raid_token": 10,
                     "standard_ticket": 10,
                     "limited_ticket": 5,
@@ -878,6 +898,8 @@ class RaidInstance(GameInstance):
                     },
 
                 10: {
+                    "xp_starting_payout": 40,
+                    "won_starting_payout": 70,
                     "raid_token": 15,
                     "standard_ticket": 15,
                     "limited_ticket": 8,
@@ -889,6 +911,8 @@ class RaidInstance(GameInstance):
                     },
 
                 15: {
+                    "xp_starting_payout": 60,
+                    "won_starting_payout": 90,
                     "raid_token": 20,
                     "standard_ticket": 20,
                     "limited_ticket": 11,
@@ -907,6 +931,8 @@ class RaidInstance(GameInstance):
             if threshold > 70:
                 rewards_dictionary = {
                  70: {
+                    "xp_starting_payout": 200,
+                    "won_starting_payout": 300,
                     "raid_token": 75,
                     "standard_ticket": 75,
                     "limited_ticket": 44,
@@ -924,10 +950,12 @@ class RaidInstance(GameInstance):
                 threshold = 70
                 
             elif threshold > 15:
-                multiplier = math.ceil((self.level - threshold)/ 5)
+                multiplier = math.ceil((self.level - 15)/ 5)
 
                 rewards_dictionary = {
                  15: {
+                    "xp_starting_payout": 60 + (multiplier * 10),
+                    "won_starting_payout": 90 + (multiplier * 15),
                     "raid_token": 20 + (multiplier * 5),
                     "standard_ticket": 20 + (multiplier * 5),
                     "limited_ticket": 11 + (multiplier * 3),
@@ -947,6 +975,9 @@ class RaidInstance(GameInstance):
             # Rolls a random number for each item in the rewards dictionary to see if
             # the user gets the item
             for item, percentage in rewards_dictionary[threshold].items():
+                if item == "xp_starting_payout" or item == "won_starting_payout":
+                    continue
+
                 random_num = random.randint(1, 100)
                 
                 if percentage >= random_num:
@@ -966,25 +997,10 @@ class RaidInstance(GameInstance):
                     
                     self.player_rewards[item] += range_of_rewards
 
-            if self.level > 20:
-                xp_starting_payout = 100
-                won_starting_payout = 50
-            elif self.level > 15:
-                xp_starting_payout = 80
-                won_starting_payout = 40
-            elif self.level > 10:
-                xp_starting_payout = 60
-                won_starting_payout = 30
-            elif self.level > 5:
-                xp_starting_payout = 40
-                won_starting_payout = 20
-            else:
-                xp_starting_payout = 20
-                won_starting_payout = 10
 
-            self.xp_payout += random.randint(xp_starting_payout, xp_starting_payout + 50)
-            self.won_payout += random.randint(won_starting_payout, won_starting_payout + 50)
 
+            self.xp_payout += random.randint(rewards_dictionary[threshold]["xp_starting_payout"], rewards_dictionary[threshold]["xp_starting_payout"] + 50)
+            self.won_payout += random.randint(rewards_dictionary[threshold]["won_starting_payout"], rewards_dictionary[threshold]["won_starting_payout"] + 50)
 
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
@@ -1037,7 +1053,10 @@ class RaidInstance(GameInstance):
 
                 # Gives each character XP based on whether they completed a level or not
                 for char in fighter_characters:
-                    xp_payout = random.randint(self.xp_payout, self.xp_payout + 1000) * check_boosts(user_id=self.ctx.author.id, type="xp_booster")
+                    xp_payout = 0
+
+                    if self.xp_payout > 0:
+                        xp_payout = random.randint(self.xp_payout, self.xp_payout + 300) * check_boosts(user_id=self.ctx.author.id, type="xp_booster")
 
                     embed.add_field(name="",
                         value=f"{char["name"]} has received {xp_payout} XP! Their current XP amount is now `{database_handler.increment_character_xp(user_id=self.ctx.author.id, xp=xp_payout, character=char["name"], return_xp=True)}/2000`",
@@ -1061,7 +1080,7 @@ class RaidInstance(GameInstance):
                     for item in user_inventory:
                         try:
                             if reward == item:
-                                database_handler.inc_value_to_users(user_id=self.ctx.user.id, key=f"inventory.{reward}.amount", value=amount)
+                                database_handler.inc_value_to_users(user_id=self.ctx.author.id, key=f"inventory.{reward}.amount", value=amount)
                                 reward_given = True
                         except Exception as e:
                             create_error_embed(error=e, ctx=self.ctx, msg="This occurred while trying to add items won from a raid to a user's inventory.")
