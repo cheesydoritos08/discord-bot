@@ -19,41 +19,47 @@ class Utilites(commands.Cog):
     @commands.command(name="boost")
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def use_boost(self, ctx, *, item : InventoryConverter):
-        # Checks to see if the user exists and gets their inventory
-        if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
-            return
-   
-        user_profile = database_handler.users.find_one({"_id": ctx.author.id})
-        inventory = user_profile.get("inventory")
-       
-       # Makes sure only won and xp boosters are being used
-        if item != "won_booster" and item != "xp_booster":
-            return await ctx.send("Not a valid boost item.")
+        try:
+            # Checks to see if the user exists and gets their inventory
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
     
-        # Determines what to do based on the item mentioned
-        if inventory.get(item, None):
-            if inventory[item]["amount"] == 0:
+            user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+            inventory = user_profile.get("inventory")
+        
+        # Makes sure only won and xp boosters are being used
+            if item != "won_booster" and item != "xp_booster":
+                return await ctx.send("Not a valid boost item.")
+        
+            # Determines what to do based on the item mentioned
+            if inventory.get(item, None):
+                if inventory[item]["amount"] == 0:
+                    return await ctx.send("Can't use what you don't have. This isn't rocket science.")
+                elif user_profile["buffs"][item]["active"]:
+                    return await ctx.send("Isn't one buff enough for you?")
+                
+                await ctx.send(f"You have used a {item.replace("_", " ").title().replace("Xp", "XP")}")
+                start_time = round(time.time())
+
+                database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item}.amount", value=-1)
+                database_handler.users.update_one({"_id": ctx.author.id}, {"$set": {f"buffs.{item}.multiplier": inventory[item]["multiplier"]}})
+                database_handler.users.update_one({"_id": ctx.author.id}, {"$set": {f"buffs.{item}.active": True}})
+
+                if item == "won_booster":
+                    update_quests(user_id=ctx.author.id, quest_id="use_won_booster", amount=1)
+                elif item == "xp_booster":
+                    update_quests(user_id=ctx.author.id, quest_id="use_xp_booster", amount=1)
+
+                # Creates a timer for the boost
+                timer = Timer(user_id=ctx.author.id, name=item, starttime=start_time, timer_length=60 * inventory[item]["time_period"])
+                timer.create_timer()
+            else:
                 return await ctx.send("Can't use what you don't have. This isn't rocket science.")
-            elif user_profile["buffs"][item]["active"]:
-                return await ctx.send("Isn't one buff enough for you?")
-            
-            await ctx.send(f"You have used a {item.replace("_", " ").title().replace("Xp", "XP")}")
-            start_time = round(time.time())
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
 
-            database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item}.amount", value=-1)
-            database_handler.users.update_one({"_id": ctx.author.id}, {"$set": {f"buffs.{item}.multiplier": inventory[item]["multiplier"]}})
-            database_handler.users.update_one({"_id": ctx.author.id}, {"$set": {f"buffs.{item}.active": True}})
-
-            if item == "won_booster":
-                update_quests(user_id=ctx.author.id, quest_id="use_won_booster", amount=1)
-            elif item == "xp_booster":
-                update_quests(user_id=ctx.author.id, quest_id="use_xp_booster", amount=1)
-
-            # Creates a timer for the boost
-            timer = Timer(user_id=ctx.author.id, name=item, starttime=start_time, timer_length=60 * inventory[item]["time_period"])
-            timer.create_timer()
-        else:
-            return await ctx.send("Can't use what you don't have. This isn't rocket science.")
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to use a booster on line {line_num}")
 
 
     # Allows users to use chips to upgrade characters faster
@@ -61,38 +67,44 @@ class Utilites(commands.Cog):
                       help="This command lets you use XP chips to level up your characters. Each XP chip gives 1000 XP points. The format for this command is `?chip <character name> <amount>`. If your character goes over the level cap when you use your chips, you will **not** be refunded the leftover chips so be careful.")
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def use_chip(self, ctx, *, arg : UseChipConverter):
-        # Checks to see if the user exists
-        if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
-            return
-  
-        # Sets variables based on the converter
-        character, amount = arg
-        user_profile = database_handler.users.find_one({"_id": ctx.author.id})
-        inventory = user_profile["inventory"]
+        try:
+            # Checks to see if the user exists
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+    
+            # Sets variables based on the converter
+            character, amount = arg
+            user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+            inventory = user_profile["inventory"]
 
-        # Checks to see if the user has enough chips
-        if not inventory.get("xp_chip") or inventory.get("xp_chip", {}).get("amount", 0) == 0 or inventory.get("xp_chip", {}).get("amount", 0) < amount:
-            return await ctx.send("You don't even have enough chips. Sad.")
+            # Checks to see if the user has enough chips
+            if not inventory.get("xp_chip") or inventory.get("xp_chip", {}).get("amount", 0) == 0 or inventory.get("xp_chip", {}).get("amount", 0) < amount:
+                return await ctx.send("You don't even have enough chips. Sad.")
 
-        if amount < 1:
-            return await ctx.send("Doesn't work like that.")
+            if amount < 1:
+                return await ctx.send("Doesn't work like that.")
 
-        # Increases the level of the character if owned
-        for char in user_profile["characters"]:
-            if char["name"].lower() == character.lower():
-                leveling_cap = 30
-                if char['LVL'] == leveling_cap:
-                    return await ctx.send(f'You can\'t go past level {leveling_cap}.')
-                
-                database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.xp_chip.amount", value=-amount)
-                database_handler.increment_character_xp(user_id=ctx.author.id, character=character.lower(), xp= 1000 * amount)
-                update_quests(user_id=ctx.author.id, quest_id="use_xp_chip", amount=1)
+            # Increases the level of the character if owned
+            for char in user_profile["characters"]:
+                if char["name"].lower() == character.lower():
+                    leveling_cap = 30
+                    if char['LVL'] == leveling_cap:
+                        return await ctx.send(f'You can\'t go past level {leveling_cap}.')
+                    
+                    database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.xp_chip.amount", value=-amount)
+                    database_handler.increment_character_xp(user_id=ctx.author.id, character=character.lower(), xp= 1000 * amount)
+                    update_quests(user_id=ctx.author.id, quest_id="use_xp_chip", amount=1)
 
-                char_level = database_handler.users.find_one({"_id": ctx.author.id, "characters.name": character.title()}, {'characters.$': 1}).get('characters')[0]['LVL']
+                    char_level = database_handler.users.find_one({"_id": ctx.author.id, "characters.name": character.title()}, {'characters.$': 1}).get('characters')[0]['LVL']
 
-                return await ctx.send(f"{character} has been leveled up. They are currently level {char_level}")
-        
-        return await ctx.send(f"You don't own {character} stupid.")
+                    return await ctx.send(f"{character} has been leveled up. They are currently level {char_level}")
+            
+            return await ctx.send(f"You don't own {character} stupid.")
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while trying to use an xp chip on line {line_num}")
 
 
     # Displays the current timers and how much time is left on them
