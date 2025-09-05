@@ -17,8 +17,6 @@ class Crew_Commands(commands.Cog):
         self.bot = bot
         self.warned_cooldown_users = set()
 
-
-
     @commands.command(name="crewcreate",
                       help="This command allows you to create a crew with up to four members including yourself. Creating a crew costs 10,000 won. The syntax for this command is ?crewcreate <crew name>.")
     async def create_crew(self, ctx, *, name : str):

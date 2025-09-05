@@ -3,6 +3,7 @@ import os
 import asyncio
 import handlers.database_handler as database_handler
 import time
+import sys
 from utils.utility_functions import create_error_embed, log_error_embed
 from utils.timer import Timer
 from dotenv import load_dotenv
@@ -29,7 +30,6 @@ intents.message_content = True
 
 # Holds all the cached guild prfixes
 guild_prefixes_dictionary = {}
-
 
 # Creates a loop that clears the cache every 10 seconds
 @tasks.loop(seconds=10)
@@ -77,6 +77,7 @@ bot.remove_command('help')
 async def on_guild_join(guild):
         database_handler.guild_prefixes.insert_one({"_id": guild.id, "prefixes": ["?"]})
         guild_prefixes_dictionary[guild.id] = ["?"]    
+
 
 # Removes the guild from the database for guild prefixes
 @bot.event

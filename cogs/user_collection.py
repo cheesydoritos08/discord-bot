@@ -1,7 +1,9 @@
 import discord
+from discord.ext import tasks
 import handlers.database_handler as database_handler
 import random
 import sys
+import time
 import os
 import asyncio
 from utils.utility_functions import cooldown_calculator, update_quests, create_error_embed, num_to_words_dict
@@ -13,17 +15,69 @@ from discord.ext import commands
 # Creates a class to handle all commands related to rolling new characters
 class User_Collection(commands.Cog):
     # Initalizes the class
-    def __init__(self, bot):
+    def __init__(self, bot : commands.Bot):
         self.bot = bot
         self.warned_cooldown_users = set()
+        self.current_legendary_of_the_week = ""
+        # Create an if statement to check to see if the current legendary of the week is empty and replaces it
+
+        if not self.send_legendary_of_the_week_embed.is_running():
+            self.send_legendary_of_the_week_embed.start()
+
+
+    # Creates a loop that runs every 12 hours to check whether it's time to update the legendary of the week  
+    @tasks.loop(hours=12.0, reconnect=True)
+    async def send_legendary_of_the_week_embed(self):
+        try:
+            # Gets the last legendary of the week from the embed
+            amount_of_seconds_in_a_week = 60 * 60 * 24 * 7
+            legendary_of_the_week_channel = self.bot.get_channel(1383605542764679268)
+            last_message_sent = await legendary_of_the_week_channel.fetch_message(legendary_of_the_week_channel.last_message_id)
+            next_message_timestamp = last_message_sent.created_at.timestamp() + amount_of_seconds_in_a_week
+            current_time = time.time()
+            last_legendary_of_the_week = last_message_sent.embeds[0].footer.text
+
+            # Checks to see if a week has passed yet
+            if current_time >= next_message_timestamp:
+                possible_legendaries = list(database_handler.all_characters.find({"rarity": "Legendary"}))
+
+                # Makes sure that the LOTW doesn't repeat or use a special character
+                for legendary in possible_legendaries:
+                    if legendary['name'] == "Jihu Seo" or legendary['name'] == last_legendary_of_the_week:
+                        possible_legendaries.remove(legendary)
+
+                # Sets the new legendary of the week
+                self.current_legendary_of_the_week = possible_legendaries[random.randint(0, len(possible_legendaries) - 1)]['name']
+                legendary_of_the_week = next(iter(database_handler.all_characters.find({"name": self.current_legendary_of_the_week})))
+                embed = CharacterButton(characters=legendary_of_the_week).create_embed(character=legendary_of_the_week)
+                embed.set_footer(text=self.current_legendary_of_the_week)
+
+                await legendary_of_the_week_channel.send(content="||<@&1382932955051327579>||\nThe next legendary of the week is:",embed=embed)
+
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(error=e, msg=f"This occured while sending the LOTW embed on line {line_num}")
+
+    # Ensures that the bot is ready before running loop
+    @send_legendary_of_the_week_embed.before_loop
+    async def before_send(self):
+        await self.bot.wait_until_ready()
 
     # Adds the newly rolled character to the player's inventory
-    def add_character_to_inventory(self, rarity, user_id):
+    async def add_character_to_inventory(self, rarity, user_id):
         # Chooses a character based off of the rarity
         # TODO Change the footer to match the new character
-        rated_up_legendary_character = "Shingen Yamazaki"
+        if self.current_legendary_of_the_week == "":
+            legendary_of_the_week_channel = self.bot.get_channel(1383692657238347806)
+            last_message_sent = await legendary_of_the_week_channel.fetch_message(legendary_of_the_week_channel.last_message_id)
+            last_legendary_of_the_week = last_message_sent.embeds[0].footer.text
+
+            self.current_legendary_of_the_week = last_legendary_of_the_week
+
         if rarity == "Legendary":
-            rolled_character = database_handler.all_characters.find_one({"name": rated_up_legendary_character})
+            rolled_character = database_handler.all_characters.find_one({"name": self.current_legendary_of_the_week})
             rolled_character.pop('threshold_requirements')
         else:
             rolled_character = random.choice(database_handler.all_characters_search('rarity', rarity))
@@ -434,7 +488,7 @@ class User_Collection(commands.Cog):
 
         # Checks to see if the pity should be displayed
         if pity is not None:
-            embed.set_footer(text=f'Pity: {pity}/100 | Rolled by {user} | Current Legendary of the Week: Shingen Yamazaki')
+            embed.set_footer(text=f'Pity: {pity}/100 | Rolled by {user} | Current Legendary of the Week: {self.current_legendary_of_the_week}')
         else:
             embed.set_footer(text=f'Rolled by {user}')
 
@@ -718,3 +772,6 @@ class User_Collection(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(User_Collection(bot))
+
+
+
