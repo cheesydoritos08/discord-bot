@@ -27,167 +27,181 @@ class Economy(commands.Cog):
     @commands.command(aliases=['bal'],
                       help="This command display the amount of won you currently have!")
     async def balance(self, ctx):
-        # Stores the user and user profile into a variable
-        user = ctx.message.author
+        try:
+            # Stores the user and user profile into a variable
+            user = ctx.message.author
 
-        # Checks to see if the user has a profile or not
-        if not await database_handler.check_existing_profile(ctx=ctx, user_id=user.id):
-            return
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=user.id):
+                return
 
-        user_profile = database_handler.users.find_one({'_id': user.id})
+            user_profile = database_handler.users.find_one({'_id': user.id})
 
-        # Stores the balance in a variable
-        balance = user_profile.get('economy').get('won')
+            # Stores the balance in a variable
+            balance = user_profile.get('economy').get('won')
 
-        # Creates an embed with all the info
-        embed = discord.Embed(
-            title=f"{user}'s Balance",
-            description=f'Balance: ₩{balance}',
-            color=discord.Color.dark_green(),
-        )
-        
-        await ctx.send(embed=embed)
+            # Creates an embed with all the info
+            embed = discord.Embed(
+                title=f"{user}'s Balance",
+                description=f'Balance: ₩{balance}',
+                color=discord.Color.dark_green(),
+            )
+            
+            await ctx.send(embed=embed)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while checking the balance on line {line_num}")
+
 
     # Daily command with a one day cooldown
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     @commands.command(help="This command allows you to collect a reward every 24 hours! For every day you collect your reward, your streak increases. The longer your streak, the more rewards you get daily!")
     async def daily(self, ctx):
-        shard_obtained = False
-        # Stores daily amount as a variable
-        daily_amount = 500
-        # Stores user as a variable
-        user = ctx.message.author
+        try:
+            shard_obtained = False
+            # Stores daily amount as a variable
+            daily_amount = 500
+            # Stores user as a variable
+            user = ctx.message.author
 
-        # Checks to see if the user has a profile or not
-        if not await database_handler.check_existing_profile(ctx=ctx, user_id=user.id):
-            return
-        
-        user_profile = database_handler.users.find_one({'_id': user.id})
-
-        # Checks whether they user has already claimed their daily reward or not
-        if user_profile.get('timers').get('daily_claim', 0) != 0:
-            return await ctx.send("You already claimed your daily reward, stupid.")
-
-        # Gets the streak and last claim time of the user
-        streak = user_profile.get('economy').get('daily_streak')
-        last_claim_time = user_profile.get('economy').get('last_claim_time')
-        last_claim = datetime.fromtimestamp(float(last_claim_time))
-        claim_time = datetime.now()
-        time_difference = claim_time - last_claim
-
-        # Calculates whether to reset the streak or not
-        if time_difference > timedelta(hours=48):
-            database_handler.users.update_one(
-                {'_id': user.id}, {'$set': {'economy.daily_streak': 1}}
-            )
-            streak = 1
-        else:
-            database_handler.inc_value_to_users(
-                user_id=user.id, key='economy.daily_streak', value=1
-            )
-            streak += 1
-
-        # Updates the amount of money based off of streak multipler and character buffs
-        daily_amount += sum(
-            effect['amount']
-            for character in user_profile['characters']
-            if character['class'] == 'Support'
-            for effect in character['effects']
-            if effect.get('type') == 'daily'
-        )
-
-        streak_multipler = (streak - 1) / 100
-        daily_amount *= 1.00 + streak_multipler
-
-        database_handler.inc_value_to_users(user_id=user.id, key='economy.won', value=daily_amount)
-
-        # Determines what shard to give to user ever 5 days of their streak
-        if streak % 5 == 0:
-
-            def choose_rarity():
-                # Determines the rarity of each tier depending on current streak
-                if streak > 30:
-                    rarities = {
-                        'Legendary': 15,
-                        'Epic': 17,
-                        'Rare': 28,
-                        'Common': 40,
-                    }
-                elif streak > 20:
-                    rarities = {
-                        'Legendary': 10,
-                        'Epic': 15,
-                        'Rare': 25,
-                        'Common': 50,
-                    }
-                elif streak > 10:
-                    rarities = {
-                        'Legendary': 5,
-                        'Epic': 12,
-                        'Rare': 23,
-                        'Common': 60,
-                    }
-                else:
-                    rarities = {
-                        'Legendary': 1,
-                        'Epic': 9,
-                        'Rare': 20,
-                        'Common': 70,
-                    }
-
-                # Generates a rarity for the shard
-                randomNum = random.randint(1, sum(rarities.values()))
-                counter = 0
-                for rarity, weight in rarities.items():
-                    counter += weight
-                    if randomNum <= counter:
-                        return rarity, True
-
-            # Stores the rarity and whether a shard was obtained in two variables
-            rarity, shard_obtained = choose_rarity()
-
-            # Adds the shard into the inventory
-            shard = rarity.lower() + "_shard"
-            user_id = ctx.author.id
-
-            for x in range(1):
-                user_inventory = database_handler.users.find_one({"_id": user_id}).get('inventory')
-                for user_item in user_inventory:
-                    if user_item == shard:
-                        database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.{shard}.amount", value=1)
-                        break
-
-                database_handler.add_item(user_id=user_id, item=shard)
-                database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.{shard}.amount", value=1)
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=user.id):
+                return
             
-        update_quests(user_id=ctx.author.id, quest_id="use_daily_command", amount=1)
+            user_profile = database_handler.users.find_one({'_id': user.id})
 
+            # Checks whether they user has already claimed their daily reward or not
+            if user_profile.get('timers').get('daily_claim', 0) != 0:
+                return await ctx.send("You already claimed your daily reward, stupid.")
 
-        # Determines the embed message to display based on whether a shard was obtained or not
-        if shard_obtained:
-            embed = discord.Embed(
-                title='* Daily Reward *',
-                description=f"You've obtained ₩{daily_amount}! This has been added to your balance.\nYou also obtained a {rarity} shard! This has been added to your inventory.",
-                color=discord.Color.dark_magenta(),
+            # Gets the streak and last claim time of the user
+            streak = user_profile.get('economy').get('daily_streak')
+            last_claim_time = user_profile.get('economy').get('last_claim_time')
+            last_claim = datetime.fromtimestamp(float(last_claim_time))
+            claim_time = datetime.now()
+            time_difference = claim_time - last_claim
+
+            # Calculates whether to reset the streak or not
+            if time_difference > timedelta(hours=48):
+                database_handler.users.update_one(
+                    {'_id': user.id}, {'$set': {'economy.daily_streak': 1}}
+                )
+                streak = 1
+            else:
+                database_handler.inc_value_to_users(
+                    user_id=user.id, key='economy.daily_streak', value=1
+                )
+                streak += 1
+
+            # Updates the amount of money based off of streak multipler and character buffs
+            daily_amount += sum(
+                effect['amount']
+                for character in user_profile['characters']
+                if character['class'] == 'Support'
+                for effect in character['effects']
+                if effect.get('type') == 'daily'
             )
-        else:
-            embed = discord.Embed(
-                title='* Daily Reward *',
-                description=f"You've obtained ₩{daily_amount}! This has been added to your balance.",
-                color=discord.Color.dark_magenta(),
+
+            streak_multipler = (streak - 1) / 100
+            daily_amount *= 1.00 + streak_multipler
+
+            database_handler.inc_value_to_users(user_id=user.id, key='economy.won', value=daily_amount)
+
+            # Determines what shard to give to user ever 5 days of their streak
+            if streak % 5 == 0:
+
+                def choose_rarity():
+                    # Determines the rarity of each tier depending on current streak
+                    if streak > 30:
+                        rarities = {
+                            'Legendary': 15,
+                            'Epic': 17,
+                            'Rare': 28,
+                            'Common': 40,
+                        }
+                    elif streak > 20:
+                        rarities = {
+                            'Legendary': 10,
+                            'Epic': 15,
+                            'Rare': 25,
+                            'Common': 50,
+                        }
+                    elif streak > 10:
+                        rarities = {
+                            'Legendary': 5,
+                            'Epic': 12,
+                            'Rare': 23,
+                            'Common': 60,
+                        }
+                    else:
+                        rarities = {
+                            'Legendary': 1,
+                            'Epic': 9,
+                            'Rare': 20,
+                            'Common': 70,
+                        }
+
+                    # Generates a rarity for the shard
+                    randomNum = random.randint(1, sum(rarities.values()))
+                    counter = 0
+                    for rarity, weight in rarities.items():
+                        counter += weight
+                        if randomNum <= counter:
+                            return rarity, True
+
+                # Stores the rarity and whether a shard was obtained in two variables
+                rarity, shard_obtained = choose_rarity()
+
+                # Adds the shard into the inventory
+                shard = rarity.lower() + "_shard"
+                user_id = ctx.author.id
+
+                for x in range(1):
+                    user_inventory = database_handler.users.find_one({"_id": user_id}).get('inventory')
+                    for user_item in user_inventory:
+                        if user_item == shard:
+                            database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.{shard}.amount", value=1)
+                            break
+
+                    database_handler.add_item(user_id=user_id, item=shard)
+                    database_handler.inc_value_to_users(user_id=user_id, key=f"inventory.{shard}.amount", value=1)
+                
+            update_quests(user_id=ctx.author.id, quest_id="use_daily_command", amount=1)
+
+
+            # Determines the embed message to display based on whether a shard was obtained or not
+            if shard_obtained:
+                embed = discord.Embed(
+                    title='* Daily Reward *',
+                    description=f"You've obtained ₩{daily_amount}! This has been added to your balance.\nYou also obtained a {rarity} shard! This has been added to your inventory.",
+                    color=discord.Color.dark_magenta(),
+                )
+            else:
+                embed = discord.Embed(
+                    title='* Daily Reward *',
+                    description=f"You've obtained ₩{daily_amount}! This has been added to your balance.",
+                    color=discord.Color.dark_magenta(),
+                )
+
+            update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_won", amount=daily_amount)
+            embed.set_footer(text=f'Current Streak: {streak}')
+
+            # Updates the claim time for the daily bonus
+            database_handler.users.update_one(
+                {'_id': user.id},
+                {'$set': {'economy.last_claim_time': str(claim_time.timestamp())}}
             )
+    
+            Timer(user_id=ctx.author.id, name="daily_claim", starttime=round(time.time()), timer_length = 60 * 60 * 24).create_timer()
+            await ctx.send(embed=embed)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
 
-        update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_won", amount=daily_amount)
-        embed.set_footer(text=f'Current Streak: {streak}')
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while claiming the daily on line {line_num}")
 
-        # Updates the claim time for the daily bonus
-        database_handler.users.update_one(
-            {'_id': user.id},
-            {'$set': {'economy.last_claim_time': str(claim_time.timestamp())}}
-        )
-  
-        Timer(user_id=ctx.author.id, name="daily_claim", starttime=round(time.time()), timer_length = 60 * 60 * 24).create_timer()
-        await ctx.send(embed=embed)
 
     # Creates a game of high or low for the user to play
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
@@ -271,7 +285,11 @@ class Economy(commands.Cog):
         except asyncio.TimeoutError:
             await ctx.send('I don\'t have all day and you\'re wasting my time. Talk me when you\'re serious.')
         except Exception as e:
-            create_error_embed(error=e, ctx=ctx)
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while playing H or L on line {line_num}")
+
         
     # Allows a player to guess what side the coin will land on
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
@@ -291,6 +309,12 @@ class Economy(commands.Cog):
                 return await ctx.send('How about you try getting enough money first before you gamble.')
         except ValueError:
             return await ctx.send("Not a number. Try again.")
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while playing coinflip on line {line_num}")
+
 
         # Defines the choices that the bot can choose
         result = random.choice(['heads', 'tails'])
@@ -324,7 +348,11 @@ class Economy(commands.Cog):
         except asyncio.TimeoutError:
             await ctx.send('I don\'t have all day and you\'re wasting my time. Talk me when you\'re serious.')
         except Exception as e:
-            create_error_embed(error=e, ctx=ctx, msg="This occured from the coinflip command.")
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while playing coinflip on line {line_num}")
+
         
     # Displays the shop to the user
     @commands.cooldown(rate=1, per=60, type=commands.BucketType.user)
@@ -343,7 +371,11 @@ class Economy(commands.Cog):
             shop_buttons = ShopButtons(items = buyable_items, ctx = ctx)
             await ctx.send(embed=shop_buttons.create_embed(), view=shop_buttons)
         except Exception as e:
-            create_error_embed(error=e, ctx=ctx)
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while displaying the shop on line {line_num}")
+
 
     # Allows a user to buy an item from the shop
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)   
@@ -356,41 +388,47 @@ class Economy(commands.Cog):
         except Exception as e:
             return await ctx.send("Do I really have to remind you to use the correct format?: `?buy <item name> <amount>`")
 
-        buyable_items = list(database_handler.items.find({"buy_price": {"$exists": True}}))
+        try:
+            buyable_items = list(database_handler.items.find({"buy_price": {"$exists": True}}))
 
-        if amount < 1:
-            return await ctx.send("Doesn't work like that.")
+            if amount < 1:
+                return await ctx.send("Doesn't work like that.")
 
-        for item in buyable_items:
-            # Checks to see if the item that's being bought is a buyable item 
-            if  item_being_bought == item["name"]:
-                # Sets variables
-                user_profile = database_handler.users.find_one({"_id": ctx.author.id})
-                user_won = user_profile.get("economy").get("won")
-                user_inventory = user_profile.get("inventory")
-                price = item["buy_price"] * amount
+            for item in buyable_items:
+                # Checks to see if the item that's being bought is a buyable item 
+                if  item_being_bought == item["name"]:
+                    # Sets variables
+                    user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+                    user_won = user_profile.get("economy").get("won")
+                    user_inventory = user_profile.get("inventory")
+                    price = item["buy_price"] * amount
 
-                # Checks to see if the user has enough money
-                if user_won < price:
-                    return await ctx.send("Don't try to buy something if you're broke.")
-                
-                # Checks to see if the user already has the item in their inventory
-                for user_item in user_inventory:
-                    if user_item == item["name"]:
-                        database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount)
-                        database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=-price)
-                        update_quests(user_id=ctx.author.id, quest_id="buy_five_items", amount=amount)
-                        return await ctx.send(f"You bought {amount} {item['emoji']} {item["name"].replace("_", " ").title().replace("Xp", "XP")}(s).")
+                    # Checks to see if the user has enough money
+                    if user_won < price:
+                        return await ctx.send("Don't try to buy something if you're broke.")
+                    
+                    # Checks to see if the user already has the item in their inventory
+                    for user_item in user_inventory:
+                        if user_item == item["name"]:
+                            database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount)
+                            database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=-price)
+                            update_quests(user_id=ctx.author.id, quest_id="buy_five_items", amount=amount)
+                            return await ctx.send(f"You bought {amount} {item['emoji']} {item["name"].replace("_", " ").title().replace("Xp", "XP")}(s).")
 
-                # Adds the item to the user's inventory if they don't already have it
-                database_handler.add_item(user_id=ctx.author.id, item=item_being_bought)
-                database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount)
-                database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=-price)
-                update_quests(user_id=ctx.author.id, quest_id="buy_five_items", amount=amount)
-                return await ctx.send(f"You bought {amount} {item['emoji']} {item['name'].replace("_", " ").title().replace("Xp", "XP")}(s).")
+                    # Adds the item to the user's inventory if they don't already have it
+                    database_handler.add_item(user_id=ctx.author.id, item=item_being_bought)
+                    database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=amount)
+                    database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=-price)
+                    update_quests(user_id=ctx.author.id, quest_id="buy_five_items", amount=amount)
+                    return await ctx.send(f"You bought {amount} {item['emoji']} {item['name'].replace("_", " ").title().replace("Xp", "XP")}(s).")
 
-        # Runs if the item isn't found in the buyable item database   
-        return await ctx.send("You really think this is an item?")
+            # Runs if the item isn't found in the buyable item database   
+            return await ctx.send("You really think this is an item?")
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while buying an item on line {line_num}")
 
     # Allows users to sell an item    
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
@@ -403,113 +441,131 @@ class Economy(commands.Cog):
         except Exception as e:
             return await ctx.send("How many times do I have to tell you what the correct format is?: `?sell <item name> <amount>`")
 
-        sellable_items = list(database_handler.items.find({"sell_price": {"$exists": True}}))
+        try:
+            sellable_items = list(database_handler.items.find({"sell_price": {"$exists": True}}))
 
-        if amount < 1:
-            return await ctx.send("Doesn't work like that.")
+            if amount < 1:
+                return await ctx.send("Doesn't work like that.")
 
-        for item in sellable_items:
-            # Checks to see if the item being sold is an actual sellable item
-            if  item_being_sold == item["name"]:
-                # Sets the variable name
-                user_profile = database_handler.users.find_one({"_id": ctx.author.id})
-                user_inventory = user_profile.get("inventory")
-                sell_amount = item["sell_price"] * amount
+            for item in sellable_items:
+                # Checks to see if the item being sold is an actual sellable item
+                if  item_being_sold == item["name"]:
+                    # Sets the variable name
+                    user_profile = database_handler.users.find_one({"_id": ctx.author.id})
+                    user_inventory = user_profile.get("inventory")
+                    sell_amount = item["sell_price"] * amount
 
-                # Checks to see if the item is in the user's inventory
-                if user_inventory.get(item["name"]) is None:
-                    return await ctx.send("You don't even have enough...")
-                elif user_inventory.get(item["name"]).get("amount") < amount:
-                    return await ctx.send("You don't even have enough...")
-                
-                # Removes the number of items from the inventory and handles any potential quests
-                database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=-amount)
-                database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=sell_amount)
-                update_quests(user_id=ctx.author.id, quest_id="sell_five_items", amount=amount)
-                update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_won", amount=sell_amount)
-                return await ctx.send(f"You sold {amount} {item["emoji"]} {item["name"].replace("_", " ").title().replace("Xp", "XP")}(s).")
-        
-        return await ctx.send("What gave you the bright idea to try and pass this off as a valid item?")
+                    # Checks to see if the item is in the user's inventory
+                    if user_inventory.get(item["name"]) is None:
+                        return await ctx.send("You don't even have enough...")
+                    elif user_inventory.get(item["name"]).get("amount") < amount:
+                        return await ctx.send("You don't even have enough...")
                     
+                    # Removes the number of items from the inventory and handles any potential quests
+                    database_handler.inc_value_to_users(user_id=ctx.author.id, key=f"inventory.{item['name']}.amount", value=-amount)
+                    database_handler.inc_value_to_users(user_id=ctx.author.id, key="economy.won", value=sell_amount)
+                    update_quests(user_id=ctx.author.id, quest_id="sell_five_items", amount=amount)
+                    update_quests(user_id=ctx.author.id, quest_id="earn_five_thousand_won", amount=sell_amount)
+                    return await ctx.send(f"You sold {amount} {item["emoji"]} {item["name"].replace("_", " ").title().replace("Xp", "XP")}(s).")
+            
+            return await ctx.send("What gave you the bright idea to try and pass this off as a valid item?")
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while selling an item on line {line_num}")
+     
     # Allows users to trade with one another
     @commands.command(help = "This command lets you trade items and money with another player. The format for this command is `?trade <user> [your offer] [their offer]`. The offer should be formatted like this: [<money amount>, <item name^amount>]' So if you wanted to trade 2 epic shards and a raid token for 1000 won and a standard ticket, the command would look like this: ?trade <user> [epic shard^2, raid token^1] [1000, standard ticket^1]")
     async def trade(self, ctx, *, arg: TradeArgumentConverter):
-        # Sets the variables based off of the converted argument
-        target_user, offers, receives = arg
+        try:
+            # Sets the variables based off of the converted argument
+            target_user, offers, receives = arg
 
-        # Makes sure the target is valid and neither users are in a trade already
-        if target_user is None:
-            return await ctx.send("Not a valid user.")
+            # Makes sure the target is valid and neither users are in a trade already
+            if target_user is None:
+                return await ctx.send("Not a valid user.")
 
-        if target_user == ctx.author or target_user.bot:
-            return await ctx.send("Enter a valid user.")
-        
-        if database_handler.users.find_one({"_id": target_user.id}).get("in_trade") or database_handler.users.find_one({"_id": ctx.author.id}).get("in_trade"):
-            return await ctx.send("One of you is already in a trade. Pay attention.")
+            if target_user == ctx.author or target_user.bot:
+                return await ctx.send("Enter a valid user.")
+            
+            if database_handler.users.find_one({"_id": target_user.id}).get("in_trade") or database_handler.users.find_one({"_id": ctx.author.id}).get("in_trade"):
+                return await ctx.send("One of you is already in a trade. Pay attention.")
 
-        # Turns the arguments into lists containing the item and amount being trade
-        trade_offered = offers[1:-1].split(", ")
-        trade_received= receives[1:-1].split(", ")
+            # Turns the arguments into lists containing the item and amount being trade
+            trade_offered = offers[1:-1].split(", ")
+            trade_received= receives[1:-1].split(", ")
 
-        # Gets rid of any whitespace in the list
-        for i, offer in enumerate(trade_offered):
-            if trade_offered[i] == "":
-                trade_offered.pop(i)
-        
-        for i, offer in enumerate(trade_received):
-            if trade_received[i] == "":
-                trade_received.pop(i)
+            # Gets rid of any whitespace in the list
+            for i, offer in enumerate(trade_offered):
+                if trade_offered[i] == "":
+                    trade_offered.pop(i)
+            
+            for i, offer in enumerate(trade_received):
+                if trade_received[i] == "":
+                    trade_received.pop(i)
 
-        # Returns a dictionary containing the offers of each side and any errors passed through
-        trade_offered_dictionary, error_offer = trade_handler.handle_offer(trade_offered, ctx, ctx.author.id)
-        trade_received_dictionary,  error_received = trade_handler.handle_offer(trade_received, ctx, target_user.id)
+            # Returns a dictionary containing the offers of each side and any errors passed through
+            trade_offered_dictionary, error_offer = await trade_handler.handle_offer(trade_offered, ctx, ctx.author.id)
+            trade_received_dictionary,  error_received = await trade_handler.handle_offer(trade_received, ctx, target_user.id)
 
-        if trade_offered_dictionary == "Error occurred":
-            return await ctx.send(error_offer)
-        elif trade_received_dictionary == "Error occurred":
-            return await ctx.send(error_received)
-        
-        # Creates an embed display the trade
-        embed = discord.Embed(title=f"{ctx.author} has sent {target_user} a trade!", color= discord.Color.dark_purple())  
-        embed.set_author(name="Trade Offer")
-        embed.set_thumbnail(url=ctx.author.display_avatar)
+            if trade_offered_dictionary == "Error occurred":
+                return await ctx.send(error_offer)
+            elif trade_received_dictionary == "Error occurred":
+                return await ctx.send(error_received)
+            
+            # Creates an embed display the trade
+            embed = discord.Embed(title=f"{ctx.author} has sent {target_user} a trade!", color= discord.Color.dark_purple())  
+            embed.set_author(name="Trade Offer")
+            embed.set_thumbnail(url=ctx.author.display_avatar)
 
-        embed.add_field(name=f"{ctx.author}'s Offer",
-                        value="\n".join(f"`{k}: {v}`" for k, v in trade_offered_dictionary.items()),
-                        inline=False)
-        embed.add_field(name=f"{target_user}'s Offer",
-                        value="\n".join(f"`{k}: {v}`" for k, v in trade_received_dictionary.items()))
-        
-        embed.set_footer(text="Be wary of unfair trades and scams!")
+            embed.add_field(name=f"{ctx.author}'s Offer",
+                            value="\n".join(f"`{k}: {v}`" for k, v in trade_offered_dictionary.items()),
+                            inline=False)
+            embed.add_field(name=f"{target_user}'s Offer",
+                            value="\n".join(f"`{k}: {v}`" for k, v in trade_received_dictionary.items()))
+            
+            embed.set_footer(text="Be wary of unfair trades and scams!")
 
-        # Sets the users to be in a trade
-        database_handler.users.update_one({"_id": target_user.id}, {"$set": {"in_trade": True}})
-        database_handler.users.update_one({"_id": ctx.author.id}, {"$set": {"in_trade": True}})
+            # Sets the users to be in a trade
+            database_handler.users.update_one({"_id": target_user.id}, {"$set": {"in_trade": True}})
+            database_handler.users.update_one({"_id": ctx.author.id}, {"$set": {"in_trade": True}})
 
-        # Sends the embed and the buttons for the trade
-        return await ctx.send(embed=embed, view=trade_handler.TradeView(offerer_user=ctx.author, ctx = ctx, receiver_user=target_user, trade_offered=trade_offered_dictionary, trade_received=trade_received_dictionary))
+            # Sends the embed and the buttons for the trade
+            return await ctx.send(embed=embed, view=trade_handler.TradeView(offerer_user=ctx.author, ctx = ctx, receiver_user=target_user, trade_offered=trade_offered_dictionary, trade_received=trade_received_dictionary))
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while a user was trading on line {line_num}")
 
     @commands.command(help = "This command gives you double your ELO in won every 12 hours.")
     async def eloclaim(self, ctx):
-        user_id = ctx.author.id
-        # Checks to see if the user has a profile or not
-        if not await database_handler.check_existing_profile(ctx=ctx, user_id=user_id):
-            return
-        
-        user_profile = database_handler.users.find_one({"_id": user_id})
-        
-        # Checks whether they user has already claimed their daily reward or not
-        if user_profile.get('timers').get('eloclaim', 0) != 0:
-            return await ctx.send("You already claimed your ELO reward, stupid.")
-        
-        # Gets the elo score and adds it to the user balance
-        elo_score = user_profile.get('elo').get('score') * 2
+        try:
+            user_id = ctx.author.id
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=user_id):
+                return
+            
+            user_profile = database_handler.users.find_one({"_id": user_id})
+            
+            # Checks whether they user has already claimed their daily reward or not
+            if user_profile.get('timers').get('eloclaim', 0) != 0:
+                return await ctx.send("You already claimed your ELO reward, stupid.")
+            
+            # Gets the elo score and adds it to the user balance
+            elo_score = user_profile.get('elo').get('score') * 2
 
-        database_handler.inc_value_to_users(user_id=user_id, key="economy.won", value=elo_score)
+            database_handler.inc_value_to_users(user_id=user_id, key="economy.won", value=elo_score)
 
-        Timer(user_id=user_id, name="eloclaim", starttime=round(time.time()), timer_length = 60 * 60 * 12).create_timer()
+            Timer(user_id=user_id, name="eloclaim", starttime=round(time.time()), timer_length = 60 * 60 * 12).create_timer()
 
-        await ctx.send(f"You have claimed ₩{elo_score}. Please check again in 12 hours to claim again!")
+            await ctx.send(f"You have claimed ₩{elo_score}. Please check again in 12 hours to claim again!")
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while someone tried to claim their elo pointson line {line_num}")
 
 
     @eloclaim.error

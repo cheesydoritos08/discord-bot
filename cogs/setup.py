@@ -62,7 +62,10 @@ class Setup(commands.Cog):
         except asyncio.TimeoutError:
             return await ctx.send("Command timed out. Try again.")
         except Exception as e:
-            create_error_embed(error=e, ctx=ctx, msg="This occured while someone tried to add a prefix to a server.")
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(error=e, ctx=ctx, msg="This occured while someone tried to add a prefix to a server.")
 
     @commands.command(help="With this command, you can remove a prefix from your server! Prefixes are case sensitive and must be wrapped in brackets ([]) when using the command. You must have admin permissions to use this command.",
                       name="removeprefix",
@@ -120,7 +123,11 @@ class Setup(commands.Cog):
         except asyncio.TimeoutError:
             return await ctx.send("Command timed out.")
         except Exception as e:
-            create_error_embed(error=e, ctx=ctx)
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while removing a server prefix on line {line_num}")
+
 
 
     @remove_prefix.error

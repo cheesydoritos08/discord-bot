@@ -13,63 +13,77 @@ class Help(commands.Cog):
 
     @commands.command(help="This command gives you a list of all the commands available for users!")
     async def help(self, ctx, command=None):
-        # Sets the variables
-        help_embed = discord.Embed(title="Commands", color=0x14545d)
-        cogs_list = [x for x in dict(self.bot.cogs).keys()]
-        command_names_list = [x.name for x in self.bot.commands]
+        try:
+            # Sets the variables
+            help_embed = discord.Embed(title="Commands", color=0x14545d)
+            cogs_list = [x for x in dict(self.bot.cogs).keys()]
+            command_names_list = [x.name for x in self.bot.commands]
 
-        # If there are no arguments, just list the commands:
-        if not command:
-            for cog in cogs_list:
-                if cog == "Owner_Commands":
-                    continue
+            # If there are no arguments, just list the commands:
+            if not command:
+                for cog in cogs_list:
+                    if cog == "Owner_Commands":
+                        continue
+
+                    help_embed.add_field(
+                        name=f"{cog.replace("_", " ")}",
+                        value=" ".join([f'`{str(x)}`' for x in self.bot.commands if x.cog_name == cog]),
+                        inline=False
+                )
 
                 help_embed.add_field(
-                    name=f"{cog.replace("_", " ")}",
-                    value=" ".join([f'`{str(x)}`' for x in self.bot.commands if x.cog_name == cog]),
+                    name="Details",
+                    value="Type `?help <command name>` for more details about each command.",
                     inline=False
-            )
+                )
 
-            help_embed.add_field(
-                name="Details",
-                value="Type `?help <command name>` for more details about each command.",
-                inline=False
-            )
+            # If the argument is a command, get the help text from that command:
+            elif command in command_names_list:
+                all_aliases = " , ".join(self.bot.get_command(command).aliases) or "None"
+                help_embed.add_field(
+                    name=command,
+                    value=f"**Other names for the command:** {all_aliases}\n **Description:** {self.bot.get_command(command).help}"
+                )
 
-        # If the argument is a command, get the help text from that command:
-        elif command in command_names_list:
-            all_aliases = " , ".join(self.bot.get_command(command).aliases) or "None"
-            help_embed.add_field(
-                name=command,
-                value=f"**Other names for the command:** {all_aliases}\n **Description:** {self.bot.get_command(command).help}"
-            )
+            # If someone is just trolling:
+            else:
+                help_embed.add_field(
+                    name="Invalid command.",
+                    value="Can't help you if it doesn't exist now can I?"
+                )
 
-        # If someone is just trolling:
-        else:
-            help_embed.add_field(
-                name="Invalid command.",
-                value="Can't help you if it doesn't exist now can I?"
-            )
+            await ctx.send(embed=help_embed)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
 
-        await ctx.send(embed=help_embed)
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while using the help command on line {line_num}")
+
 
     # Sends a tutorial to the user when user types $tutorial
     @commands.command(aliases=['tut'], 
                       help='This command gives you a tutorial of the bot! Very useful c:')
     async def tutorial(self, ctx):
-        # Creates an embed for the tutorial
-        embed = discord.Embed(
-            title='Welcome to the Lookism Bot!',
-            description="Welcome to the Lookism Bot! This tutorial goes the core mechanics of the bot so feel free to revisit it as much as you want! If you ever want to find out more about a command, use the ?help command. (Pictures are unrelated to the tutorial, they just look cool. All credits go to the original creators.)",
-            color=discord.Color.purple(),
-        )
-        embed.set_image(url='https://i.pinimg.com/736x/80/e0/ac/80e0ace80f573d27333a042e6e51d211.jpg')
+        try:
+            # Creates an embed for the tutorial
+            embed = discord.Embed(
+                title='Welcome to the Lookism Bot!',
+                description="Welcome to the Lookism Bot! This tutorial goes the core mechanics of the bot so feel free to revisit it as much as you want! If you ever want to find out more about a command, use the ?help command. (Pictures are unrelated to the tutorial, they just look cool. All credits go to the original creators.)",
+                color=discord.Color.purple(),
+            )
+            embed.set_image(url='https://i.pinimg.com/736x/80/e0/ac/80e0ace80f573d27333a042e6e51d211.jpg')
 
-        # Sends the tutorial to the user's DMs
-        user_id = ctx.author.id
-        await ctx.author.send(embed=embed, view=TutorialButton())
-        await ctx.send('Check DMs.')
-        database_handler.create_new_profile(user_id)
+            # Sends the tutorial to the user's DMs
+            user_id = ctx.author.id
+            await ctx.author.send(embed=embed, view=TutorialButton())
+            await ctx.send('Check DMs.')
+            database_handler.create_new_profile(user_id)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while running the tutorial command on line {line_num}")
+
 
     @tutorial.error
     @help.error

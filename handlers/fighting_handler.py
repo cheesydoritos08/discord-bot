@@ -7,8 +7,6 @@ from utils.utility_functions import check_boosts, update_quests, create_error_em
 from utils.buttons import GameFighterButton, GameItemButton
 import handlers.database_handler as database_handler
 
-# MAKE RAIDS AND GAME MORE CONSISTENT
-
 class GameInstance:
     # Initializes all the information needed throughout the game
     def __init__(self, ctx, bot, game_type):
