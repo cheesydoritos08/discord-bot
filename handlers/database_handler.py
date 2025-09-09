@@ -57,6 +57,7 @@ def create_new_profile(user_id):
             'in_challenge': False,
             'in_trade': False,
             'in_raid': False,
+            'in_boss_raid': False,
 
             'all_quests_complete': False,
             'raid_level': 1,

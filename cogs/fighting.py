@@ -6,10 +6,11 @@ import sys
 from utils.utility_functions import cooldown_calculator, create_error_embed
 import handlers.database_handler as database_handler
 import handlers.fighting_handler as fighting_handler
+import handlers.boss_raid_handler as boss_raid_handler
 
 
 class Fighting(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot : commands.Bot):
         self.bot = bot
         self.warned_cooldown_users = set()
 
@@ -142,7 +143,84 @@ class Fighting(commands.Cog):
             line_num = exc_traceback.tb_lineno
 
             await create_error_embed(ctx=ctx, error=e, msg=f"This occured while a user was starting a raid on line {line_num}")
+
+    @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
+    @commands.command(name="bossraid",
+                      help="This command allows you to start a raid. The format for this command is `?raid <level> (Optional)`. If you decide to put in a level, it will start you off at that level as long as you've already completed it once. Else, the command will start you off at your current level.")
+    async def boss_raid(self, ctx, player_two : discord.Member, player_three : discord.Member):
+        try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
+            # Checks to see if the player two has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=player_two.id, another_user=True):
+                return
+            
+            # Checks to see if the player three has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=player_three.id, another_user=True):
+                return
+            
+            # Gets the character the player will use in the raid
+            async def get_character(player : discord.Member):
+                await ctx.send(f"{player.mention}, type the full name of the character you would like to use. Supports can't be used in boss raids.")
+
+                def check(m):
+                    return m.channel == ctx.channel and m.author == player
+                
+                msg = await self.bot.wait_for('message', check=check, timeout=15.0)
     
+                character = database_handler.user_character_finder(user_id = player.id, character_name = msg.content.title())
+
+                if character is None:
+                    return await ctx.send("Invalid character. Try again later.")
+                
+                elif character['class'] == "Support":
+                    return await ctx.send("Supports can't be used in raids.")
+                
+                return character
+        
+            def set_in_boss_raid_to_true():
+                database_handler.users.update_one({"_id": ctx.author.id}, {"in_boss_raid": True})
+                database_handler.users.update_one({"_id": player_two.id}, {"in_boss_raid": True})
+                database_handler.users.update_one({"_id": player_three.id}, {"in_boss_raid": True})
+
+            # Holds the characters player will use in the raid
+            player_one_character = await get_character(player = ctx.author)
+            player_two_character = await get_character(player = player_two)
+            player_three_character = await get_character(player = player_three)
+
+            # Checks to see what boss they will be raiding against
+            await ctx.send(f"{ctx.author.mention}, please enter the full name of the boss you would like to fight. (Gun Park, Goo Kim, Kitae Kim)")
+
+            def check(m):
+                return m.channel == ctx.channel and m.author == ctx.author
+                
+            msg = await self.bot.wait_for('message', check=check, timeout=10.0)
+
+            # Checks to make sure the name entered is an eligible boss
+            boss_character = database_handler.all_characters_search(key = 'name', query = msg.content.title())
+
+            if boss_character == []:
+                return await ctx.send("Not a valid boss")
+            
+            elif boss_character['name'] == "Gun Park" or boss_character['name'] == "Goo Kim" or boss_character['name'] == "Kitae Kim":
+                set_in_boss_raid_to_true()
+                boss_raid = boss_raid_handler.BossRaidInstance(ctx = ctx, boss_character = boss_character, player_one = ctx.author, player_two = player_two, player_three = player_three, player_one_character = player_one_character, player_two_character = player_two_character, player_three_character = player_three_character)
+                return await ctx.send(embed=boss_raid.create_embed())
+            else:
+                return await ctx.send("Not a valid boss")
+
+
+        except asyncio.TimeoutError as e:
+            return await ctx.send("You took too long to respond.")
+        
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
+            line_num = exc_traceback.tb_lineno
+
+            await create_error_embed(ctx=ctx, error=e, msg=f"This occured while a user was starting a boss raid on line {line_num}")
+       
     # Adds a character to a team
     @commands.cooldown(rate=1, per=2, type=commands.BucketType.user)
     @commands.command(name='addteammember', 

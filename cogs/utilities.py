@@ -154,6 +154,10 @@ class Utilites(commands.Cog):
                       help="This command sends a link to invite the bot to your server and for you to join the bot's official server!")
     async def invite_bot(self, ctx):
         try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
             # Creates an embed with buttons to invite the bot to the server
             view = InviteButton()
             embed = discord.Embed(title="Invites",

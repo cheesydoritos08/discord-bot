@@ -389,6 +389,10 @@ class Economy(commands.Cog):
             return await ctx.send("Do I really have to remind you to use the correct format?: `?buy <item name> <amount>`")
 
         try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
             buyable_items = list(database_handler.items.find({"buy_price": {"$exists": True}}))
 
             if amount < 1:
@@ -442,6 +446,10 @@ class Economy(commands.Cog):
             return await ctx.send("How many times do I have to tell you what the correct format is?: `?sell <item name> <amount>`")
 
         try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
             sellable_items = list(database_handler.items.find({"sell_price": {"$exists": True}}))
 
             if amount < 1:
@@ -489,6 +497,15 @@ class Economy(commands.Cog):
             if target_user == ctx.author or target_user.bot:
                 return await ctx.send("Enter a valid user.")
             
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
+            # Checks to see if the target user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=target_user.id, another_user=True):
+                return
+            
+
             if database_handler.users.find_one({"_id": target_user.id}).get("in_trade") or database_handler.users.find_one({"_id": ctx.author.id}).get("in_trade"):
                 return await ctx.send("One of you is already in a trade. Pay attention.")
 

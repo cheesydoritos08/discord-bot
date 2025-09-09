@@ -403,6 +403,10 @@ class User_Collection(commands.Cog):
     @commands.cooldown(rate=1, per=3, type=commands.BucketType.user)
     async def roll(self, ctx, *, banner=None):
         try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
             # Determines what happens depending on the banner chosen
             user = ctx.author
             user_profile = database_handler.users.find_one({'_id': user.id})
@@ -608,6 +612,10 @@ class User_Collection(commands.Cog):
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def user_character_collection(self, ctx, *, filter=None):
         try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
             # Gets the user id and the user characters
             user_id = ctx.author.id
             user_characters = database_handler.users.find_one({'_id': user_id}).get('characters')
@@ -637,6 +645,10 @@ class User_Collection(commands.Cog):
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def all_character_collection(self, ctx, *, filter=None):
         try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
             # Gets the user characters
             user_characters = database_handler.all_characters.find({})
 
@@ -690,6 +702,10 @@ class User_Collection(commands.Cog):
                       help="This command allows you to evolve your character to the next threshold if you meet the requirements. The format for this command is ?evolve <character name>")
     async def evolve_character(self, ctx, *, character=None):
         try:
+            # Checks to see if the user has a profile or not
+            if not await database_handler.check_existing_profile(ctx=ctx, user_id=ctx.author.id):
+                return
+            
             # Checks to see if an argument was passed
             if character is None:
                 return await ctx.send("Enter a character.")
