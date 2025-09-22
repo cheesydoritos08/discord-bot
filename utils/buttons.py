@@ -880,3 +880,7 @@ class CrewUpgradesButton(discord.ui.View):
             line_num = exc_traceback.tb_lineno
 
             await create_error_embed(ctx=self.ctx, error=e, msg=f"This occured while trying to press the next button on the upgrade crew requirements button on line {line_num}")
+
+class BossRaidActionView(discord.ui.View):
+    def __init__(self, *, timeout = 180):
+        super().__init__(timeout=timeout)

@@ -14,7 +14,7 @@ class Owner_Commands(commands.Cog):
     @commands.command(name = "lvlup")
     async def level_up(self, ctx, *, character_name):
         try:
-            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285 or ctx.author.id == 1414654749705371768:
                 xp = 50 * 2000
                 character_xp_level = database_handler.increment_character_xp(user_id=ctx.author.id, xp=xp, character=character_name, return_xp=True)
                     
@@ -30,7 +30,7 @@ class Owner_Commands(commands.Cog):
     @commands.command(name = "addchar")
     async def add_character(self, ctx, *, character_name):
         try:
-            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285 or ctx.author.id == 1414654749705371768:
                 user_id = ctx.author.id
 
                 user_character = database_handler.user_character_finder(user_id=user_id, character_name=character_name.strip().title())
@@ -55,7 +55,7 @@ class Owner_Commands(commands.Cog):
     @commands.command()
     async def load(self, ctx, extension):
         try:
-            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285 or ctx.author.id == 1414654749705371768:
                 await self.bot.load_extension(f'cogs.{extension}')
                 await ctx.send(f'Loaded {extension} cog')
         except Exception as e:
@@ -69,7 +69,7 @@ class Owner_Commands(commands.Cog):
     @commands.command(name="updchar")
     async def update_character(self, ctx, character, stat, value, convertToInt = ""):
         try:
-            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285 or ctx.author.id == 1414654749705371768:
                 if convertToInt.lower() == "t":
                     value = int(value)
             
@@ -88,7 +88,7 @@ class Owner_Commands(commands.Cog):
     @commands.command(name="unupdchar")
     async def un_update_character(self, ctx, character, stat):
         try:
-            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285 or ctx.author.id == 1414654749705371768:
             
                 database_handler.users.update_many({"characters.name": character.replace("_", " ").title().replace("Ui", "UI")}, {"$unset": {f"characters.$.{stat}": ""}})
                 database_handler.users.update_many({"team.name": character.replace("_", " ").title().replace("Ui", "UI")}, {"$unset": {f"team.$.{stat}": ""}})
@@ -104,7 +104,7 @@ class Owner_Commands(commands.Cog):
     @commands.command(name="updeffect")
     async def update_effects_in_support_characters(self, ctx, character, effect, key, value, convertValueToInt = ""):
         try:
-            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285 or ctx.author.id == 1414654749705371768:
                 if convertValueToInt.lower() == "true":
                     value = int(value)
 
@@ -133,7 +133,7 @@ class Owner_Commands(commands.Cog):
     @commands.command(name="unupdeffect")
     async def un_update_effects_in_support_characters(self, ctx, character, effect, key):
         try:
-            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285 or ctx.author.id == 1414654749705371768:
                 index = None
 
                 user_char = database_handler.users.find_one({"characters.name": character.replace("_", " ").title()}, { "characters.$": 1})
@@ -162,7 +162,7 @@ class Owner_Commands(commands.Cog):
     @commands.command()
     async def unload(self, ctx, extension):
         try:
-            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285 or ctx.author.id == 1414654749705371768:
                 await self.bot.unload_extension(f'cogs.{extension}')
                 await ctx.send(f'Unloaded {extension} cog')
         except Exception as e:
@@ -176,7 +176,7 @@ class Owner_Commands(commands.Cog):
     @commands.command()
     async def reload(self, ctx, extension):
         try:
-            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285 or ctx.author.id == 1414654749705371768:
                 await self.bot.reload_extension(f'cogs.{extension}')
                 await ctx.send(f'Reloaded {extension} cog')
         except Exception as e:
@@ -190,7 +190,7 @@ class Owner_Commands(commands.Cog):
     @commands.command(name="add")
     async def add_item(self, ctx, *, item):
         try:
-            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285:
+            if ctx.author.id == 867217023125553162 or ctx.author.id == 1031552625734324285 or ctx.author.id == 1414654749705371768:
                 database_handler.add_item(user_id= ctx.author.id, item=item)
                 await ctx.send(f"{item} has been added.")
         except Exception as e:

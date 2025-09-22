@@ -66,12 +66,13 @@ class User_Collection(commands.Cog):
         await self.bot.wait_until_ready()
 
     # Adds the newly rolled character to the player's inventory
-    async def add_character_to_inventory(self, rarity, user_id):
+    async def add_character_to_inventory(self, rarity, user_id, roll_type):
         # Chooses a character based off of the rarity
         try:
-            if self.current_legendary_of_the_week == "":
-                legendary_of_the_week_channel = self.bot.get_channel(1383692657238347806)
+            if self.current_legendary_of_the_week == "" and roll_type == "legendary":
+                legendary_of_the_week_channel = self.bot.get_channel(1383605542764679268)
                 last_message_sent = await legendary_of_the_week_channel.fetch_message(legendary_of_the_week_channel.last_message_id)
+                print(last_message_sent.embeds)
                 last_legendary_of_the_week = last_message_sent.embeds[0].footer.text
 
                 self.current_legendary_of_the_week = last_legendary_of_the_week
@@ -145,7 +146,7 @@ class User_Collection(commands.Cog):
             update_quests(user_id=user_id, quest_id="roll_standard_banner", amount=1)
 
 
-            return self.add_character_to_inventory(rarity=rarity, user_id=user_id)
+            return await self.add_character_to_inventory(rarity=rarity, user_id=user_id, roll_type="standard")
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
             line_num = exc_traceback.tb_lineno
@@ -197,7 +198,7 @@ class User_Collection(commands.Cog):
 
             update_quests(user_id=user_id, quest_id="roll_limited_banner", amount=1)
 
-            return self.add_character_to_inventory(rarity=chosen_rarity, user_id=user_id)
+            return await self.add_character_to_inventory(rarity=chosen_rarity, user_id=user_id, roll_type="legendary")
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
             line_num = exc_traceback.tb_lineno
@@ -444,7 +445,7 @@ class User_Collection(commands.Cog):
                     
 
                 # Gets the character rolled on the banner and checks if it's a duplicate
-                character, is_duplicate = self.standard_banner_roll(user.id)
+                character, is_duplicate = await self.standard_banner_roll(user.id)
 
             # Runs when the user selected limited time banner
             elif banner.lower() == 'limited':
@@ -469,7 +470,7 @@ class User_Collection(commands.Cog):
                     
 
                 # Gets the character rolled on the banner
-                character, is_duplicate = self.limited_time_banner_roll(user_id=user.id)
+                character, is_duplicate = await self.limited_time_banner_roll(user_id=user.id)
 
                 # Gets the pity of the user
                 user_profile = database_handler.users.find_one({'_id': user.id})
@@ -495,26 +496,26 @@ class User_Collection(commands.Cog):
                 bar_color = discord.Color.green()
                 thumbnail_url = 'https://files.catbox.moe/fen419.png'
                 if not is_duplicate:
-                    update_user_profile_stats(rarity=character["rarity"])
+                    await update_user_profile_stats(rarity=character["rarity"])
 
             elif character['rarity'] == 'Rare':
                 bar_color = discord.Color.blue()
                 thumbnail_url = 'https://files.catbox.moe/5s6egv.png'
                 if not is_duplicate:
-                    update_user_profile_stats(rarity=character["rarity"])
+                    await update_user_profile_stats(rarity=character["rarity"])
 
             elif character['rarity'] == 'Epic':
                 bar_color = discord.Color.purple()
                 thumbnail_url = 'https://files.catbox.moe/xt0w36.png'
                 if not is_duplicate:
-                    update_user_profile_stats(rarity=character["rarity"])
+                    await update_user_profile_stats(rarity=character["rarity"])
 
             else:
                 thumbnail_url = 'https://files.catbox.moe/8hy2hm.png'
                 bar_color = discord.Color.gold()
                 database_handler.users.update_one({"_id": user.id}, {"$set": {"pity": 0}})
                 if not is_duplicate:
-                    update_user_profile_stats(rarity=character["rarity"])
+                    await update_user_profile_stats(rarity=character["rarity"])
 
             # Creates the embed and sends it
             if character['class'] == 'Support':
@@ -822,10 +823,10 @@ class User_Collection(commands.Cog):
 
             # Evolves the character
             if user_character['class'] != "Support":
-                self.evolve_fighter_character(user_id=ctx.author.id, character=user_character)
+                await self.evolve_fighter_character(user_id=ctx.author.id, character=user_character)
                 return await ctx.send(f"{user_character['name']} has been evolved")
             else:
-                self.evolve_support_character(user_id=ctx.author.id, character=user_character)
+                await self.evolve_support_character(user_id=ctx.author.id, character=user_character)
                 return await ctx.send(f"{user_character['name']} has been evolved")
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info() # most recent (if any) by default
